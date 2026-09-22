@@ -17,7 +17,7 @@ The goal is not maximum scope. The goal is a small, unusually polished game with
 
 - GitHub account connected: `aliiqbal24`
 - Atlas jam workspace: accessible; 2,600 credits claimed (2,000 campaign + 600 trial)
-- Vercel: connected; production deployment configured
+- Vercel: connected; production remains on the last approved build while development is local
 - Concept: **No free lunch theorem** — cheerful robot bureaucracy causes the apocalypse over a stolen lunch
 - Source repository: https://github.com/aliiqbal24/no-lunch-left-behind
 - First eligible commit: `3011074` (after the jam cutoff)
@@ -37,7 +37,7 @@ Controls:
 - Swipe down to slide.
 - Keyboard fallback: arrows or WASD.
 
-For scene review, append `?dev=1` to the live URL. This reveals a small pause/resume button during the runs and interludes; `P` toggles it on a keyboard. The control also appears automatically when serving the game on localhost.
+For current scene review, open the [local development build](http://localhost:8080/__game__/game/) and refresh after edits. It reveals a small pause/resume button during runs and interludes; `P` toggles it on a keyboard. The public Vercel URL can lag local development by design. `?dev=1` reveals the pause button on a non-local preview.
 
 The complete run is a compact five-part story:
 
@@ -51,6 +51,8 @@ There is no game-over interruption: hits cost three percentage points of humanit
 
 ## Project documents
 
+- [Current task board](docs/NOW.md)
+- [Parallel Codex workflow](docs/COLLABORATION.md)
 - [Submission plan](docs/SUBMISSION_PLAN.md)
 - [Rules checklist](docs/RULES_CHECKLIST.md)
 - [Concept scorecard](docs/CONCEPT_SCORECARD.md)

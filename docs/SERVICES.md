@@ -9,9 +9,9 @@ Do not commit passwords, access tokens, API keys, personal email addresses, or o
 - Connected identity: `aliiqbal24`
 - Competition repository is readable.
 - Public game repository: https://github.com/aliiqbal24/no-lunch-left-behind
-- Local `main` tracks `origin/main`; the first three jam commits are pushed.
+- Local `main` tracks `origin/main`. Integration decides when to push reviewed commits.
 - Competition fork and submission pull request remain intentionally deferred until the final build is locked.
-- Intended use: public source, real commit history, competition fork, and submission pull request.
+- Intended use: this repository is the final public game source with real commit history. The separate competition fork is only for its entry JSON and submission pull request.
 
 ### Atlas Studio
 
@@ -28,6 +28,7 @@ Do not commit passwords, access tokens, API keys, personal email addresses, or o
 - Project: `no-lunch-left-behind`
 - Stable URL: https://no-lunch-left-behind.vercel.app
 - The first production deployment was created from the verified `game/` directory.
+- The project's Git settings were checked on 2026-09-22: it is **not connected to a Git repository**. Pushing this game's GitHub `main` does not trigger a Vercel deployment; deployment remains manual.
 - This environment can create deployments and inspect projects, deployments, logs, and errors.
 - Intended use: static production hosting tied to the exact submitted source commit.
 
@@ -47,7 +48,8 @@ Fallback: GitHub Pages. It is a good zero-dependency static host and aligns with
 
 ## Deployment guardrails
 
-- Deploy early, on the first day of implementation.
+- Keep development and playtesting on the local preview until the project owner approves a release.
+- Only the integration session deploys. Recheck the Git connection before pushing if anyone later changes Vercel project settings.
 - Use a stable production URL for the submission.
 - Record the exact source commit for every gate run.
 - Confirm the deployment contains that exact commit before pasting the verdict.

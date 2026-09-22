@@ -59,6 +59,7 @@ node harness/jam.mjs https://DEPLOYED_URL/game/ --commit=EXACT_SHA
 
 ## Submission
 
+- [ ] Keep the public game source repository separate from the jam-entry fork.
 - [ ] Fork `404-Repo/404-game-jam`.
 - [ ] Add exactly one `entries/<slug>.json` based on `entries/_template.json`.
 - [ ] Provide title and matching slug.
@@ -80,4 +81,3 @@ node harness/jam.mjs https://DEPLOYED_URL/game/ --commit=EXACT_SHA
 - [ ] Team understands it retains ownership of the game.
 - [ ] Team accepts the non-exclusive promotional licence described in the rules.
 - [ ] Team accepts responsibility for applicable taxes.
-
