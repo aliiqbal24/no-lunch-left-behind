@@ -11,6 +11,7 @@ export class AudioEngine {
     this.beat = 0;
     this.timer = 0;
     this.act = 'city';
+    this.paused = false;
   }
 
   async start() {
@@ -53,7 +54,7 @@ export class AudioEngine {
   }
 
   tick() {
-    if (!this.enabled || document.hidden) return;
+    if (!this.enabled || this.paused || document.hidden) return;
     const notes = THEMES[this.act] || THEMES.city;
     const note = notes[this.beat % notes.length];
     const type = this.act === 'space' ? 'sine' : this.act === 'station' ? 'square' : 'triangle';
@@ -115,6 +116,15 @@ export class AudioEngine {
     window.setTimeout(() => {
       if (this.enabled) window.speechSynthesis.speak(line);
     }, 650);
+  }
+
+  setPaused(paused) {
+    this.paused = paused;
+    if (this.ctx) void (paused ? this.ctx.suspend() : this.ctx.resume());
+    if ('speechSynthesis' in window) {
+      if (paused) window.speechSynthesis.pause();
+      else window.speechSynthesis.resume();
+    }
   }
 
   toggle() {

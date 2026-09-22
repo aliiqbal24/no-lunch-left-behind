@@ -22,6 +22,8 @@ const actLabel = $('#actLabel');
 const damageFlash = $('#damageFlash');
 const impactCopy = $('#impactCopy');
 const muteButton = $('#mute');
+const devPauseButton = $('#devPause');
+const devPausedLabel = $('#devPaused');
 const sceneBanner = $('#sceneBanner');
 const sceneKicker = $('#sceneKicker');
 const sceneTitle = $('#sceneTitle');
@@ -42,12 +44,15 @@ const replayButton = $('#replay');
 const comicPanels = [...document.querySelectorAll('.comic-panel')];
 const comicCount = $('#comicCount');
 
-const TEST_MODE = new URLSearchParams(location.search).has('test');
-const START_SCENE = new URLSearchParams(location.search).get('scene');
+const params = new URLSearchParams(location.search);
+const TEST_MODE = params.has('test');
+const DEV_MODE = params.has('dev') || TEST_MODE || ['localhost', '127.0.0.1'].includes(location.hostname);
+const START_SCENE = params.get('scene');
 const ACT_DURATION = TEST_MODE ? 3.6 : 25;
 const CLIMB_DURATION = TEST_MODE ? 1.8 : 5;
 const DOCK_DURATION = TEST_MODE ? 1.5 : 3;
-const LANES = [-2.2, 0, 2.2];
+// The chase camera looks toward +Z, so screen-left is world +X.
+const LANES = [2.2, 0, -2.2];
 const WORLD_POPULATION = 8_000_000_000;
 const START_HUMANITY = 95;
 
@@ -124,6 +129,7 @@ const state = {
   survivors: Math.round(WORLD_POPULATION * START_HUMANITY / 100),
   inputCount: 0, fps: 60, lookBack: 0, climbProgress: 0,
   interludeElapsed: 0, dockSoundPlayed: false,
+  paused: false,
 };
 
 let player;
@@ -381,11 +387,13 @@ function showComic(index) {
 }
 
 function onGesture(kind) {
-  if (state.mode !== 'playing') return;
+  if (state.mode !== 'playing' || state.paused) return;
   state.inputCount += 1;
   audio.gesture(kind);
-  if (kind === 'left') state.targetLane = Math.max(-1, state.targetLane - 1);
-  if (kind === 'right') state.targetLane = Math.min(1, state.targetLane + 1);
+  // The City introduction faces the runner briefly; follow screen direction during that camera flip.
+  const screenLeftStep = camera.getWorldDirection(new THREE.Vector3()).z < 0 ? 1 : -1;
+  if (kind === 'left') state.targetLane = THREE.MathUtils.clamp(state.targetLane + screenLeftStep, -1, 1);
+  if (kind === 'right') state.targetLane = THREE.MathUtils.clamp(state.targetLane - screenLeftStep, -1, 1);
   if (kind === 'up' && state.jumpY < 0.04) {
     state.jumpVelocity = state.act === 'space' ? 9.8 : 8.6;
     state.slide = 0;
@@ -403,6 +411,24 @@ function onGesture(kind) {
 
 new SwipeInput(stick, onGesture);
 
+function syncDevPause() {
+  const available = DEV_MODE && ['playing', 'climb', 'docking'].includes(state.mode);
+  devPauseButton.classList.toggle('visible', available);
+  devPauseButton.classList.toggle('paused', state.paused);
+  devPauseButton.textContent = state.paused ? '▶' : 'Ⅱ';
+  devPauseButton.setAttribute('aria-label', state.paused ? 'Resume game' : 'Pause game');
+  devPauseButton.title = state.paused ? 'Resume game' : 'Pause game';
+  devPausedLabel.classList.toggle('visible', available && state.paused);
+  document.body.classList.toggle('dev-paused', state.paused);
+}
+
+function setDevPaused(paused) {
+  if (!DEV_MODE || !['playing', 'climb', 'docking'].includes(state.mode)) return;
+  state.paused = paused;
+  audio.setPaused(paused);
+  syncDevPause();
+}
+
 function resetRun() {
   state.hits = 0;
   state.humanity = START_HUMANITY;
@@ -419,6 +445,8 @@ function startGame() {
   [startScreen, climbScreen, dockingScreen, switchScreen, finale].forEach((screen) => screen.classList.remove('visible'));
   finale.classList.remove('done');
   resetRun();
+  state.paused = false;
+  audio.setPaused(false);
   audio.start();
   startAct(['city', 'space', 'station'].includes(START_SCENE) ? START_SCENE : 'city');
 }
@@ -426,6 +454,7 @@ function startGame() {
 function startAct(name) {
   const act = ACTS[name];
   state.mode = 'playing';
+  syncDevPause();
   state.act = name;
   state.elapsed = 0;
   state.lane = 0;
@@ -715,6 +744,7 @@ function finishPlayingAct() {
 
 function beginClimb() {
   state.mode = 'climb';
+  syncDevPause();
   state.interludeElapsed = 0;
   state.climbProgress = 0.06;
   clearObstacles();
@@ -734,7 +764,7 @@ function beginClimb() {
 }
 
 function registerClimbTap() {
-  if (state.mode !== 'climb') return;
+  if (state.mode !== 'climb' || state.paused) return;
   state.climbProgress = Math.min(1, state.climbProgress + 0.13);
   state.inputCount += 1;
   audio.gesture('up');
@@ -761,6 +791,7 @@ function finishClimb() {
 
 function beginDocking() {
   state.mode = 'docking';
+  syncDevPause();
   state.interludeElapsed = 0;
   state.dockSoundPlayed = false;
   clearObstacles();
@@ -788,6 +819,7 @@ function finishDocking() {
 
 function beginSwitch() {
   state.mode = 'switch';
+  syncDevPause();
   state.interludeElapsed = 0;
   clearObstacles();
   setWorld('switch');
@@ -838,7 +870,7 @@ function beginFinale() {
 function frame(now) {
   const rawDt = Math.min(0.1, Math.max(0.001, (now - lastTime) / 1000));
   lastTime = now;
-  if (!document.hidden) {
+  if (!document.hidden && !state.paused) {
     if (state.mode === 'playing') {
       state.elapsed += rawDt;
       state.totalElapsed += rawDt;
@@ -885,12 +917,12 @@ function frame(now) {
   if (fpsSamples.length > 30) fpsSamples.shift();
   state.fps = Math.round(fpsSamples.reduce((a, b) => a + b, 0) / fpsSamples.length);
 
-  rig.render(camera, rawDt);
+  rig.render(camera, state.paused ? 0 : rawDt);
   const actor = activeActor();
   window.__GAME__ = {
     pos: [actor?.position.x || 0, state.distance],
     fps: state.fps,
-    speed: state.mode === 'playing' ? ACTS[state.act].speed : 0,
+    speed: state.mode === 'playing' && !state.paused ? ACTS[state.act].speed : 0,
     score: state.survivors,
     over: state.mode === 'complete',
     draws: renderer.info.render.calls,
@@ -903,6 +935,7 @@ function frame(now) {
     survivors: state.survivors,
     hits: state.hits,
     inputCount: state.inputCount,
+    paused: state.paused,
   };
   requestAnimationFrame(frame);
 }
@@ -918,12 +951,19 @@ function resize() {
 
 window.addEventListener('resize', resize);
 startButton.addEventListener('click', startGame);
-replayButton.addEventListener('click', startGame);
+replayButton.addEventListener('click', () => window.location.reload());
 climbTap.addEventListener('click', registerClimbTap);
 climbScreen.addEventListener('pointerdown', (event) => {
   if (event.target !== climbTap) registerClimbTap();
 });
 masterTap.addEventListener('click', beginFinale);
+devPauseButton.addEventListener('click', () => setDevPaused(!state.paused));
+window.addEventListener('keydown', (event) => {
+  if (DEV_MODE && event.code === 'KeyP' && !event.repeat) {
+    event.preventDefault();
+    setDevPaused(!state.paused);
+  }
+});
 $('#comicPrev').addEventListener('click', () => showComic(comicIndex - 1));
 $('#comicNext').addEventListener('click', () => showComic(comicIndex + 1));
 muteButton.addEventListener('click', () => {

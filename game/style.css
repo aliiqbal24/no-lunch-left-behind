@@ -85,6 +85,12 @@ button { font:inherit; }
 @keyframes impact { 0%{opacity:0;transform:translate(-50%,-50%) rotate(-4deg) scale(.6)} 16%,62%{opacity:1;transform:translate(-50%,-50%) rotate(-2deg) scale(1)} 100%{opacity:0;transform:translate(-50%,-70%) rotate(1deg) scale(.92)} }
 
 #mute { position:fixed; z-index:50; right:max(12px,env(safe-area-inset-right)); bottom:var(--safe-bottom); padding:7px 10px; border:2px solid var(--ink); border-radius:999px; background:rgba(255,249,234,.82); color:var(--ink); font-size:10px; font-weight:1000; letter-spacing:.06em; }
+#devPause { position:fixed; z-index:52; top:calc(var(--safe-top) + 104px); right:max(14px,env(safe-area-inset-right)); display:none; width:44px; height:44px; padding:0; border:2px solid var(--ink); border-radius:12px; background:rgba(255,249,234,.55); color:var(--ink); font-size:22px; font-weight:900; cursor:pointer; backdrop-filter:blur(4px); }
+#devPause.visible { display:block; }
+#devPause.paused { background:rgba(255,249,234,.82); }
+#devPaused { position:fixed; z-index:51; top:calc(var(--safe-top) + 155px); right:max(14px,env(safe-area-inset-right)); display:none; padding:5px 7px; border-radius:6px; background:rgba(23,43,51,.7); color:var(--paper); font-size:9px; font-weight:900; letter-spacing:.06em; pointer-events:none; }
+#devPaused.visible { display:block; }
+body.dev-paused * { animation-play-state:paused!important; }
 
 .interlude-screen { color:var(--paper); background:linear-gradient(145deg,rgba(33,36,58,.86),rgba(107,91,149,.8)); }
 .interlude-screen::before { border-color:var(--paper); box-shadow:8px 8px 0 rgba(255,249,234,.22); }

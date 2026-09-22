@@ -4,15 +4,19 @@ export class SwipeInput {
     this.onGesture = onGesture;
     this.active = null;
     this.threshold = 28;
-    this.maxMs = 450;
     this.bind();
   }
 
   bind() {
     this.element.addEventListener('pointerdown', (event) => {
       if (!event.isPrimary) return;
-      this.active = { id: event.pointerId, x: event.clientX, y: event.clientY, at: performance.now() };
+      this.active = { id: event.pointerId, x: event.clientX, y: event.clientY, sent: false };
       this.element.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
+    });
+    this.element.addEventListener('pointermove', (event) => {
+      if (!this.active || event.pointerId !== this.active.id) return;
+      this.finish(event.clientX, event.clientY);
       event.preventDefault();
     });
     this.element.addEventListener('pointerup', (event) => {
@@ -38,14 +42,18 @@ export class SwipeInput {
   }
 
   finish(x, y) {
-    const elapsed = performance.now() - this.active.at;
+    if (this.active.sent) return;
     const dx = x - this.active.x;
     const dy = y - this.active.y;
     const ax = Math.abs(dx);
     const ay = Math.abs(dy);
-    if (elapsed > this.maxMs || Math.max(ax, ay) < this.threshold) return;
-    if (ax > ay * 1.15) this.onGesture(dx < 0 ? 'left' : 'right', 'touch');
-    else if (ay > ax * 1.15) this.onGesture(dy < 0 ? 'up' : 'down', 'touch');
+    if (Math.max(ax, ay) < this.threshold) return;
+    if (ax > ay * 1.15) {
+      this.active.sent = true;
+      this.onGesture(dx < 0 ? 'left' : 'right', 'touch');
+    } else if (ay > ax * 1.15) {
+      this.active.sent = true;
+      this.onGesture(dy < 0 ? 'up' : 'down', 'touch');
+    }
   }
 }
-

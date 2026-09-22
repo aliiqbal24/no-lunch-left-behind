@@ -37,6 +37,8 @@ Controls:
 - Swipe down to slide.
 - Keyboard fallback: arrows or WASD.
 
+For scene review, append `?dev=1` to the live URL. This reveals a small pause/resume button during the runs and interludes; `P` toggles it on a keyboard. The control also appears automatically when serving the game on localhost.
+
 The complete run is a compact five-part story:
 
 1. **Comic briefing** — a stolen lunch triggers an extremely thorough robot solution.
