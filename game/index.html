@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#f3a85f">
+  <title>No Lunch Left Behind — City Checkpoint</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./style.css">
+  <script type="importmap">
+  { "imports": {
+    "three": "./lib/vendor/three/three.module.js",
+    "three/addons/": "./lib/vendor/three/addons/"
+  } }
+  </script>
+</head>
+<body>
+  <canvas id="game" aria-label="No Lunch Left Behind game"></canvas>
+
+  <div id="loading" class="screen visible">
+    <div class="eyebrow">CITY CONTINUITY OFFICE</div>
+    <h1>NO LUNCH<br>LEFT BEHIND</h1>
+    <div class="loading-track"><div id="loadingFill"></div></div>
+    <p id="loadingText">processing catastrophe paperwork…</p>
+  </div>
+
+  <div id="start" class="screen">
+    <div class="memo">URGENT MEMO · FORM 404-B</div>
+    <h1>NO LUNCH<br>LEFT BEHIND</h1>
+    <p>Robots solved lunch theft by eliminating everyone who might steal lunch.</p>
+    <p class="mission">Reach the rocket. Save whoever is still on the spreadsheet.</p>
+    <button id="startb" class="primary">BEGIN UNSCHEDULED EVACUATION</button>
+    <div class="controls"><span>← → change lanes</span><span>↑ jump</span><span>↓ slide</span></div>
+  </div>
+
+  <div id="hud" aria-live="polite">
+    <div class="hud-label"><span>HUMANITY REMAINING</span><strong id="humanityLabel">95%</strong></div>
+    <div class="humanity-track"><div id="humanityFill"></div></div>
+    <div id="forecast">CURRENT FORECAST: SURPRISINGLY NOT ZERO</div>
+    <div id="actLabel">CITY RUN · GET TO THE ROCKET</div>
+  </div>
+
+  <div id="tutorial">
+    <div id="tutorialText">SWIPE TO CHANGE LANES</div>
+  </div>
+
+  <div id="damageFlash"></div>
+  <div id="impactCopy"></div>
+  <div id="stick" aria-label="Swipe control surface"></div>
+
+  <button id="mute" aria-label="Toggle sound">SOUND ON</button>
+
+  <div id="review" class="screen">
+    <div class="memo">CITY CHECKPOINT COMPLETE</div>
+    <h2 id="reviewResult">92% OF HUMANITY<br>STILL EMPLOYABLE</h2>
+    <p id="reviewDetail"></p>
+    <button id="replay" class="primary">RUN THE CITY AGAIN</button>
+    <p class="checkpoint">Development checkpoint: City Run only. Space and Station follow after approval.</p>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
+

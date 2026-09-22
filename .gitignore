@@ -1,6 +1,6 @@
-node_modules/
-dist/
+# Generated verification output (source assets stay tracked)
+game/assets/_verify/
+
+# Local deploy metadata and OS/editor noise
+.vercel/
 .DS_Store
-*.log
-coverage/
-tmp/

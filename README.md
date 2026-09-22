@@ -17,12 +17,26 @@ The goal is not maximum scope. The goal is a small, unusually polished game with
 
 - GitHub account connected: `aliiqbal24`
 - Atlas jam workspace: accessible; 2,600 credits claimed (2,000 campaign + 600 trial)
-- Vercel: connected; project not created yet
-- Concept: not yet selected
+- Vercel: connected; City Run preview deployment in progress
+- Concept: **No Lunch Left Behind** — cheerful robot bureaucracy causes the apocalypse over a stolen lunch
 - Source repository: local only
-- Deployment: not created
-- Gate status: not run
+- First eligible commit: `3011074` (after the jam cutoff)
+- Current checkpoint: Scene 1, City Run
+- Gate status: official mobile harness passes (390×844, real touch, throttled 4G/CPU)
 - Submission deadline: 25 September 2026, 23:59 UTC / 17:59 Edmonton time
+
+## Play the current checkpoint locally
+
+Serve the `game/` directory with any static web server and open it on a phone-sized viewport. The build is fully local: no CDN, runtime API, or external asset requests.
+
+Controls:
+
+- Swipe left/right to change lanes.
+- Swipe up to jump.
+- Swipe down to slide.
+- Keyboard fallback: arrows or WASD.
+
+The City Run lasts 25 seconds and always reaches the rocket. Hits reduce the humanity count instead of stopping the story.
 
 ## Project documents
 
@@ -31,6 +45,8 @@ The goal is not maximum scope. The goal is a small, unusually polished game with
 - [Concept scorecard](docs/CONCEPT_SCORECARD.md)
 - [Decision log](docs/DECISIONS.md)
 - [Services and deployment](docs/SERVICES.md)
+- [Visual style lock](docs/STYLE_LOCK.md)
+- [Asset provenance](docs/ASSET_PROVENANCE.md)
 
 ## Non-negotiable creative principles
 
