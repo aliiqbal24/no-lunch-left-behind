@@ -8,7 +8,9 @@ Do not commit passwords, access tokens, API keys, personal email addresses, or o
 
 - Connected identity: `aliiqbal24`
 - Competition repository is readable.
-- Submission fork and public game repository have not been created yet.
+- Public game repository: https://github.com/aliiqbal24/no-lunch-left-behind
+- Local `main` tracks `origin/main`; the first three jam commits are pushed.
+- Competition fork and submission pull request remain intentionally deferred until the final build is locked.
 - Intended use: public source, real commit history, competition fork, and submission pull request.
 
 ### Atlas Studio
@@ -23,7 +25,9 @@ Do not commit passwords, access tokens, API keys, personal email addresses, or o
 ### Vercel
 
 - Connected team: `alijiqbal24-gmailcoms-projects`
-- Existing projects: none
+- Project: `no-lunch-left-behind`
+- Stable URL: https://no-lunch-left-behind.vercel.app
+- The first production deployment was created from the verified `game/` directory.
 - This environment can create deployments and inspect projects, deployments, logs, and errors.
 - Intended use: static production hosting tied to the exact submitted source commit.
 
@@ -50,4 +54,3 @@ Fallback: GitHub Pages. It is a good zero-dependency static host and aligns with
 - Do not mutate the submitted production build after the final gate run.
 - Test from a clean browser session and the official 4G phone profile.
 - Keep all transferred assets below 10 MB in total.
-

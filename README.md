@@ -19,7 +19,7 @@ The goal is not maximum scope. The goal is a small, unusually polished game with
 - Atlas jam workspace: accessible; 2,600 credits claimed (2,000 campaign + 600 trial)
 - Vercel: connected; City Run deployed
 - Concept: **No Lunch Left Behind** — cheerful robot bureaucracy causes the apocalypse over a stolen lunch
-- Source repository: local only
+- Source repository: https://github.com/aliiqbal24/no-lunch-left-behind
 - First eligible commit: `3011074` (after the jam cutoff)
 - Current checkpoint: Scene 1, City Run
 - Live checkpoint: https://no-lunch-left-behind.vercel.app
