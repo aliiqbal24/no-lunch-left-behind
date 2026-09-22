@@ -1,6 +1,6 @@
 # 404 Game Jam Submission
 
-Planning and development workspace for Ali Iqbal's entry to the 404 Game Jam 001.
+Ali Iqbal's playable entry for the 404 Game Jam 001.
 
 ## Mission
 
@@ -17,16 +17,16 @@ The goal is not maximum scope. The goal is a small, unusually polished game with
 
 - GitHub account connected: `aliiqbal24`
 - Atlas jam workspace: accessible; 2,600 credits claimed (2,000 campaign + 600 trial)
-- Vercel: connected; City Run deployed
+- Vercel: connected; production deployment configured
 - Concept: **No Lunch Left Behind** — cheerful robot bureaucracy causes the apocalypse over a stolen lunch
 - Source repository: https://github.com/aliiqbal24/no-lunch-left-behind
 - First eligible commit: `3011074` (after the jam cutoff)
-- Current checkpoint: Scene 1, City Run
-- Live checkpoint: https://no-lunch-left-behind.vercel.app
-- Gate status: official mobile harness passes (390×844, real touch, throttled 4G/CPU)
+- Current build: complete pre-Atlas game, playable from comic opening to the Earth call
+- Live game: https://no-lunch-left-behind.vercel.app
+- Gate status: full game passes the official mobile harness (390×844, real touch, throttled 4G/CPU)
 - Submission deadline: 25 September 2026, 23:59 UTC / 17:59 Edmonton time
 
-## Play the current checkpoint locally
+## Play
 
 Serve the `game/` directory with any static web server and open it on a phone-sized viewport. The build is fully local: no CDN, runtime API, or external asset requests.
 
@@ -37,7 +37,15 @@ Controls:
 - Swipe down to slide.
 - Keyboard fallback: arrows or WASD.
 
-The City Run lasts 25 seconds and always reaches the rocket. Hits reduce the humanity count instead of stopping the story.
+The complete run is a compact five-part story:
+
+1. **Comic briefing** — a stolen lunch triggers an extremely thorough robot solution.
+2. **City Run** — survive 25 seconds of weaponized office and household objects, then reach the rocket.
+3. **Rocket ladder and Space Flight** — tap to climb, then dodge satellites and debris for 25 seconds.
+4. **Docking and Station Corridor** — connect with questionable confidence, then run for the master switch.
+5. **Finale** — stop the robots and take Earth's audio call.
+
+There is no game-over interruption: hits cost three percentage points of humanity, but the story always reaches its ending. The deliberately absurd worst-case floor is exactly 256 survivors.
 
 ## Project documents
 
@@ -48,7 +56,7 @@ The City Run lasts 25 seconds and always reaches the rocket. Hits reduce the hum
 - [Services and deployment](docs/SERVICES.md)
 - [Visual style lock](docs/STYLE_LOCK.md)
 - [Asset provenance](docs/ASSET_PROVENANCE.md)
-- [City Run review packet](review/README.md)
+- [Full-game review packet](review/README.md)
 
 ## Non-negotiable creative principles
 

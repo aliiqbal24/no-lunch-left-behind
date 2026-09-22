@@ -1,35 +1,39 @@
-# City Run checkpoint — review packet
+# Full pre-Atlas game — review packet
 
 Live build: https://no-lunch-left-behind.vercel.app
 
-Captured from the deployed build at a 390×844 touch viewport:
+The complete playable sequence is represented here at a 390×844 touch viewport:
 
-- [8-second gameplay clip](city-run-checkpoint.mp4)
-- [Mobile gameplay frame](city-run-mobile.png)
-- [Machine-readable official verdict](city-run-verdict.json)
+- [23-second accelerated full-game clip](full-game-pre-atlas.mp4)
+- [Comic opening](full-game-comic.png)
+- [City Run](full-game-city.png)
+- [Space Flight](full-game-space.png)
+- [Station Corridor](full-game-station.png)
+- [Earth call finale](full-game-finale.png)
+- [All 24 procedural assets](full-game-assets.png)
+- [Asset verifier report](full-game-assets.json)
+- [Machine-readable local full-game verdict](full-game-local-verdict.json)
 
 ## Official 404 jam harness result
 
 | Check | Result |
 | --- | ---: |
 | Overall | **PASS** |
-| Ready under throttling | 3.1 s / 20 s budget |
+| Ready under throttling | 4.1 s / 20 s budget |
 | Total game weight | 1.5 MB / 10 MB budget |
 | Real touch target | `#stick` dragged up and held |
-| Movement | 75.8 m / 1 m required |
-| Peak draw calls | 213 / 900 budget |
-| Peak triangles | 19,472 / 1,500,000 budget |
+| Movement | 77.5 m / 1 m required |
+| Peak draw calls | 190 / 900 budget |
+| Peak triangles | 21,000 / 1,500,000 budget |
 | Page errors | 0 |
 | Missing requests | 0 |
 | External dependencies | none |
 | Requests outside game folder | none |
 
-The harness reported 18 median FPS under software rendering and explicitly marks that number as non-verdict evidence. Device testing remains part of the polish pass.
+The harness reported 17 median FPS under software rendering and explicitly marks that number as non-verdict evidence. Device testing remains part of the polish pass.
 
-## Steering questions for this checkpoint
+## Review notes
 
-1. Does the opening robot-army look-back sell the premise quickly enough?
-2. Is the golden-hour city distinctive enough, or should we push saturation and comedy harder?
-3. Does the player read as a cute hoodie-wearing human at phone size?
-4. Is the humanity bar the right emotional feedback, or should hit copy carry more of the joke?
-
+- The clip uses the built-in accelerated QA mode so all acts fit in 23 seconds. Normal play uses the intended 25-second City, Space, and Station acts, a 5-second ladder, and a 3-second docking beat.
+- The prior City-only checkpoint files remain in this folder as development evidence.
+- Atlas credits are untouched. This is the baseline to play before choosing which scene deserves an Atlas refinement pass.

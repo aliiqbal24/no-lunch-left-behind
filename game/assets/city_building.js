@@ -16,6 +16,11 @@ export default function (THREE) {
       window.position.set(x, y, 2.34);
       g.add(window);
     }
+    for (const z of [-1.25, 0.65]) {
+      const sideWindow = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.66, 0.78), glass);
+      sideWindow.position.set(-2.84, y, z);
+      g.add(sideWindow);
+    }
   }
   const awning = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.28, 1.1), teal);
   awning.position.set(-0.45, 1.55, 2.75);

@@ -37,6 +37,17 @@ Record decisions while they are fresh. This is both a guard against scope drift 
 - Software-rendered median FPS was 18 in the harness and is recorded for awareness; the official harness explicitly does not treat this metric as a verdict.
 - Result: `PASS`. City Run is ready for creative steering before work advances to the next scene.
 
+## 2026-09-22 — Complete pre-Atlas build passes
+
+- The full sequence now runs without a reset: comic, City Run, ladder, Space Flight, docking, Station Corridor, master switch, and Earth call.
+- The three playable acts share one lane runner and one touch vocabulary, while camera, lighting, procedural scenery, obstacle families, player form, color, and audio change by act.
+- All 24 authored Three.js asset modules pass the official asset verifier.
+- The full story was exercised with real emulated touch input. Every state was observed and the replay control appeared with zero application errors.
+- Official local jam harness result: 4.1 s ready time, 1.5 MB transferred, 190 peak draw calls, 21,000 peak triangles, 0 errors, 0 missing requests, and no external dependencies.
+- The harness reported 17 median FPS under software rendering; the harness explicitly records this as non-verdict evidence.
+- Result: `PASS` at a 390×844 phone viewport under throttled 4G and 2× CPU slowdown.
+- Atlas decision: retain the 2,600 credits. This build is the gameplay and visual-direction baseline; spend credits only when a reviewed scene is explicitly approved for refinement.
+
 ## Decision template
 
 ### YYYY-MM-DD — Decision
