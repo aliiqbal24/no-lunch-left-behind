@@ -12,6 +12,7 @@ The complete playable sequence is represented here at a 390×844 touch viewport:
 - [Earth call finale](full-game-finale.png)
 - [All 24 procedural assets](full-game-assets.png)
 - [Asset verifier report](full-game-assets.json)
+- [Machine-readable live full-game verdict](full-game-live-verdict.json)
 - [Machine-readable local full-game verdict](full-game-local-verdict.json)
 
 ## Official 404 jam harness result
@@ -19,10 +20,10 @@ The complete playable sequence is represented here at a 390×844 touch viewport:
 | Check | Result |
 | --- | ---: |
 | Overall | **PASS** |
-| Ready under throttling | 4.1 s / 20 s budget |
+| Ready under throttling | 2.8 s / 20 s budget |
 | Total game weight | 1.5 MB / 10 MB budget |
 | Real touch target | `#stick` dragged up and held |
-| Movement | 77.5 m / 1 m required |
+| Movement | 77.1 m / 1 m required |
 | Peak draw calls | 190 / 900 budget |
 | Peak triangles | 21,000 / 1,500,000 budget |
 | Page errors | 0 |
@@ -30,7 +31,7 @@ The complete playable sequence is represented here at a 390×844 touch viewport:
 | External dependencies | none |
 | Requests outside game folder | none |
 
-The harness reported 17 median FPS under software rendering and explicitly marks that number as non-verdict evidence. Device testing remains part of the polish pass.
+The table reports the production deployment at commit `19b9bf4`. The harness reported 17 median FPS under software rendering and explicitly marks that number as non-verdict evidence. Device testing remains part of the polish pass.
 
 ## Review notes
 

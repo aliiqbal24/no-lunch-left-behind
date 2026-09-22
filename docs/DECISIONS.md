@@ -47,6 +47,7 @@ Record decisions while they are fresh. This is both a guard against scope drift 
 - The harness reported 17 median FPS under software rendering; the harness explicitly records this as non-verdict evidence.
 - Result: `PASS` at a 390×844 phone viewport under throttled 4G and 2× CPU slowdown.
 - Atlas decision: retain the 2,600 credits. This build is the gameplay and visual-direction baseline; spend credits only when a reviewed scene is explicitly approved for refinement.
+- Production evidence: commit `19b9bf4` was deployed to `https://no-lunch-left-behind.vercel.app` and independently passed the live harness in 2.8 s with the same 190-draw / 21,000-triangle peaks, zero errors, zero missing requests, and no external dependencies.
 
 ## Decision template
 
