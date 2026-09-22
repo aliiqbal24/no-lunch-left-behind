@@ -49,6 +49,13 @@ Record decisions while they are fresh. This is both a guard against scope drift 
 - Atlas decision: retain the 2,600 credits. This build is the gameplay and visual-direction baseline; spend credits only when a reviewed scene is explicitly approved for refinement.
 - Production evidence: commit `19b9bf4` was deployed to `https://no-lunch-left-behind.vercel.app` and independently passed the live harness in 2.8 s with the same 190-draw / 21,000-triangle peaks, zero errors, zero missing requests, and no external dependencies.
 
+## 2026-09-22 — Development pause and control direction
+
+- Corrected the world-to-screen lane mapping and accounted for the brief opening camera flip, so left and right inputs follow what the player sees.
+- Touch gestures now register when the finger crosses the threshold. The prior release-only path could miss a valid swipe on a slow frame.
+- Added a translucent pause button in local and `?dev=1` sessions. It freezes run and interlude timers, scene motion, input, CSS animation, and audio.
+- Verified live at commit `48fdae9`: official mobile harness `PASS`, 2.8 s ready, 1.6 MB, 190 peak draws, 21,000 peak triangles, zero errors and 404s. Mobile touch, keyboard direction, pause/resume, and the full act sequence were also exercised directly.
+
 ## Decision template
 
 ### YYYY-MM-DD — Decision
