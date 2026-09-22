@@ -17,6 +17,8 @@ const tutorial = $('#tutorial');
 const tutorialText = $('#tutorialText');
 const humanityLabel = $('#humanityLabel');
 const humanityFill = $('#humanityFill');
+const populationCrowd = $('#populationCrowd');
+const robotAdvance = $('#robotAdvance');
 const forecast = $('#forecast');
 const actLabel = $('#actLabel');
 const damageFlash = $('#damageFlash');
@@ -54,6 +56,12 @@ const DOCK_DURATION = TEST_MODE ? 1.5 : 3;
 const LANES = [2.2, 0, -2.2];
 const WORLD_POPULATION = 8_000_000_000;
 const START_HUMANITY = 95;
+const crowdPeople = Array.from({ length: 25 }, () => {
+  const person = document.createElement('span');
+  person.className = 'population-person';
+  populationCrowd.append(person);
+  return person;
+});
 
 const ACTS = {
   city: { kicker: 'ACT 1', title: 'CITY RUN', order: 'GET TO THE ROCKET', speed: 12.5, spawnEvery: 1.06 },
@@ -573,12 +581,21 @@ function hitObstacle(item) {
   humanityFill.classList.add('impact');
   setTimeout(() => humanityFill.classList.remove('impact'), 260);
   updateHumanity();
+  robotAdvance.classList.remove('firing');
+  void robotAdvance.offsetWidth;
+  robotAdvance.classList.add('firing');
 }
 
 function updateHumanity() {
   const atFloor = state.survivors === 256;
+  const visibleHumanity = atFloor ? 0.35 : state.humanity;
+  const survivingIcons = atFloor ? 1 : Math.ceil(visibleHumanity * crowdPeople.length / 100);
   humanityLabel.textContent = atFloor ? '256 LEFT' : `${state.humanity}%`;
-  humanityFill.style.width = `${atFloor ? 0.35 : state.humanity}%`;
+  humanityFill.style.width = `${visibleHumanity}%`;
+  robotAdvance.style.left = `${Math.min(95, Math.max(5, 100 - visibleHumanity))}%`;
+  crowdPeople.forEach((person, index) => {
+    person.classList.toggle('gone', index < crowdPeople.length - survivingIcons);
+  });
   const lines = [
     'CURRENT FORECAST: SURPRISINGLY NOT ZERO',
     'STATUS: HUMAN RESOURCES REDUCED',
