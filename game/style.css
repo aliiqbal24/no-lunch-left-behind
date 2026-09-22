@@ -123,8 +123,6 @@ body.dev-paused * { animation-play-state:paused!important; }
 @keyframes earth-float { 50%{transform:translateY(-8px) rotate(2deg)} }
 .subtitle { min-height:74px; width:min(650px,88vw); padding:12px 16px; border:3px solid var(--paper); border-radius:14px; background:rgba(23,43,51,.75); color:var(--paper); font-size:clamp(19px,5.2vw,32px); line-height:1.15; font-weight:900; box-shadow:0 6px 0 rgba(255,255,255,.22); }
 .final-summary { min-height:52px; font-size:clamp(12px,3.2vw,17px); font-weight:850; line-height:1.4; }
-.finale-screen #replay { display:none; }
-.finale-screen.done #replay { display:block; }
 
 @media (max-height:720px) {
   .briefing { gap:7px; }

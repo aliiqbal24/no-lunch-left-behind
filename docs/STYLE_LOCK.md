@@ -1,4 +1,4 @@
-# No Lunch Left Behind — locked style
+# No free lunch theorem — locked style
 
 > Chunky toy-like forms with rounded silhouettes, bevelled mechanical parts, soft plastic and painted-metal finishes, golden-hour warmth, and expressive shapes readable instantly on a phone.
 
@@ -24,4 +24,3 @@
 - Silhouettes stay rounded, asymmetrical, and readable. Small surface decoration never carries identity.
 - The player is an original hoodie-wearing human, not a copy of a trademarked character.
 - No gore. Catastrophe is communicated through numbers, smoke, props, and cheerful bureaucracy.
-

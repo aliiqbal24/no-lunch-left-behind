@@ -40,7 +40,6 @@ const masterTap = $('#masterTap');
 const finale = $('#finale');
 const subtitle = $('#subtitle');
 const finalSummary = $('#finalSummary');
-const replayButton = $('#replay');
 const comicPanels = [...document.querySelectorAll('.comic-panel')];
 const comicCount = $('#comicCount');
 
@@ -864,6 +863,9 @@ function beginFinale() {
     const survivors = state.survivors === 256 ? '256 people' : state.survivors.toLocaleString('en-US') + ' people';
     finalSummary.innerHTML = `<strong>${survivors} remain.</strong><br>${state.hits} collision${state.hits === 1 ? '' : 's'} were deemed operationally acceptable.`;
     finale.classList.add('done');
+    setTimeout(() => {
+      if (token === finaleToken) window.location.reload();
+    }, TEST_MODE ? 1800 : 5500);
   }, TEST_MODE ? 2600 : 8000);
 }
 
@@ -951,7 +953,6 @@ function resize() {
 
 window.addEventListener('resize', resize);
 startButton.addEventListener('click', startGame);
-replayButton.addEventListener('click', () => window.location.reload());
 climbTap.addEventListener('click', registerClimbTap);
 climbScreen.addEventListener('pointerdown', (event) => {
   if (event.target !== climbTap) registerClimbTap();

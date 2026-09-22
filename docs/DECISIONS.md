@@ -56,6 +56,11 @@ Record decisions while they are fresh. This is both a guard against scope drift 
 - Added a translucent pause button in local and `?dev=1` sessions. It freezes run and interlude timers, scene motion, input, CSS animation, and audio.
 - Verified live at commit `48fdae9`: official mobile harness `PASS`, 2.8 s ready, 1.6 MB, 190 peak draws, 21,000 peak triangles, zero errors and 404s. Mobile touch, keyboard direction, pause/resume, and the full act sequence were also exercised directly.
 
+## 2026-09-22 — Game renamed
+
+- Current title: `No free lunch theorem`.
+- The source repository and deployment URL keep their existing slugs so published links and gate evidence remain valid.
+
 ## Decision template
 
 ### YYYY-MM-DD — Decision

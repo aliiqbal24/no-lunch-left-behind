@@ -18,7 +18,7 @@ The goal is not maximum scope. The goal is a small, unusually polished game with
 - GitHub account connected: `aliiqbal24`
 - Atlas jam workspace: accessible; 2,600 credits claimed (2,000 campaign + 600 trial)
 - Vercel: connected; production deployment configured
-- Concept: **No Lunch Left Behind** — cheerful robot bureaucracy causes the apocalypse over a stolen lunch
+- Concept: **No free lunch theorem** — cheerful robot bureaucracy causes the apocalypse over a stolen lunch
 - Source repository: https://github.com/aliiqbal24/no-lunch-left-behind
 - First eligible commit: `3011074` (after the jam cutoff)
 - Current build: complete pre-Atlas game, playable from comic opening to the Earth call
