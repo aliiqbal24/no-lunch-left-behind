@@ -49,11 +49,13 @@ const comicCount = $('#comicCount');
 const params = new URLSearchParams(location.search);
 const TEST_MODE = params.has('test');
 const DEV_MODE = params.has('dev') || TEST_MODE || ['localhost', '127.0.0.1'].includes(location.hostname);
+const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const START_SCENE = params.get('scene');
 const KEYBOARD_HINTS = !matchMedia('(pointer: coarse)').matches;
 const ACT_DURATION = TEST_MODE ? 3.6 : 25;
 const CLIMB_DURATION = TEST_MODE ? 1.8 : 5;
 const DOCK_DURATION = TEST_MODE ? 1.5 : 3;
+const INTRO_TRANSITION = 0.9;
 // The chase camera looks toward +Z, so screen-left is world +X.
 const LANES = [2.2, 0, -2.2];
 const WORLD_POPULATION = 8_000_000_000;
@@ -111,6 +113,8 @@ renderer.setSize(innerWidth, innerHeight, false);
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.35));
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 850);
+const introCameraFrom = new THREE.Vector3();
+const introCameraTarget = new THREE.Vector3(0, 1.1, 9.5);
 const cityRoot = new THREE.Group();
 const spaceRoot = new THREE.Group();
 const stationRoot = new THREE.Group();
@@ -137,6 +141,8 @@ const state = {
   hitCooldown: 0, hits: 0, humanity: START_HUMANITY,
   survivors: Math.round(WORLD_POPULATION * START_HUMANITY / 100),
   inputCount: 0, fps: 60, lookBack: 0, climbProgress: 0,
+  introCameraBlend: 0,
+  introDelay: 0,
   interludeElapsed: 0, dockSoundPlayed: false,
   paused: false,
 };
@@ -163,6 +169,9 @@ let tutorialStage = 0;
 let comicIndex = 0;
 let comicTimer = 0;
 let finaleToken = 0;
+const introActorFrom = new THREE.Vector3();
+let introActorRotation = 0;
+let introHeadRotation = 0;
 
 function makeBillboardTexture() {
   const c = document.createElement('canvas');
@@ -408,7 +417,7 @@ function revealIntro() {
 }
 
 function onGesture(kind) {
-  if (state.mode !== 'playing' || state.paused) return;
+  if (state.mode !== 'playing' || state.paused || state.introDelay > 0) return;
   state.inputCount += 1;
   audio.gesture(kind);
   // The City introduction faces the runner briefly; follow screen direction during that camera flip.
@@ -433,7 +442,7 @@ function onGesture(kind) {
 new SwipeInput(stick, onGesture);
 
 function syncDevPause() {
-  const available = DEV_MODE && ['playing', 'climb', 'docking'].includes(state.mode);
+  const available = DEV_MODE && ['playing', 'climb', 'docking'].includes(state.mode) && state.introDelay <= 0;
   devPauseButton.classList.toggle('visible', available);
   devPauseButton.classList.toggle('paused', state.paused);
   devPauseButton.textContent = state.paused ? '▶' : 'Ⅱ';
@@ -461,22 +470,34 @@ function resetRun() {
 }
 
 function startGame() {
+  if (state.mode !== 'ready' || startScreen.classList.contains('exiting')) return;
   finaleToken += 1;
   clearInterval(comicTimer);
   document.body.classList.remove('intro-playing');
-  [startScreen, climbScreen, dockingScreen, switchScreen, finale].forEach((screen) => screen.classList.remove('visible'));
+  const firstAct = ['city', 'space', 'station'].includes(START_SCENE) ? START_SCENE : 'city';
+  const fromIntro = firstAct === 'city' && !REDUCED_MOTION;
+  introCameraFrom.copy(camera.position);
+  introActorFrom.copy(player.position);
+  introActorRotation = player.rotation.y;
+  introHeadRotation = playerJoints?.head.rotation.y || 0;
+  if (fromIntro) {
+    startScreen.classList.add('exiting');
+    window.setTimeout(() => startScreen.classList.remove('visible', 'exiting'), INTRO_TRANSITION * 1000);
+  } else {
+    startScreen.classList.remove('visible');
+  }
+  [climbScreen, dockingScreen, switchScreen, finale].forEach((screen) => screen.classList.remove('visible'));
   finale.classList.remove('done');
   resetRun();
   state.paused = false;
   audio.setPaused(false);
   audio.start();
-  startAct(['city', 'space', 'station'].includes(START_SCENE) ? START_SCENE : 'city');
+  startAct(firstAct, fromIntro);
 }
 
-function startAct(name) {
+function startAct(name, fromIntro = false) {
   const act = ACTS[name];
   state.mode = 'playing';
-  syncDevPause();
   state.act = name;
   state.elapsed = 0;
   state.lane = 0;
@@ -486,19 +507,22 @@ function startAct(name) {
   state.slide = 0;
   state.hitCooldown = 0;
   state.lookBack = name === 'city' ? 2 : 0;
+  state.introCameraBlend = fromIntro ? 1 : 0;
+  state.introDelay = fromIntro ? INTRO_TRANSITION : 0;
+  syncDevPause();
   patternIndex = 0;
   spawnClock = 2.7;
   tutorialStage = 0;
   clearObstacles();
-  resetWorld(name);
+  resetWorld(name, fromIntro);
   setWorld(name);
   player.visible = name !== 'space';
   ship.visible = name === 'space';
   actLabel.textContent = `${act.title} · ${act.order}`;
-  hud.classList.add('visible');
+  hud.classList.toggle('visible', !fromIntro);
   hud.classList.toggle('on-dark', name === 'space');
-  stick.classList.add('visible');
-  tutorial.classList.toggle('visible', name === 'city');
+  stick.classList.toggle('visible', !fromIntro);
+  tutorial.classList.toggle('visible', name === 'city' && !fromIntro);
   tutorialText.textContent = name === 'city'
     ? (KEYBOARD_HINTS ? 'LEFT / RIGHT OR A / D TO CHANGE LANES' : 'SWIPE TO CHANGE LANES')
     : (KEYBOARD_HINTS ? 'SAME KEYS · NOW WITH VACUUM' : 'SAME SWIPES · NOW WITH VACUUM');
@@ -515,7 +539,7 @@ function startAct(name) {
     const spacing = ACTS.city.speed * ACTS.city.spawnEvery;
     for (let i = 0; i < 18; i++) spawnPattern(106 + i * spacing);
   }
-  showBanner(act.kicker, act.title, act.order);
+  if (!fromIntro) showBanner(act.kicker, act.title, act.order);
 }
 
 function clearObstacles() {
@@ -523,7 +547,7 @@ function clearObstacles() {
   obstacles = [];
 }
 
-function resetWorld(name) {
+function resetWorld(name, preserveCamera = false) {
   cityChunks.forEach((chunk, index) => { chunk.position.z = index * 40 + 12; });
   stationChunks.forEach((chunk, index) => { chunk.position.z = index * 40 + 12; });
   rocketGroup.position.set(0, 0, 330);
@@ -534,14 +558,64 @@ function resetWorld(name) {
   dockingPort.position.set(0, 0, 120);
   dockingPort.visible = false;
   robotRoot.children.forEach((bot) => { bot.position.z = bot.userData.homeZ; });
-  player.position.set(0, 0.2, 0);
-  player.rotation.set(0, 0, 0);
+  if (!preserveCamera) {
+    player.position.set(0, 0.2, 0);
+    player.rotation.set(0, 0, 0);
+  }
   player.scale.setScalar(1.02);
+  if (playerJoints && !preserveCamera) {
+    playerJoints.head.rotation.y = 0;
+    playerJoints.torso.rotation.y = 0;
+    playerJoints.leftArm.rotation.x = 0;
+    playerJoints.rightArm.rotation.x = 0;
+    playerJoints.leftArm.rotation.z = 0;
+    playerJoints.rightArm.rotation.z = 0;
+  }
   ship.position.set(0, 0.4, 0);
   ship.rotation.set(0, 0, 0);
   ship.scale.setScalar(0.88);
   if (spaceBackdrop) spaceBackdrop.rotation.set(0, 0, 0);
-  if (name === 'city') camera.position.set(0, 2.9, 6.8);
+  if (name === 'city' && !preserveCamera) camera.position.set(0, 2.9, 6.8);
+}
+
+function updateIntroCity() {
+  const t = REDUCED_MOTION ? 0 : performance.now() * 0.001;
+  const portrait = innerWidth / innerHeight < 0.8;
+  camera.position.set(Math.sin(t * 0.36) * 0.17, portrait ? 4.5 : 4.1, portrait ? -8.8 : -10.6);
+  camera.lookAt(introCameraTarget);
+  player.position.set(portrait ? -0.7 : -1.2, 0.2, portrait ? -3.25 : -4.2);
+  player.rotation.y = Math.sin(t * 0.7) * 0.16;
+  if (playerJoints) {
+    playerJoints.head.rotation.y = Math.sin(t * 0.7 - 0.8) * 3;
+    playerJoints.torso.rotation.y = Math.sin(t * 0.7) * 0.16;
+    playerJoints.leftArm.rotation.x = -0.18 + Math.sin(t * 1.9) * 0.08;
+    playerJoints.rightArm.rotation.x = 0.24 + Math.sin(t * 1.9 + 1.3) * 0.08;
+    playerJoints.leftArm.rotation.z = -0.55 + Math.sin(t * 2.3) * 0.08;
+    playerJoints.rightArm.rotation.z = 0.55 - Math.sin(t * 2.3 + 0.7) * 0.08;
+  }
+}
+
+function updateIntroTransition(dt) {
+  state.introDelay = Math.max(0, state.introDelay - dt);
+  const t = THREE.MathUtils.smoothstep(INTRO_TRANSITION - state.introDelay, 0, INTRO_TRANSITION);
+  player.position.copy(introActorFrom).lerp(new THREE.Vector3(0, 0.2, 0), t);
+  player.rotation.y = THREE.MathUtils.lerp(introActorRotation, 0, t);
+  if (playerJoints) {
+    playerJoints.head.rotation.y = THREE.MathUtils.lerp(introHeadRotation, 0, t);
+    playerJoints.torso.rotation.y *= 1 - t;
+    playerJoints.leftArm.rotation.x *= 1 - t;
+    playerJoints.rightArm.rotation.x *= 1 - t;
+    playerJoints.leftArm.rotation.z *= 1 - t;
+    playerJoints.rightArm.rotation.z *= 1 - t;
+  }
+  updateCamera(dt);
+  if (state.introDelay === 0) {
+    hud.classList.add('visible');
+    stick.classList.add('visible');
+    tutorial.classList.add('visible');
+    syncDevPause();
+    showBanner(ACTS.city.kicker, ACTS.city.title, ACTS.city.order);
+  }
 }
 
 function activePatterns() {
@@ -744,14 +818,23 @@ function updateCamera(dt) {
   if (state.mode === 'playing') {
     const actor = activeActor();
     if (state.act === 'city' && state.lookBack > 0) {
-      state.lookBack = Math.max(0, state.lookBack - dt);
+      if (state.introDelay <= 0) state.lookBack = Math.max(0, state.lookBack - dt);
       const t = THREE.MathUtils.smoothstep(2 - state.lookBack, 1.25, 2);
-      camera.position.lerpVectors(
+      const openingPosition = new THREE.Vector3().lerpVectors(
         new THREE.Vector3(0, 2.9, 6.8),
         new THREE.Vector3(0, portrait ? 4.5 : 4.1, portrait ? -8.8 : -10.6),
         t,
       );
-      camera.lookAt(new THREE.Vector3(0, 1.1, THREE.MathUtils.lerp(-4, 9, t)));
+      const openingTarget = new THREE.Vector3(0, 1.1, THREE.MathUtils.lerp(-4, 9, t));
+      if (state.introCameraBlend > 0) {
+        state.introCameraBlend = Math.max(0, state.introCameraBlend - dt);
+        const reveal = THREE.MathUtils.smoothstep(1 - state.introCameraBlend, 0, 1);
+        camera.position.copy(introCameraFrom).lerp(openingPosition, reveal);
+        camera.lookAt(introCameraTarget.clone().lerp(openingTarget, reveal));
+      } else {
+        camera.position.copy(openingPosition);
+        camera.lookAt(openingTarget);
+      }
       return;
     }
     const y = state.act === 'space' ? (portrait ? 4.1 : 3.7) : (portrait ? 4.5 : 4.1);
@@ -909,15 +992,21 @@ function frame(now) {
   const rawDt = Math.min(0.1, Math.max(0.001, (now - lastTime) / 1000));
   lastTime = now;
   if (!document.hidden && !state.paused) {
-    if (state.mode === 'playing') {
-      state.elapsed += rawDt;
-      state.totalElapsed += rawDt;
-      state.hitCooldown = Math.max(0, state.hitCooldown - rawDt);
-      updateActor(rawDt);
-      updatePlayingWorld(rawDt);
-      updateRobots(rawDt);
-      updateCamera(rawDt);
-      if (state.elapsed >= ACT_DURATION && (state.act !== 'city' || TEST_MODE || state.distance >= 318)) finishPlayingAct();
+    if (state.mode === 'ready') {
+      updateIntroCity();
+    } else if (state.mode === 'playing') {
+      if (state.introDelay > 0) {
+        updateIntroTransition(rawDt);
+      } else {
+        state.elapsed += rawDt;
+        state.totalElapsed += rawDt;
+        state.hitCooldown = Math.max(0, state.hitCooldown - rawDt);
+        updateActor(rawDt);
+        updatePlayingWorld(rawDt);
+        updateRobots(rawDt);
+        updateCamera(rawDt);
+        if (state.elapsed >= ACT_DURATION && (state.act !== 'city' || TEST_MODE || state.distance >= 318)) finishPlayingAct();
+      }
     } else if (state.mode === 'climb') {
       state.interludeElapsed += rawDt;
       state.totalElapsed += rawDt;
@@ -960,7 +1049,7 @@ function frame(now) {
   window.__GAME__ = {
     pos: [actor?.position.x || 0, state.distance],
     fps: state.fps,
-    speed: state.mode === 'playing' && !state.paused ? ACTS[state.act].speed : 0,
+    speed: state.mode === 'playing' && !state.paused && state.introDelay <= 0 ? ACTS[state.act].speed : 0,
     score: state.survivors,
     over: state.mode === 'complete',
     draws: renderer.info.render.calls,
@@ -1031,6 +1120,9 @@ window.__GAME__ = { pos: [0, 0], fps: 0, speed: 0, score: 0, over: false, draws:
 
 loadAssets().then(() => {
   state.mode = 'ready';
+  resetWorld('city');
+  player.visible = true;
+  updateIntroCity();
   loading.classList.remove('visible');
   startScreen.classList.add('visible');
   showComic(0);

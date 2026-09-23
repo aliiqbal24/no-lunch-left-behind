@@ -24,8 +24,16 @@ button { font:inherit; }
 .controls { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; font-size:11px; font-weight:900; }
 .controls span { padding:6px 9px; border:2px solid var(--ink); border-radius:999px; background:rgba(255,255,255,.55); }
 
-.briefing { justify-content:flex-start; overflow-y:auto; overflow-x:hidden; padding-top:max(24px,var(--safe-top)); padding-bottom:calc(28px + var(--safe-bottom)); gap:10px; }
-.briefing h1 { font-size:clamp(34px,9.5vw,68px); line-height:.9; }
+.briefing { justify-content:flex-start; overflow-y:auto; overflow-x:hidden; padding-top:max(24px,var(--safe-top)); padding-bottom:calc(28px + var(--safe-bottom)); gap:10px; background:transparent; isolation:isolate; }
+.briefing::before { z-index:2; border-color:rgba(23,43,51,.7); box-shadow:8px 8px 0 rgba(23,43,51,.12); }
+.briefing > :not(.intro-city-veil) { position:relative; z-index:1; }
+.intro-city-veil { position:fixed; inset:0; z-index:0; pointer-events:none; backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); background:linear-gradient(180deg,rgba(255,249,234,.54) 0%,rgba(255,249,234,.36) 49%,rgba(255,249,234,.1) 75%,transparent 95%); -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 57%,transparent 91%); mask-image:linear-gradient(180deg,#000 0%,#000 57%,transparent 91%); }
+.briefing .mission { padding:6px 10px; border-radius:8px; background:rgba(255,249,234,.8); box-shadow:0 2px 8px rgba(23,43,51,.1); }
+.briefing.exiting { animation:intro-leave .9s cubic-bezier(.2,.65,.2,1) both; pointer-events:none; }
+.briefing.exiting .intro-city-veil { animation:intro-veil-leave .9s ease-out both; }
+@keyframes intro-leave { 0%{opacity:1;transform:translateY(0)} 58%{opacity:.5} 100%{opacity:0;transform:translateY(-30px)} }
+@keyframes intro-veil-leave { to{backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0)} }
+.briefing h1 { font-size:clamp(34px,9.5vw,68px); line-height:.9; color:var(--paper); -webkit-text-stroke:1.5px var(--ink); text-shadow:3px 4px 0 var(--ink),0 6px 14px rgba(23,43,51,.35); }
 #comic { position:relative; width:min(620px,94vw); height:clamp(205px,42vh,330px); flex:0 0 auto; transition:width .85s cubic-bezier(.2,.75,.2,1),height .85s cubic-bezier(.2,.75,.2,1); }
 .comic-launch { position:relative; display:block; width:100%; height:100%; cursor:pointer; }
 .comic-launch:focus-visible { outline:4px solid var(--red); outline-offset:8px; border-radius:14px; }
@@ -245,6 +253,7 @@ body.dev-paused * { animation-play-state:paused!important; }
   .finale-screen { justify-content:center; }
 }
 @media (prefers-reduced-motion:reduce) {
+  .briefing.exiting,.briefing.exiting .intro-city-veil { animation:none; }
   #humanityFill,.population-person,.robot-advance,.comic-panel,#comic,#mute { transition:none; }
   .briefing.intro-revealed .intro-extra { animation:none; }
   .robot-advance.firing::after { animation:none; }
