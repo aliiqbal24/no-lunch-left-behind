@@ -50,4 +50,4 @@ The City Run now has a fixed road to the rocket, launch-route lighting and beaco
 - [Four City Run asset verifier report](rocket-hub-assets.json)
 - [Passing local mobile gate verdict](rocket-hub-local-verdict.json)
 
-These are local 390×844 browser captures, not a new production gate verdict. The full City Run reached the ladder at 318 m with zero page errors or missing requests. The accelerated QA path still reached Space Flight. The local jam gate passed at commit `cb73a5f`: 4.1 s ready, 1.6 MB, 320 peak draw calls, 38,838 peak triangles, zero errors and 404s. The gate must be rerun against the final deployed commit.
+These are local 390×844 browser captures, not a new production gate verdict. The full City Run reached the ladder at 318 m with zero page errors or missing requests. The accelerated QA path still reached Space Flight. The local jam gate passed at commit `262f9f7`: 4.1 s ready, 1.6 MB, 376 peak draw calls, 44,646 peak triangles, zero errors and 404s. The gate must be rerun against the final deployed commit.
