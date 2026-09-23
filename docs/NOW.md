@@ -24,10 +24,12 @@ Updated: 2026-09-23. Only the integration session edits this file. Check Git for
 | Terminal window and Earth effects | Contributor | `codex/station-earth-window` / dedicated worktree | `game/assets/station_end_window.js`, `game/assets/earth_crisis.js` | Complete and integrated as `f1e13bf`, `6da5a8a`, `d7222e9`, `46f299c` |
 | Rocket and docking passage | Contributor | `codex/continuous-passage-assets` / dedicated worktree | `game/assets/rocket.js`, `game/assets/docking_port.js` | Complete and integrated as `c07f402` |
 | Chase speed visuals | Integration session | `main` / this checkout | `game/src/main.js`, `game/src/chase_visuals.js`, `game/assets/city_road.js`, `game/assets/station_corridor.js` | Integrated from `251f6e0` as `202a2bb`; local browser and recipe checks passed |
+| End-of-run results UI | Integration session | `main` / this checkout | `game/src/main.js`, `game/src/audio.js`, `game/index.html`, `game/style.css`, this board | In progress: live-Earth debrief, run stats, reveal, and replay |
+| Results grading helper | Contributor | `codex/results-grading` / `results-grading` worktree | New `game/src/results.js`, `tests/results.test.mjs` | Assigned: pure rating function and boundary tests; handoff commit pending |
 | Contributor task 1 | Unassigned | — | — | Waiting for a bounded prompt |
 | Contributor task 2 | Unassigned | — | — | Waiting for a bounded prompt |
 | Contributor task 3 | Unassigned | — | — | Waiting for a bounded prompt |
 
 ## Next integration step
 
-Review the continuous transitions and chase speed visuals in the local preview. The preview serves this checkout, so a refresh shows the integrated game. Deployment, jam fork/entry JSON, and the exact-commit gate remain release tasks requiring owner approval.
+Finish the end-of-run results UI, integrate the grading helper, and review the full ending in the local preview. Deployment, jam fork/entry JSON, and the exact-commit gate remain release tasks requiring owner approval.
