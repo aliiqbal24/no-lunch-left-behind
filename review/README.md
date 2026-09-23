@@ -51,3 +51,7 @@ The City Run now has a fixed road to the rocket, launch-route lighting and beaco
 - [Passing local mobile gate verdict](rocket-hub-local-verdict.json)
 
 These are local 390×844 browser captures, not a new production gate verdict. The full City Run reached the ladder at 318 m with zero page errors or missing requests. The accelerated QA path still reached Space Flight. The local jam gate passed at commit `262f9f7`: 4.1 s ready, 1.6 MB, 376 peak draw calls, 44,646 peak triangles, zero errors and 404s. The gate must be rerun against the final deployed commit.
+
+## Local rocket liftoff iteration
+
+After the character enters, the rocket ignites and rises through a three-second exterior shot before Space Flight. The exhaust and pad vapor are a code-built Three.js asset. Its [four-view verifier sheet](rocket-launch-fx.png) and [verifier report](rocket-launch-fx.json) passed locally. This is development evidence, not a production gate verdict.

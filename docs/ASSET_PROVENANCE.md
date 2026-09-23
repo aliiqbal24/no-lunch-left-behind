@@ -4,9 +4,9 @@ Record every shipped image, sound, music track, voice, and generated reference h
 
 ## Code-built 3D
 
-All 29 modules in `game/assets/` are original Three.js source authored through the 404 recipe contract. Each default-exports a function of `THREE` and returns one `THREE.Group`. They cover the hoodie player, three robot families, city/launch props, the rocket hub and spaceport wayfinder, procedural city sky, ladder, player ship, satellites and debris, space backdrop, docking port, station corridor, domed station hub with a curved Earth viewport, Earth surface flares, lasers, security bots, master switch, and Earth. The rocket hatch, docking passage, city sky, layered stars, corridor windows, the station hub, its hemispherical viewport, and finale Earth effects are built entirely from code with no imported media.
+All 30 modules in `game/assets/` are original Three.js source authored through the 404 recipe contract. Each default-exports a function of `THREE` and returns one `THREE.Group`. They cover the hoodie player, three robot families, city/launch props, the rocket hub and spaceport wayfinder, rocket exhaust and launch-pad vapor, procedural city sky, ladder, player ship, satellites and debris, space backdrop, docking port, station corridor, domed station hub with a curved Earth viewport, Earth surface flares, lasers, security bots, master switch, and Earth. The rocket hatch, docking passage, city sky, layered stars, corridor windows, the station hub, its hemispherical viewport, and finale Earth effects are built entirely from code with no imported media.
 
-The original 24 modules passed the official recipe verifier; their contact sheet and report are preserved in `review/full-game-assets.png` and `review/full-game-assets.json`. The new rocket hub and wayfinder, plus the revised city road and building, passed load, render, framing, finite-bounds, ground, centre, and side-view checks. Their sheet and report are preserved in `review/rocket-hub-assets.png` and `review/rocket-hub-assets.json`.
+The original 24 modules passed the official recipe verifier; their contact sheet and report are preserved in `review/full-game-assets.png` and `review/full-game-assets.json`. The new rocket hub and wayfinder, plus the revised city road and building, passed load, render, framing, finite-bounds, ground, centre, and side-view checks. Their sheet and report are preserved in `review/rocket-hub-assets.png` and `review/rocket-hub-assets.json`. The new procedural rocket launch effect passed the four-view recipe verifier; its sheet and report are in `review/rocket-launch-fx.png` and `review/rocket-launch-fx.json`.
 
 ## External and generated files
 
@@ -16,7 +16,7 @@ No external media files, stock assets, downloaded meshes, textures, or runtime C
 - The finale shows the original procedural Earth module through the station hub's code-built hemispherical viewport.
 - Billboard text is generated at runtime with Canvas 2D.
 - Chase streaks are original Canvas 2D lines at the screen edges; the denser road and corridor markers are original Three.js geometry in their asset modules.
-- Music, impacts, gestures, interlude cues, docking, the master-switch cue, and the results-grade cue are synthesized at runtime with the Web Audio API.
+- Music, impacts, gestures, interlude cues, rocket liftoff, docking, the master-switch cue, and the results-grade cue are synthesized at runtime with the Web Audio API.
 - The final radio call uses the device's built-in Web Speech voice as a temporary pre-Atlas treatment, with complete subtitles on screen.
 
 ## Atlas status

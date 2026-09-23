@@ -69,6 +69,7 @@ const DOCK_DURATION = TEST_MODE ? 1.5 : 3;
 const INTRO_TRANSITION = 0.9;
 const BOARD_DURATION = TEST_MODE ? 0.65 : 1.35;
 const PASSAGE_DURATION = TEST_MODE ? 0.65 : 1.35;
+const LIFTOFF_DURATION = TEST_MODE ? 1.8 : 3;
 const SWITCH_APPROACH_DURATION = TEST_MODE ? 0.55 : 1.15;
 // The chase camera looks toward +Z, so screen-left is world +X.
 const LANES = [2.2, 0, -2.2];
@@ -87,7 +88,7 @@ const ACTS = {
   space: { kicker: 'ACT 2', title: 'SPACE FLIGHT', order: 'DODGE ORBITAL ADMINISTRATION', speed: 15.2, spawnEvery: 1.02 },
   station: { kicker: 'ACT 3', title: 'STATION CORRIDOR', order: 'FIND THE BIG RED BUTTON', speed: 13.4, spawnEvery: 1.0 },
 };
-const MISSION_MODES = new Set(['playing', 'boarding', 'climb', 'launch', 'launchExit', 'docking', 'stationEntry', 'switchApproach', 'switch']);
+const MISSION_MODES = new Set(['playing', 'boarding', 'climb', 'launch', 'liftoff', 'launchExit', 'docking', 'stationEntry', 'switchApproach', 'switch']);
 
 function expectedMissionSeconds() {
   const firstAct = ['city', 'space', 'station'].includes(START_SCENE) ? START_SCENE : 'city';
@@ -95,7 +96,7 @@ function expectedMissionSeconds() {
   if (firstAct !== 'station') seconds += ACT_DURATION + DOCK_DURATION + 2 * PASSAGE_DURATION;
   if (firstAct === 'city') {
     seconds += Math.max(ACT_DURATION, TEST_MODE ? 0 : 318 / ACTS.city.speed)
-      + BOARD_DURATION + CLIMB_DURATION + 2 * PASSAGE_DURATION
+      + BOARD_DURATION + CLIMB_DURATION + 2 * PASSAGE_DURATION + LIFTOFF_DURATION
       + (REDUCED_MOTION ? 0 : INTRO_TRANSITION);
   }
   return seconds;
@@ -187,6 +188,11 @@ let stationChunks = [];
 let obstacles = [];
 let prototypes = { city: {}, space: {}, station: {} };
 let rocketGroup;
+let rocketBody;
+let launchFlames;
+let launchSmoke;
+let launchEngineLight;
+let launchShockwave;
 let stationSwitch;
 let stationEarth;
 let stationTerminal;
@@ -242,7 +248,7 @@ async function loadAssets() {
   ]);
 
   setLoad(26, 'weaponising household appliances…');
-  const [road, building, billboard, cone, toaster, mower, chair, rocket, hub, wayfinder, citySky] = await Promise.all([
+  const [road, building, billboard, cone, toaster, mower, chair, rocket, launchFx, hub, wayfinder, citySky] = await Promise.all([
     ASSET(assetUrl('city_road'), { surfaces: true }),
     ASSET(assetUrl('city_building'), { surfaces: true }),
     ASSET(assetUrl('billboard'), { keepHierarchy: true }),
@@ -251,6 +257,7 @@ async function loadAssets() {
     ASSET(assetUrl('lawnmower')),
     ASSET(assetUrl('office_chair')),
     ASSET(assetUrl('rocket'), { keepHierarchy: true }),
+    ASSET(assetUrl('rocket_launch_fx'), { keepHierarchy: true }),
     ASSET(assetUrl('rocket_hub'), { surfaces: true }),
     ASSET(assetUrl('spaceport_wayfinder'), { surfaces: true }),
     ASSET(assetUrl('city_sky')),
@@ -305,7 +312,7 @@ async function loadAssets() {
     laserHigh: { object: laser, kind: 'high', clearance: 0.8, scale: 1, y: 0.2, beamLift: 0.76 },
   };
 
-  buildCity(road, building, billboard, rocket, hub, wayfinder, citySky);
+  buildCity(road, building, billboard, rocket, launchFx, hub, wayfinder, citySky);
   buildRobotArmy([boxy, spider, roller]);
   buildSpace(backdrop, port);
   buildStation(corridor, masterSwitch, earth, endWindow, crisis);
@@ -319,7 +326,7 @@ async function loadAssets() {
   setLoad(100, 'catastrophe approved');
 }
 
-function buildCity(road, building, billboard, rocket, hub, wayfinder, citySky) {
+function buildCity(road, building, billboard, rocket, launchFx, hub, wayfinder, citySky) {
   const signTexture = makeBillboardTexture();
   citySky.position.set(0, 18, 170);
   citySky.traverse((object) => { if (object.isMesh) { object.castShadow = false; object.receiveShadow = false; } });
@@ -361,10 +368,19 @@ function buildCity(road, building, billboard, rocket, hub, wayfinder, citySky) {
     cityChunks.push(chunk);
   }
   rocketGroup = new THREE.Group();
-  const rocketObject = rocket.clone(true);
-  rocketObject.position.y = 0.55;
-  rocketObject.name = 'cityRocket';
-  rocketGroup.add(hub, rocketObject);
+  rocketBody = rocket.clone(true);
+  rocketBody.position.y = 0.55;
+  rocketBody.name = 'cityRocket';
+  launchFlames = launchFx.getObjectByName('launchFlames');
+  launchSmoke = launchFx.getObjectByName('launchSmoke');
+  launchFlames.removeFromParent();
+  launchSmoke.removeFromParent();
+  launchFlames.visible = false;
+  launchSmoke.visible = false;
+  launchEngineLight = launchFlames.getObjectByName('launchEngineLight');
+  launchShockwave = launchSmoke.getObjectByName('launchShockwave');
+  rocketBody.add(launchFlames);
+  rocketGroup.add(hub, rocketBody, launchSmoke);
   rocketGroup.position.set(0, 0, 330);
   cityRoot.add(rocketGroup);
 }
@@ -522,7 +538,7 @@ function onGesture(kind) {
 new SwipeInput(stick, onGesture);
 
 function syncDevPause() {
-  const available = DEV_MODE && ['playing', 'boarding', 'climb', 'launch', 'launchExit', 'docking', 'stationEntry', 'switchApproach', 'switch', 'finale'].includes(state.mode) && state.introDelay <= 0;
+  const available = DEV_MODE && ['playing', 'boarding', 'climb', 'launch', 'liftoff', 'launchExit', 'docking', 'stationEntry', 'switchApproach', 'switch', 'finale'].includes(state.mode) && state.introDelay <= 0;
   devPauseButton.classList.toggle('visible', available);
   devPauseButton.classList.toggle('paused', state.paused);
   devPauseButton.textContent = state.paused ? '▶' : 'Ⅱ';
@@ -533,7 +549,7 @@ function syncDevPause() {
 }
 
 function setDevPaused(paused) {
-  if (!DEV_MODE || !['playing', 'boarding', 'climb', 'launch', 'launchExit', 'docking', 'stationEntry', 'switchApproach', 'switch', 'finale'].includes(state.mode)) return;
+  if (!DEV_MODE || !['playing', 'boarding', 'climb', 'launch', 'liftoff', 'launchExit', 'docking', 'stationEntry', 'switchApproach', 'switch', 'finale'].includes(state.mode)) return;
   state.paused = paused;
   audio.setPaused(paused);
   syncDevPause();
@@ -660,6 +676,15 @@ function resetWorld(name, preserveCamera = false) {
   stationChunks.forEach((chunk, index) => { chunk.position.z = index * 40 + 12; chunk.visible = true; });
   rocketGroup.position.set(0, 0, 330);
   rocketGroup.visible = name === 'city';
+  rocketBody.position.set(0, 0.55, 0);
+  climbLadder.visible = true;
+  launchFlames.visible = false;
+  launchSmoke.visible = false;
+  launchEngineLight.intensity = 0;
+  const leftDoor = rocketGroup.getObjectByName('boardingDoorLeft');
+  const rightDoor = rocketGroup.getObjectByName('boardingDoorRight');
+  if (leftDoor) leftDoor.position.x = -0.335;
+  if (rightDoor) rightDoor.position.x = 0.335;
   stationTerminal.position.set(0, 0, 330);
   stationEntryPassage.visible = false;
   stationSwitch.visible = true;
@@ -1055,8 +1080,56 @@ function finishClimb() {
   startShot(PASSAGE_DURATION,
     new THREE.Vector3(0, 5.28, rocketGroup.position.z - 0.64),
     new THREE.Vector3(0, 5.28, rocketGroup.position.z + 0.17),
-    beginLaunchExit);
+    beginLiftoff);
   syncDevPause();
+}
+
+function beginLiftoff() {
+  state.mode = 'liftoff';
+  state.interludeElapsed = 0;
+  player.visible = false;
+  climbLadder.visible = false;
+  const left = rocketGroup.getObjectByName('boardingDoorLeft');
+  const right = rocketGroup.getObjectByName('boardingDoorRight');
+  if (left) left.position.x = -0.335;
+  if (right) right.position.x = 0.335;
+  launchFlames.visible = true;
+  launchSmoke.visible = true;
+  hud.classList.remove('visible');
+  camera.position.set(0, 7.3, rocketGroup.position.z - 18.5);
+  pointCamera(new THREE.Vector3(0, 5.5, rocketGroup.position.z));
+  audio.launch();
+  syncDevPause();
+}
+
+function updateLiftoff(dt) {
+  state.interludeElapsed += dt;
+  const p = Math.min(1, state.interludeElapsed / LIFTOFF_DURATION);
+  const thrust = THREE.MathUtils.smoothstep(p, 0, 0.18);
+  const travel = Math.max(0, (p - 0.18) / 0.82);
+  const rise = 78 * travel * travel;
+  rocketBody.position.y = 0.55 + rise;
+  launchFlames.scale.set(0.65 + thrust * 0.35,
+    0.35 + thrust * (1.1 + travel * 0.85) + Math.sin(state.visualClock * 39) * 0.07 * thrust,
+    0.65 + thrust * 0.35);
+  launchEngineLight.intensity = 7 * thrust;
+  for (const puff of launchSmoke.children) {
+    if (puff.name !== 'launchSmokePuff') continue;
+    const angle = puff.userData.index * Math.PI / 6;
+    const drift = 1.25 + 4.8 * THREE.MathUtils.smoothstep(p, 0, 0.82);
+    puff.position.set(Math.sin(angle) * drift, 0.85 + p * 1.7, Math.cos(angle) * drift);
+    puff.scale.setScalar(0.55 + p * 2.4);
+    puff.material.opacity = 0.54 * (1 - THREE.MathUtils.smoothstep(p, 0.2, 0.95));
+  }
+  launchShockwave.scale.setScalar(1 + p * 5.5);
+  launchShockwave.material.opacity = 0.7 * (1 - THREE.MathUtils.smoothstep(p, 0.1, 0.7));
+  launchSmoke.visible = p < 0.95;
+  const shake = REDUCED_MOTION ? 0 : 0.17 * thrust * (1 - THREE.MathUtils.smoothstep(p, 0.3, 0.82));
+  camera.position.set(Math.sin(state.visualClock * 48) * shake,
+    7.3 + rise * 0.35 + Math.sin(state.visualClock * 63) * shake * 0.45,
+    rocketGroup.position.z - 18.5 - p * 4);
+  pointCamera(new THREE.Vector3(0, 5.5 + rise * 0.9, rocketGroup.position.z));
+  if (p >= 1) beginLaunchExit();
 }
 
 let passageShield = null;
@@ -1316,6 +1389,8 @@ function frame(now) {
       if (right) right.position.x = 0.335 + 0.82 * open;
       player.position.z = climbAnchorZ + 1.45 * THREE.MathUtils.smoothstep(p, 0.35, 1);
       updateShot(rawDt);
+    } else if (state.mode === 'liftoff') {
+      updateLiftoff(rawDt);
     } else if (state.mode === 'launchExit') {
       const shot = state.shot;
       if (passageShield && shot) passageShield.scale.setScalar(2.5 * (1 - THREE.MathUtils.smoothstep(shot.elapsed / shot.duration, 0.28, 0.92)));
@@ -1463,6 +1538,7 @@ window.__SKIP__ = () => {
   }
   else if (state.shot) state.shot.elapsed = state.shot.duration;
   else if (state.mode === 'climb') finishClimb();
+  else if (state.mode === 'liftoff') beginLaunchExit();
   else if (state.mode === 'docking') finishDocking();
   else if (state.mode === 'switch') beginFinale();
   else if (state.mode === 'finale') state.finaleElapsed = TEST_MODE ? 2.6 : 8;

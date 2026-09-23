@@ -87,6 +87,12 @@ export class AudioEngine {
     else [440, 554.37, 659.25].forEach((n, i) => this.tone(n, 0.2, 'sine', 0.024, i * 0.16));
   }
 
+  launch() {
+    this.tone(62, 2.7, 'sawtooth', 0.085, 0, 34);
+    this.tone(41, 2.9, 'triangle', 0.09, 0.08, 48);
+    for (let i = 0; i < 7; i++) this.noise(0.55, 0.045 + i * 0.003, i * 0.36);
+  }
+
   dockClunk() {
     this.tone(72, 0.42, 'square', 0.11, 0, -28);
     this.noise(0.23, 0.06, 0.02);

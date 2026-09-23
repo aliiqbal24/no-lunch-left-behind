@@ -1,0 +1,40 @@
+[
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 20,
+  "tris": 1380,
+  "materials": 4,
+  "size": [
+   3.12,
+   5.7,
+   3.12
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.1176,
+    "edgeDensity": 0.1744
+   },
+   "right": {
+    "coverage": 0.127,
+    "edgeDensity": 0.1487
+   },
+   "back": {
+    "coverage": 0.1384,
+    "edgeDensity": 0.1503
+   },
+   "left": {
+    "coverage": 0.127,
+    "edgeDensity": 0.1486
+   }
+  },
+  "error": null,
+  "name": "rocket_launch_fx",
+  "problems": []
+ }
+]
