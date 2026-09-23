@@ -47,7 +47,32 @@ export default function (THREE) {
   earthMount.name = 'earthMount';
   earthMount.position.set(0, 1.005, 3.6);
   end.add(earthMount);
+
+  // An opaque view beyond Earth hides any recycled corridor chunks behind
+  // the end wall. The star points sit just in front of this distant plane.
+  const space = new THREE.Mesh(
+    new THREE.PlaneGeometry(16, 6.5),
+    new THREE.MeshBasicMaterial({ color: 0x071127, side: THREE.DoubleSide, fog: false }),
+  );
+  space.name = 'spaceBeyondEarth';
+  space.position.set(0, 3.25, 8);
+  end.add(space);
+  const starPositions = new Float32Array(42 * 3);
+  let seed = 404;
+  const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  for (let i = 0; i < 42; i++) {
+    starPositions[i * 3] = -7.5 + random() * 15;
+    starPositions[i * 3 + 1] = 0.25 + random() * 6;
+    starPositions[i * 3 + 2] = 7.92;
+  }
+  const starGeometry = new THREE.BufferGeometry();
+  starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+  const stars = new THREE.Points(starGeometry, new THREE.PointsMaterial({ color: 0xd7f4ff, size: 0.11, fog: false, depthWrite: false }));
+  stars.name = 'spaceBeyondEarthStars';
+  end.add(stars);
+
   end.userData.earthMount = earthMount;
+  end.userData.spaceBackdrop = space;
   end.userData.aperture = { width: 6.5, height: 3.08, centreY: 2.825 };
   end.userData.earthScale = 0.65;
   return end;
