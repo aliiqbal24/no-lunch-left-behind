@@ -3,6 +3,7 @@ import { ASSET } from '../lib/assetlib.js';
 import { createRig } from '../lib/rig.js';
 import { SwipeInput } from './input.js';
 import { AudioEngine } from './audio.js';
+import { createChaseVisuals } from './chase_visuals.js';
 
 const $ = (selector) => document.querySelector(selector);
 const canvas = $('#game');
@@ -152,6 +153,7 @@ const state = {
   paused: false,
 };
 
+let chaseVisuals = null;
 let player;
 let playerJoints;
 let ship;
@@ -1288,6 +1290,16 @@ function frame(now) {
   if (fpsSamples.length > 30) fpsSamples.shift();
   state.fps = Math.round(fpsSamples.reduce((a, b) => a + b, 0) / fpsSamples.length);
 
+  chaseVisuals?.update({
+    dt: rawDt,
+    active: !document.hidden && state.mode === 'playing' && state.introDelay <= 0,
+    paused: state.paused,
+    act: state.act,
+    distance: state.distance,
+    targetX: LANES[state.targetLane + 1],
+    player, playerJoints, ship,
+    jumpY: state.jumpY, slide: state.slide,
+  });
   rig.render(camera, state.paused ? 0 : rawDt);
   const actor = activeActor();
   window.__GAME__ = {
@@ -1322,6 +1334,7 @@ function resize() {
   renderer.setSize(innerWidth, innerHeight, false);
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, innerWidth < 700 ? 1.25 : 1.5, Math.sqrt(4_500_000 / (innerWidth * innerHeight))));
   rig.resize(innerWidth, innerHeight);
+  chaseVisuals?.setBaseFov(camera.fov);
 }
 
 window.addEventListener('resize', resize);
@@ -1388,4 +1401,5 @@ loadAssets().then(() => {
 });
 
 resize();
+chaseVisuals = createChaseVisuals({ camera, baseFov: camera.fov, reducedMotion: REDUCED_MOTION });
 requestAnimationFrame(frame);

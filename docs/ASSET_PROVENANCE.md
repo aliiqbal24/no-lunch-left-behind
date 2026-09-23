@@ -15,6 +15,7 @@ No external media files, stock assets, downloaded meshes, textures, or runtime C
 - Comic panels are original inline SVG assembled in `game/index.html`.
 - The finale shows the original procedural Earth module through the station's code-built terminal window.
 - Billboard text is generated at runtime with Canvas 2D.
+- Chase streaks are original Canvas 2D lines at the screen edges; the denser road and corridor markers are original Three.js geometry in their asset modules.
 - Music, impacts, gestures, interlude cues, docking, and the master-switch cue are synthesized at runtime with the Web Audio API.
 - The final radio call uses the device's built-in Web Speech voice as a temporary pre-Atlas treatment, with complete subtitles on screen.
 
