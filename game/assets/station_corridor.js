@@ -88,5 +88,13 @@ export default function (THREE) {
       g.add(lane);
     }
   }
+  // The existing long lane guides stay readable while edge ticks pass more often.
+  for (let z = -18; z <= 18; z += 3) {
+    for (const x of [-3.55, 3.55]) {
+      const tick = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.025, 0.48), orange);
+      tick.position.set(x, 0.225, z);
+      g.add(tick);
+    }
+  }
   return g;
 }

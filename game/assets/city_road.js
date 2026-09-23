@@ -27,9 +27,10 @@ export default function (THREE) {
     line.position.set(x, 0.205, 0);
     g.add(line);
   }
-  for (const z of [-15, -5, 5, 15]) {
+  // Short edge ticks provide frequent passing motion without changing the road or lanes.
+  for (let z = -18; z <= 18; z += 3) {
     for (const x of [-3.35, 3.35]) {
-      const marker = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.025, 0.72), approach);
+      const marker = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.025, 0.52), approach);
       marker.position.set(x, 0.21, z);
       g.add(marker);
     }
