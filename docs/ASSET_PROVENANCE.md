@@ -4,7 +4,7 @@ Record every shipped image, sound, music track, voice, and generated reference h
 
 ## Code-built 3D
 
-All 26 modules in `game/assets/` are original Three.js source authored through the 404 recipe contract. Each default-exports a function of `THREE` and returns one `THREE.Group`. They cover the hoodie player, three robot families, city/launch props, the new rocket hub and spaceport wayfinder, ladder, player ship, satellites and debris, docking port, station corridor, lasers, security bots, master switch, and Earth.
+All 27 modules in `game/assets/` are original Three.js source authored through the 404 recipe contract. Each default-exports a function of `THREE` and returns one `THREE.Group`. They cover the hoodie player, three robot families, city/launch props, the rocket hub and spaceport wayfinder, procedural city sky, ladder, player ship, satellites and debris, space backdrop, docking port, station corridor, lasers, security bots, master switch, and Earth. The city clouds and sun, layered stars and planets, and corridor window views are built entirely from code with no imported media.
 
 The original 24 modules passed the official recipe verifier; their contact sheet and report are preserved in `review/full-game-assets.png` and `review/full-game-assets.json`. The new rocket hub and wayfinder, plus the revised city road and building, passed load, render, framing, finite-bounds, ground, centre, and side-view checks. Their sheet and report are preserved in `review/rocket-hub-assets.png` and `review/rocket-hub-assets.json`.
 

@@ -207,7 +207,7 @@ async function loadAssets() {
   ]);
 
   setLoad(26, 'weaponising household appliances…');
-  const [road, building, billboard, cone, toaster, mower, chair, rocket, hub, wayfinder] = await Promise.all([
+  const [road, building, billboard, cone, toaster, mower, chair, rocket, hub, wayfinder, citySky] = await Promise.all([
     ASSET(assetUrl('city_road'), { surfaces: true }),
     ASSET(assetUrl('city_building'), { surfaces: true }),
     ASSET(assetUrl('billboard'), { keepHierarchy: true }),
@@ -218,6 +218,7 @@ async function loadAssets() {
     ASSET(assetUrl('rocket')),
     ASSET(assetUrl('rocket_hub'), { surfaces: true }),
     ASSET(assetUrl('spaceport_wayfinder'), { surfaces: true }),
+    ASSET(assetUrl('city_sky')),
   ]);
 
   setLoad(54, 'auditing low-orbit litter…');
@@ -267,7 +268,7 @@ async function loadAssets() {
     laserHigh: { object: laser, kind: 'high', clearance: 0.8, scale: 1, y: 0.2, beamLift: 0.76 },
   };
 
-  buildCity(road, building, billboard, rocket, hub, wayfinder);
+  buildCity(road, building, billboard, rocket, hub, wayfinder, citySky);
   buildRobotArmy([boxy, spider, roller]);
   buildSpace(backdrop, port);
   buildStation(corridor, masterSwitch, earth);
@@ -281,8 +282,11 @@ async function loadAssets() {
   setLoad(100, 'catastrophe approved');
 }
 
-function buildCity(road, building, billboard, rocket, hub, wayfinder) {
+function buildCity(road, building, billboard, rocket, hub, wayfinder, citySky) {
   const signTexture = makeBillboardTexture();
+  citySky.position.set(0, 18, 170);
+  citySky.traverse((object) => { if (object.isMesh) { object.castShadow = false; object.receiveShadow = false; } });
+  cityRoot.add(citySky);
   // The whole road exists from the first frame; no distant section is recycled into view.
   for (let i = 0; i < 10; i++) {
     const chunk = new THREE.Group();
@@ -521,6 +525,7 @@ function startAct(name, fromIntro = false) {
   actLabel.textContent = `${act.title} · ${act.order}`;
   hud.classList.toggle('visible', !fromIntro);
   hud.classList.toggle('on-dark', name === 'space');
+  hud.classList.toggle('on-station', name === 'station');
   stick.classList.toggle('visible', !fromIntro);
   tutorial.classList.toggle('visible', name === 'city' && !fromIntro);
   tutorialText.textContent = name === 'city'

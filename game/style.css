@@ -92,6 +92,8 @@ button { font:inherit; }
 @keyframes robot-fire { 15%,55%{opacity:1;transform:scaleX(1)} 100%{opacity:0;transform:scaleX(.3)} }
 #forecast { margin-top:5px; font-size:clamp(9px,2.25vw,12px); font-weight:900; letter-spacing:.04em; text-align:right; }
 #hud.on-dark .hud-label,#hud.on-dark #forecast { color:var(--paper); text-shadow:0 2px 5px rgba(9,13,34,.95); }
+#hud.on-station .hud-label { padding:2px 5px; border-radius:6px; background:rgba(255,249,234,.86); text-shadow:none; }
+#hud.on-station #forecast { width:max-content; margin-left:auto; padding:2px 5px; border-radius:4px; background:rgba(255,249,234,.86); text-shadow:none; }
 #actLabel { position:absolute; top:80px; left:50%; transform:translateX(-50%); width:max-content; max-width:90vw; padding:6px 10px; border:2px solid var(--ink); border-radius:999px; background:rgba(255,249,234,.86); font-size:10px; font-weight:1000; letter-spacing:.08em; }
 
 #tutorial { position:fixed; z-index:16; inset:auto 0 14%; display:none; justify-content:center; pointer-events:none; }
