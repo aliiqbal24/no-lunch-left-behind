@@ -196,7 +196,7 @@ async function loadAssets() {
   ]);
 
   setLoad(26, 'weaponising household appliances…');
-  const [road, building, billboard, cone, toaster, mower, chair, rocket, pad] = await Promise.all([
+  const [road, building, billboard, cone, toaster, mower, chair, rocket, hub, wayfinder] = await Promise.all([
     ASSET(assetUrl('city_road'), { surfaces: true }),
     ASSET(assetUrl('city_building'), { surfaces: true }),
     ASSET(assetUrl('billboard'), { keepHierarchy: true }),
@@ -205,7 +205,8 @@ async function loadAssets() {
     ASSET(assetUrl('lawnmower')),
     ASSET(assetUrl('office_chair')),
     ASSET(assetUrl('rocket')),
-    ASSET(assetUrl('launch_pad'), { surfaces: true }),
+    ASSET(assetUrl('rocket_hub'), { surfaces: true }),
+    ASSET(assetUrl('spaceport_wayfinder'), { surfaces: true }),
   ]);
 
   setLoad(54, 'auditing low-orbit litter…');
@@ -255,7 +256,7 @@ async function loadAssets() {
     laserHigh: { object: laser, kind: 'high', clearance: 0.8, scale: 1, y: 0.2, beamLift: 0.76 },
   };
 
-  buildCity(road, building, billboard, rocket, pad);
+  buildCity(road, building, billboard, rocket, hub, wayfinder);
   buildRobotArmy([boxy, spider, roller]);
   buildSpace(backdrop, port);
   buildStation(corridor, masterSwitch, earth);
@@ -269,9 +270,10 @@ async function loadAssets() {
   setLoad(100, 'catastrophe approved');
 }
 
-function buildCity(road, building, billboard, rocket, pad) {
+function buildCity(road, building, billboard, rocket, hub, wayfinder) {
   const signTexture = makeBillboardTexture();
-  for (let i = 0; i < 8; i++) {
+  // The whole road exists from the first frame; no distant section is recycled into view.
+  for (let i = 0; i < 10; i++) {
     const chunk = new THREE.Group();
     chunk.position.z = i * 40 + 12;
     chunk.add(road.clone(true));
@@ -298,15 +300,19 @@ function buildCity(road, building, billboard, rocket, pad) {
       }
       chunk.add(sign);
     }
+    if ([1, 4, 7].includes(i)) {
+      const arch = wayfinder.clone(true);
+      arch.position.z = -8;
+      chunk.add(arch);
+    }
     cityRoot.add(chunk);
     cityChunks.push(chunk);
   }
   rocketGroup = new THREE.Group();
-  const padObject = pad.clone(true);
   const rocketObject = rocket.clone(true);
   rocketObject.position.y = 0.55;
   rocketObject.name = 'cityRocket';
-  rocketGroup.add(padObject, rocketObject);
+  rocketGroup.add(hub, rocketObject);
   rocketGroup.position.set(0, 0, 330);
   cityRoot.add(rocketGroup);
 }
@@ -493,6 +499,11 @@ function startAct(name) {
   }
   audio.setAct(name);
   rig.setTime(name === 'city' ? { hour: 17.1, azimuth: 238 } : name === 'space' ? { hour: 10.5, azimuth: 210 } : { hour: 12.2, azimuth: 160 });
+  if (name === 'city') {
+    // Place the obstacles along the road now, so each one is approached in space.
+    const spacing = ACTS.city.speed * ACTS.city.spawnEvery;
+    for (let i = 0; i < 18; i++) spawnPattern(106 + i * spacing);
+  }
   showBanner(act.kicker, act.title, act.order);
 }
 
@@ -505,7 +516,7 @@ function resetWorld(name) {
   cityChunks.forEach((chunk, index) => { chunk.position.z = index * 40 + 12; });
   stationChunks.forEach((chunk, index) => { chunk.position.z = index * 40 + 12; });
   rocketGroup.position.set(0, 0, 330);
-  rocketGroup.visible = false;
+  rocketGroup.visible = name === 'city';
   stationSwitch.position.set(0, 0, 330);
   stationSwitch.visible = false;
   stationEarth.position.z = 365;
@@ -528,7 +539,7 @@ function activePatterns() {
   return CITY_PATTERNS;
 }
 
-function spawnPattern() {
+function spawnPattern(z = state.act === 'space' ? 82 : 72) {
   const patterns = activePatterns();
   const pattern = patterns[patternIndex % patterns.length];
   patternIndex += 1;
@@ -536,7 +547,7 @@ function spawnPattern() {
     const proto = prototypes[state.act][def.type];
     const object = proto.object.clone(true);
     object.scale.setScalar(proto.scale);
-    object.position.set(LANES[def.lane + 1], proto.y, state.act === 'space' ? 82 : 72);
+    object.position.set(LANES[def.lane + 1], proto.y, z);
     if (def.type === 'chair') object.rotation.y = Math.PI;
     if (proto.beamLift) {
       object.traverse((node) => {
@@ -650,15 +661,12 @@ function updatePlayingWorld(dt) {
   const chunks = state.act === 'city' ? cityChunks : state.act === 'station' ? stationChunks : [];
   for (const chunk of chunks) {
     chunk.position.z -= travel;
-    if (chunk.position.z < -34) chunk.position.z += chunks.length * 40;
+    if (state.act === 'station' && chunk.position.z < -34) chunk.position.z += chunks.length * 40;
   }
 
   const remaining = Math.max(0, ACT_DURATION - state.elapsed);
   if (state.act === 'city') {
-    rocketGroup.position.z = Math.max(12, remaining * act.speed + 8);
-    rocketGroup.visible = state.elapsed > ACT_DURATION * 0.58;
-    const rocket = rocketGroup.getObjectByName('cityRocket');
-    if (rocket) rocket.position.y = 0.55 + Math.max(0, state.elapsed - ACT_DURATION + 2.4) * 0.55;
+    rocketGroup.position.z = Math.max(12, 330 - state.distance);
   } else if (state.act === 'space') {
     spaceBackdrop.rotation.y += dt * 0.012;
     dockingPort.position.z = Math.max(14, remaining * act.speed + 10);
@@ -671,7 +679,7 @@ function updatePlayingWorld(dt) {
   }
 
   spawnClock -= dt;
-  if (state.elapsed > 2.35 && spawnClock <= 0) {
+  if (state.act !== 'city' && state.elapsed > 2.35 && spawnClock <= 0) {
     spawnPattern();
     spawnClock = act.spawnEvery;
   }
@@ -898,7 +906,7 @@ function frame(now) {
       updatePlayingWorld(rawDt);
       updateRobots(rawDt);
       updateCamera(rawDt);
-      if (state.elapsed >= ACT_DURATION) finishPlayingAct();
+      if (state.elapsed >= ACT_DURATION && (state.act !== 'city' || TEST_MODE || state.distance >= 318)) finishPlayingAct();
     } else if (state.mode === 'climb') {
       state.interludeElapsed += rawDt;
       state.totalElapsed += rawDt;

@@ -39,3 +39,14 @@ The table reports the production deployment at commit `48fdae9`. The harness rep
 - The prior City-only checkpoint files remain in this folder as development evidence.
 - Atlas credits are untouched. This is the baseline to play before choosing which scene deserves an Atlas refinement pass.
 - For development review, open the live URL with `?dev=1` to show the small pause button during runs and interludes. `P` also toggles pause on a keyboard.
+
+## Local rocket hub iteration
+
+The City Run now has a fixed road to the rocket, a launch hub visible from the start, and wayfinder arches along the route. Obstacle rows are placed before play instead of appearing ahead of the player. The rocket stays at the end of the road and the ladder transition waits until the player reaches it.
+
+- [Opening on the launch route](rocket-hub-opening.png)
+- [Approaching the rocket](rocket-hub-arrival.png)
+- [New asset contact sheet](rocket-hub-assets.png)
+- [New asset verifier report](rocket-hub-assets.json)
+
+These are local 390×844 browser captures, not a new production gate verdict. The full City Run reached the ladder at 318 m with zero page errors or missing requests. The accelerated QA path still reached Space Flight. The observed opening frame used 320 draw calls and 38,838 triangles; the official gate must be rerun on the final deployed commit.

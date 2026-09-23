@@ -1,0 +1,78 @@
+[
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 120,
+  "tris": 1868,
+  "materials": 7,
+  "size": [
+   58.657,
+   45.1,
+   98.4
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.0769,
+    "edgeDensity": 0.3724
+   },
+   "right": {
+    "coverage": 0.0687,
+    "edgeDensity": 0.3409
+   },
+   "back": {
+    "coverage": 0.0728,
+    "edgeDensity": 0.3949
+   },
+   "left": {
+    "coverage": 0.0684,
+    "edgeDensity": 0.3578
+   }
+  },
+  "error": null,
+  "name": "rocket_hub",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 23,
+  "tris": 460,
+  "materials": 5,
+  "size": [
+   13.8,
+   19.6,
+   3.2
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.1263,
+    "edgeDensity": 0.2483
+   },
+   "right": {
+    "coverage": 0.0688,
+    "edgeDensity": 0.1869
+   },
+   "back": {
+    "coverage": 0.1279,
+    "edgeDensity": 0.1827
+   },
+   "left": {
+    "coverage": 0.0684,
+    "edgeDensity": 0.1786
+   }
+  },
+  "error": null,
+  "name": "spaceport_wayfinder",
+  "problems": []
+ }
+]
