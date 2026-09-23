@@ -4,6 +4,7 @@ import { createRig } from '../lib/rig.js';
 import { SwipeInput } from './input.js';
 import { AudioEngine } from './audio.js';
 import { createChaseVisuals } from './chase_visuals.js';
+import { calculateRating } from './results.js';
 
 const $ = (selector) => document.querySelector(selector);
 const canvas = $('#game');
@@ -43,7 +44,16 @@ const switchScreen = $('#switchScreen');
 const masterTap = $('#masterTap');
 const finale = $('#finale');
 const subtitle = $('#subtitle');
-const finalSummary = $('#finalSummary');
+const resultsCard = $('#resultsCard');
+const resultsGrade = $('#resultsGrade');
+const resultsTitle = $('#resultsTitle');
+const resultsScore = $('#resultsScore');
+const resultsPeople = $('#resultsPeople');
+const resultsPeopleExact = $('#resultsPeopleExact');
+const resultsDodged = $('#resultsDodged');
+const resultsTime = $('#resultsTime');
+const resultsHits = $('#resultsHits');
+const playAgain = $('#playAgain');
 const comicPanels = [...document.querySelectorAll('.comic-panel')];
 const comicCount = $('#comicCount');
 
@@ -64,6 +74,7 @@ const SWITCH_APPROACH_DURATION = TEST_MODE ? 0.55 : 1.15;
 const LANES = [2.2, 0, -2.2];
 const WORLD_POPULATION = 8_000_000_000;
 const START_HUMANITY = 95;
+const compactPeople = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
 const crowdPeople = Array.from({ length: 25 }, () => {
   const person = document.createElement('span');
   person.className = 'population-person';
@@ -76,6 +87,19 @@ const ACTS = {
   space: { kicker: 'ACT 2', title: 'SPACE FLIGHT', order: 'DODGE ORBITAL ADMINISTRATION', speed: 15.2, spawnEvery: 1.02 },
   station: { kicker: 'ACT 3', title: 'STATION CORRIDOR', order: 'FIND THE BIG RED BUTTON', speed: 13.4, spawnEvery: 1.0 },
 };
+const MISSION_MODES = new Set(['playing', 'boarding', 'climb', 'launch', 'launchExit', 'docking', 'stationEntry', 'switchApproach', 'switch']);
+
+function expectedMissionSeconds() {
+  const firstAct = ['city', 'space', 'station'].includes(START_SCENE) ? START_SCENE : 'city';
+  let seconds = ACT_DURATION + SWITCH_APPROACH_DURATION;
+  if (firstAct !== 'station') seconds += ACT_DURATION + DOCK_DURATION + 2 * PASSAGE_DURATION;
+  if (firstAct === 'city') {
+    seconds += Math.max(ACT_DURATION, TEST_MODE ? 0 : 318 / ACTS.city.speed)
+      + BOARD_DURATION + CLIMB_DURATION + 2 * PASSAGE_DURATION
+      + (REDUCED_MOTION ? 0 : INTRO_TRANSITION);
+  }
+  return seconds;
+}
 
 const CITY_PATTERNS = [
   [{ lane: 0, type: 'cone' }],
@@ -145,11 +169,12 @@ const state = {
   lane: 0, targetLane: 0, jumpY: 0, jumpVelocity: 0, slide: 0,
   hitCooldown: 0, hits: 0, humanity: START_HUMANITY,
   survivors: Math.round(WORLD_POPULATION * START_HUMANITY / 100),
+  missionElapsed: 0, missionTimeFinal: 0, obstaclesDodged: 0, rating: null, resultsRevealElapsed: 0,
   inputCount: 0, fps: 60, lookBack: 0, climbProgress: 0, climbTarget: 0,
   introCameraBlend: 0,
   introDelay: 0,
   interludeElapsed: 0, dockSoundPlayed: false, visualClock: 0,
-  shot: null, passage: '', finaleElapsed: 0, finalePanStarted: false, summaryElapsed: 0,
+  shot: null, passage: '', finaleElapsed: 0, finalePanStarted: false,
   paused: false,
 };
 
@@ -518,6 +543,11 @@ function resetRun() {
   state.hits = 0;
   state.humanity = START_HUMANITY;
   state.survivors = Math.round(WORLD_POPULATION * START_HUMANITY / 100);
+  state.missionElapsed = 0;
+  state.missionTimeFinal = 0;
+  state.obstaclesDodged = 0;
+  state.rating = null;
+  state.resultsRevealElapsed = 0;
   state.inputCount = 0;
   state.totalElapsed = 0;
   state.visualClock = 0;
@@ -532,7 +562,6 @@ function startGame() {
   state.passage = '';
   state.finaleElapsed = 0;
   state.finalePanStarted = false;
-  state.summaryElapsed = 0;
   clearInterval(comicTimer);
   document.body.classList.remove('intro-playing');
   const firstAct = ['city', 'space', 'station'].includes(START_SCENE) ? START_SCENE : 'city';
@@ -549,6 +578,8 @@ function startGame() {
   }
   [climbScreen, dockingScreen, switchScreen, finale].forEach((screen) => screen.classList.remove('visible'));
   finale.classList.remove('done');
+  resultsCard.inert = true;
+  resultsCard.setAttribute('aria-hidden', 'true');
   resetRun();
   state.paused = false;
   audio.setPaused(false);
@@ -720,7 +751,7 @@ function spawnPattern(z = state.act === 'space' ? 82 : 72) {
     obstacleRoot.add(object);
     obstacles.push({
       object, lane: def.lane, type: def.type, kind: proto.kind,
-      clearance: proto.clearance, hit: false, phase: patternIndex + def.lane,
+      clearance: proto.clearance, hit: false, passed: false, phase: patternIndex + def.lane,
     });
   }
 }
@@ -859,6 +890,10 @@ function updatePlayingWorld(dt) {
     const item = obstacles[i];
     item.object.position.z -= travel;
     animateObstacle(item, dt, i);
+    if (!item.passed && item.object.position.z < -0.93) {
+      item.passed = true;
+      if (!item.hit) state.obstaclesDodged += 1;
+    }
     if (item.object.position.z < -9) {
       obstacleRoot.remove(item.object);
       obstacles.splice(i, 1);
@@ -1124,15 +1159,16 @@ function beginSwitch() {
 
 function beginFinale() {
   if (state.mode !== 'switch') return;
+  state.missionTimeFinal = state.missionElapsed;
   state.mode = 'finale';
   switchScreen.classList.remove('visible');
   finale.classList.add('visible');
   finale.classList.remove('done');
   subtitle.textContent = '—hello? Hello?!';
-  finalSummary.textContent = '';
   state.finaleElapsed = 0;
   state.finalePanStarted = false;
-  state.summaryElapsed = 0;
+  resultsCard.inert = true;
+  resultsCard.setAttribute('aria-hidden', 'true');
   audio.masterSwitch();
   audio.finalCall();
   syncDevPause();
@@ -1146,6 +1182,48 @@ function updateEarthCrisis(level) {
     const pulse = 0.85 + 0.15 * Math.sin(state.visualClock * 7 + flare.userData.phase);
     flare.scale.setScalar(level * flare.userData.baseSize * pulse);
   }
+}
+
+function formatMissionTime(seconds) {
+  const tenths = Math.round(seconds * 10);
+  const minutes = Math.floor(tenths / 600);
+  const remaining = tenths % 600;
+  return `${String(minutes).padStart(2, '0')}:${String(Math.floor(remaining / 10)).padStart(2, '0')}.${remaining % 10}`;
+}
+
+function updateResultCounters(dt) {
+  state.resultsRevealElapsed = Math.min(0.85, state.resultsRevealElapsed + dt);
+  const progress = REDUCED_MOTION ? 1 : state.resultsRevealElapsed / 0.85;
+  const eased = 1 - (1 - progress) ** 3;
+  const people = Math.round(state.survivors * eased);
+  resultsPeople.textContent = compactPeople.format(people);
+  resultsPeopleExact.textContent = `${people.toLocaleString('en-US')} PEOPLE`;
+  resultsDodged.textContent = Math.round(state.obstaclesDodged * eased).toLocaleString('en-US');
+  resultsTime.textContent = formatMissionTime(state.missionTimeFinal * eased);
+  resultsHits.textContent = Math.round(state.hits * eased).toLocaleString('en-US');
+}
+
+function revealResults() {
+  state.mode = 'complete';
+  state.resultsRevealElapsed = 0;
+  state.rating = calculateRating({
+    survivors: state.survivors,
+    hits: state.hits,
+    obstaclesDodged: state.obstaclesDodged,
+    timeSeconds: state.missionTimeFinal,
+    baselineSeconds: expectedMissionSeconds(),
+  });
+  resultsCard.dataset.grade = state.rating.grade;
+  resultsGrade.textContent = state.rating.grade;
+  resultsTitle.textContent = state.rating.title;
+  resultsScore.textContent = `${state.rating.score} / 100`;
+  updateResultCounters(REDUCED_MOTION ? 0.85 : 0);
+  resultsCard.inert = false;
+  resultsCard.setAttribute('aria-hidden', 'false');
+  finale.classList.add('done');
+  audio.results(state.rating.grade);
+  syncDevPause();
+  resultsTitle.focus({ preventScroll: true });
 }
 
 function updateFinale(dt) {
@@ -1178,12 +1256,7 @@ function updateFinale(dt) {
   }
   updateShot(dt);
   if (state.finaleElapsed >= (TEST_MODE ? 2.6 : 8)) {
-    state.mode = 'complete';
-    state.summaryElapsed = 0;
-    const survivors = state.survivors === 256 ? '256 people' : state.survivors.toLocaleString('en-US') + ' people';
-    finalSummary.innerHTML = `<strong>${survivors} remain.</strong><br>${state.hits} collision${state.hits === 1 ? '' : 's'} were deemed operationally acceptable.`;
-    finale.classList.add('done');
-    syncDevPause();
+    revealResults();
   }
 }
 
@@ -1192,6 +1265,7 @@ function frame(now) {
   lastTime = now;
   if (!document.hidden && !state.paused) {
     state.visualClock += rawDt;
+    if (MISSION_MODES.has(state.mode)) state.missionElapsed += rawDt;
     if (state.mode === 'ready') {
       updateIntroCity();
     } else if (state.mode === 'playing') {
@@ -1288,8 +1362,7 @@ function frame(now) {
     } else if (state.mode === 'finale') {
       updateFinale(rawDt);
     } else if (state.mode === 'complete') {
-      state.summaryElapsed += rawDt;
-      if (state.summaryElapsed >= (TEST_MODE ? 1.8 : 5.5)) window.location.reload();
+      updateResultCounters(rawDt);
     }
     if (state.mode !== 'finale' && state.mode !== 'complete') updateEarthCrisis(1);
   }
@@ -1325,6 +1398,9 @@ function frame(now) {
     humanityPercent: state.humanity,
     survivors: state.survivors,
     hits: state.hits,
+    obstaclesDodged: state.obstaclesDodged,
+    missionTime: state.mode === 'finale' || state.mode === 'complete' ? state.missionTimeFinal : state.missionElapsed,
+    rating: state.rating?.grade || null,
     inputCount: state.inputCount,
     paused: state.paused,
   };
@@ -1359,6 +1435,11 @@ climbScreen.addEventListener('pointerdown', (event) => {
   if (event.target !== climbTap) registerClimbTap();
 });
 masterTap.addEventListener('click', beginFinale);
+playAgain.addEventListener('click', () => {
+  const replayUrl = new URL(window.location.href);
+  replayUrl.searchParams.delete('scene');
+  window.location.assign(replayUrl.href);
+});
 devPauseButton.addEventListener('click', () => setDevPaused(!state.paused));
 window.addEventListener('keydown', (event) => {
   if (DEV_MODE && event.code === 'KeyP' && !event.repeat) {

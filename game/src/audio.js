@@ -54,7 +54,7 @@ export class AudioEngine {
   }
 
   tick() {
-    if (!this.enabled || this.paused || document.hidden) return;
+    if (!this.enabled || this.paused || document.hidden || this.act === 'results') return;
     const notes = THEMES[this.act] || THEMES.city;
     const note = notes[this.beat % notes.length];
     const type = this.act === 'space' ? 'sine' : this.act === 'station' ? 'square' : 'triangle';
@@ -95,6 +95,16 @@ export class AudioEngine {
 
   complete() {
     [392, 523, 659, 784].forEach((n, i) => this.tone(n, 0.22, 'triangle', 0.045, i * 0.1));
+  }
+
+  results(grade) {
+    this.act = 'results';
+    this.tone(92, 0.22, 'square', 0.055, 0, -25);
+    this.noise(0.12, 0.028, 0.02);
+    const notes = grade === 'S' ? [392, 523.25, 659.25, 783.99]
+      : grade === 'D' ? [261.63, 220, 196]
+        : [329.63, 392, 523.25];
+    notes.forEach((note, index) => this.tone(note, 0.28, 'triangle', 0.036, 0.16 + index * 0.1));
   }
 
   masterSwitch() {

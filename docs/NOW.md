@@ -10,6 +10,7 @@ Updated: 2026-09-23. Only the integration session edits this file. Check Git for
 - Continuous-passage asset handoffs are integrated on `main`: rocket hatch/docking port `c07f402`; Earth window/crisis `f1e13bf`; window masking `6da5a8a`, `d7222e9`, and `46f299c`.
 - Chase speed visuals are integrated on `main`: contributor `251f6e0` was cherry-picked as `202a2bb`; the runner, ship, camera, and streak hook is connected in `game/src/main.js`. The 404 recipe ship check, city/space/station phone checks, pause, transitions, and reduced motion passed locally.
 - The station corridor now opens into a broad domed hub: the central master switch has no backing plate, and Earth appears through a hemispherical viewport. Local phone and desktop approach, switch, and finale views were checked.
+- The end-of-run arcade debrief now reveals a graded, persistent results card over the live Earth view. It tracks mission time, people saved, obstacles dodged, and collisions, with an explicit Play Again button. The rating helper handoff `dae6799` was integrated as `4a0e4ad`; seven grading tests, an accelerated full route, a full-length station run, responsive ending views, and the recipe ship check passed locally.
 - Last confirmed public Vercel game-code commit: `48fdae9`. Production is deliberately behind local development.
 - Vercel Git connection: none, confirmed in project settings on 2026-09-22. GitHub pushes are source-history updates, not deployments.
 - Atlas: pre-Atlas baseline; no credits spent. Scene refinement requires explicit owner approval.
@@ -24,12 +25,12 @@ Updated: 2026-09-23. Only the integration session edits this file. Check Git for
 | Terminal window and Earth effects | Contributor | `codex/station-earth-window` / dedicated worktree | `game/assets/station_end_window.js`, `game/assets/earth_crisis.js` | Complete and integrated as `f1e13bf`, `6da5a8a`, `d7222e9`, `46f299c` |
 | Rocket and docking passage | Contributor | `codex/continuous-passage-assets` / dedicated worktree | `game/assets/rocket.js`, `game/assets/docking_port.js` | Complete and integrated as `c07f402` |
 | Chase speed visuals | Integration session | `main` / this checkout | `game/src/main.js`, `game/src/chase_visuals.js`, `game/assets/city_road.js`, `game/assets/station_corridor.js` | Integrated from `251f6e0` as `202a2bb`; local browser and recipe checks passed |
-| End-of-run results UI | Integration session | `main` / this checkout | `game/src/main.js`, `game/src/audio.js`, `game/index.html`, `game/style.css`, this board | In progress: live-Earth debrief, run stats, reveal, and replay |
-| Results grading helper | Contributor | `codex/results-grading` / `results-grading` worktree | New `game/src/results.js`, `tests/results.test.mjs` | Assigned: pure rating function and boundary tests; handoff commit pending |
+| End-of-run results UI | Integration session | `main` / this checkout | `game/src/main.js`, `game/src/audio.js`, `game/index.html`, `game/style.css`, this board | Complete locally: live-Earth debrief, run stats, grade reveal, and Play Again; browser and recipe checks passed |
+| Results grading helper | Contributor | `codex/results-grading` / `results-grading` worktree | New `game/src/results.js`, `tests/results.test.mjs` | Complete and integrated as `4a0e4ad`; seven boundary tests pass |
 | Contributor task 1 | Unassigned | — | — | Waiting for a bounded prompt |
 | Contributor task 2 | Unassigned | — | — | Waiting for a bounded prompt |
 | Contributor task 3 | Unassigned | — | — | Waiting for a bounded prompt |
 
 ## Next integration step
 
-Finish the end-of-run results UI, integrate the grading helper, and review the full ending in the local preview. Deployment, jam fork/entry JSON, and the exact-commit gate remain release tasks requiring owner approval.
+Review the finished rating screen in the local preview. Deployment, jam fork/entry JSON, and the exact-commit gate remain release tasks requiring owner approval.
