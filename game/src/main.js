@@ -11,6 +11,7 @@ const loadingFill = $('#loadingFill');
 const loadingText = $('#loadingText');
 const startScreen = $('#start');
 const startButton = $('#startb');
+const beginButton = $('#beginRun');
 const hud = $('#hud');
 const stick = $('#stick');
 const tutorial = $('#tutorial');
@@ -399,6 +400,12 @@ function showComic(index) {
   comicCount.textContent = `${comicIndex + 1} / ${comicPanels.length}`;
 }
 
+function revealIntro() {
+  startScreen.classList.remove('intro-playing');
+  startScreen.classList.add('intro-revealed');
+  document.body.classList.remove('intro-playing');
+}
+
 function onGesture(kind) {
   if (state.mode !== 'playing' || state.paused) return;
   state.inputCount += 1;
@@ -455,6 +462,7 @@ function resetRun() {
 function startGame() {
   finaleToken += 1;
   clearInterval(comicTimer);
+  document.body.classList.remove('intro-playing');
   [startScreen, climbScreen, dockingScreen, switchScreen, finale].forEach((screen) => screen.classList.remove('visible'));
   finale.classList.remove('done');
   resetRun();
@@ -978,6 +986,13 @@ function resize() {
 
 window.addEventListener('resize', resize);
 startButton.addEventListener('click', startGame);
+startButton.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    startGame();
+  }
+});
+beginButton.addEventListener('click', startGame);
 climbTap.addEventListener('click', registerClimbTap);
 climbScreen.addEventListener('pointerdown', (event) => {
   if (event.target !== climbTap) registerClimbTap();
@@ -1012,7 +1027,12 @@ loadAssets().then(() => {
   loading.classList.remove('visible');
   startScreen.classList.add('visible');
   showComic(0);
-  comicTimer = window.setInterval(() => showComic(comicIndex + 1), 4200);
+  let comicTurns = 0;
+  comicTimer = window.setInterval(() => {
+    showComic(comicIndex + 1);
+    comicTurns += 1;
+    if (comicTurns === comicPanels.length) revealIntro();
+  }, 6300);
   window.__READY__ = true;
 }).catch((error) => {
   console.error(error);

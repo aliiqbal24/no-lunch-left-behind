@@ -16,11 +16,11 @@ Updated: 2026-09-22. Only the integration session edits this file. Check Git for
 
 | Task | Owner / session | Branch / worktree | Exclusive files | Status / handoff |
 | --- | --- | --- | --- | --- |
-| Integration, reviews, final playthrough, release | Integration session | `main` / this checkout | `game/src/main.js`, `game/index.html`, `game/style.css`, this board | Humanity HUD complete at `cc91c44`; 390×844 collision check and recipe ship check passed. No release approved |
+| Integration and intro sequence | Integration session | `main` / this checkout | `game/src/main.js`, `game/index.html`, `game/style.css`, this board | Implemented: enlarged comic alone for one 6.3-second-per-panel cycle, then smooth content reveal; early real-touch start and local ship check passed. No release approved |
 | Contributor task 1 | Unassigned | — | — | Waiting for a bounded prompt |
 | Contributor task 2 | Unassigned | — | — | Waiting for a bounded prompt |
 | Contributor task 3 | Unassigned | — | — | Waiting for a bounded prompt |
 
 ## Next integration step
 
-Review the humanity HUD in the local preview. For the next scene or polish tasks, assign each session disjoint files and acceptance criteria here, then have each session create its own worktree/branch. Review each commit SHA and connect its hooks in `main`. The jam fork/entry JSON and exact-commit gate remain release tasks, not contributor tasks.
+Review the intro in the local preview: let all four panels play, then check the shrinking comic and appearing controls. For the next scene or polish tasks, assign each session disjoint files and acceptance criteria here, then have each session create its own worktree/branch. Review each commit SHA and connect its hooks in `main`. The jam fork/entry JSON and exact-commit gate remain release tasks, not contributor tasks.
