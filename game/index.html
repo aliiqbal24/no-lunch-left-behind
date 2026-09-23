@@ -152,7 +152,24 @@
   <div id="finale" class="screen finale-screen">
     <div class="signal">EARTH AUDIO LINK · 1 BAR</div>
     <div id="subtitle" class="subtitle">—hello? Hello?!</div>
-    <div id="finalSummary" class="final-summary"></div>
+    <section id="resultsCard" class="results-card" aria-labelledby="resultsTitle" aria-hidden="true" inert>
+      <div class="results-form"><span>FORM 404-S</span><span>POST-APOCALYPSE PERFORMANCE REVIEW</span></div>
+      <div class="results-rating">
+        <div class="results-stamp" aria-hidden="true"><span id="resultsGrade">S</span></div>
+        <div class="results-verdict">
+          <span class="results-label">PLAY RATING</span>
+          <h2 id="resultsTitle" tabindex="-1">UNAUTHORIZED LEGEND</h2>
+          <span id="resultsScore" class="results-score">100 / 100</span>
+        </div>
+      </div>
+      <div class="results-stats">
+        <div class="results-stat results-people"><span>PEOPLE SAVED</span><strong id="resultsPeople">0</strong><small id="resultsPeopleExact"></small></div>
+        <div class="results-stat"><span>OBSTACLES DODGED</span><strong id="resultsDodged">0</strong></div>
+        <div class="results-stat"><span>MISSION TIME</span><strong id="resultsTime">00:00.0</strong></div>
+        <div class="results-stat"><span>COLLISIONS</span><strong id="resultsHits">0</strong></div>
+      </div>
+      <button id="playAgain" class="primary results-replay">PLAY AGAIN</button>
+    </section>
   </div>
 
   <script type="module" src="./src/main.js"></script>
