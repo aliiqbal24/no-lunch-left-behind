@@ -4,6 +4,7 @@ export default function (THREE) {
   const coral = new THREE.MeshStandardMaterial({ color: 0xe98b62, roughness: 0.84 }); coral.name = 'plaster';
   const teal = new THREE.MeshStandardMaterial({ color: 0x1f4e5f, roughness: 0.72 }); teal.name = 'metal';
   const glass = new THREE.MeshStandardMaterial({ color: 0x78b7c5, roughness: 0.3, metalness: 0.12 }); glass.name = 'glass';
+  const guide = new THREE.MeshStandardMaterial({ color: 0x45c4b0, roughness: 0.38, emissive: 0x45c4b0, emissiveIntensity: 0.55 }); guide.name = 'metal';
   const main = new THREE.Mesh(new THREE.BoxGeometry(5.6, 12, 4.6), plaster);
   main.position.y = 6;
   g.add(main);
@@ -29,6 +30,20 @@ export default function (THREE) {
   const roof = new THREE.Mesh(new THREE.BoxGeometry(5.9, 0.3, 4.9), teal);
   roof.position.y = 12.15;
   g.add(roof);
+  for (const x of [-2.55, 2.55]) {
+    const light = new THREE.Mesh(new THREE.BoxGeometry(0.16, 9.5, 0.14), guide);
+    light.position.set(x, 6.2, 2.43);
+    g.add(light);
+  }
+  const crown = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 2.25, 0.7, 10), teal);
+  crown.position.set(0, 12.7, 0);
+  g.add(crown);
+  const beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 2.4, 8), guide);
+  beacon.position.set(0, 14.25, 0);
+  g.add(beacon);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.38, 8), coral);
+  cap.position.set(0, 15.65, 0);
+  g.add(cap);
   g.children.forEach((o) => { o.position.x -= 0.2; o.position.z -= 0.367; });
   return g;
 }

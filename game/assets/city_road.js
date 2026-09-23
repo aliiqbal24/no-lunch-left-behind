@@ -3,6 +3,8 @@ export default function (THREE) {
   const asphalt = new THREE.MeshStandardMaterial({ color: 0x56646b, roughness: 0.94 }); asphalt.name = 'ground';
   const curb = new THREE.MeshStandardMaterial({ color: 0xf5e6c8, roughness: 0.9 }); curb.name = 'stone';
   const paint = new THREE.MeshStandardMaterial({ color: 0xfff9ea, roughness: 0.84 }); paint.name = 'ground';
+  const guide = new THREE.MeshStandardMaterial({ color: 0x45c4b0, roughness: 0.38, emissive: 0x45c4b0, emissiveIntensity: 0.75 }); guide.name = 'metal';
+  const approach = new THREE.MeshStandardMaterial({ color: 0xf6c453, roughness: 0.7 }); approach.name = 'ground';
   const road = new THREE.Mesh(new THREE.BoxGeometry(8.2, 0.18, 40), asphalt);
   road.position.y = 0.09;
   road.receiveShadow = true;
@@ -20,6 +22,17 @@ export default function (THREE) {
       g.add(dash);
     }
   }
+  for (const x of [-3.83, 3.83]) {
+    const line = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.025, 40), guide);
+    line.position.set(x, 0.205, 0);
+    g.add(line);
+  }
+  for (const z of [-15, -5, 5, 15]) {
+    for (const x of [-3.35, 3.35]) {
+      const marker = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.025, 0.72), approach);
+      marker.position.set(x, 0.21, z);
+      g.add(marker);
+    }
+  }
   return g;
 }
-

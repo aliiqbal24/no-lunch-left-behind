@@ -2,6 +2,82 @@
  {
   "ok": true,
   "mounts": null,
+  "meshes": 34,
+  "tris": 476,
+  "materials": 5,
+  "size": [
+   6.3,
+   15.84,
+   5.884
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.2115,
+    "edgeDensity": 0.1703
+   },
+   "right": {
+    "coverage": 0.1925,
+    "edgeDensity": 0.0851
+   },
+   "back": {
+    "coverage": 0.2223,
+    "edgeDensity": 0.0772
+   },
+   "left": {
+    "coverage": 0.1865,
+    "edgeDensity": 0.1274
+   }
+  },
+  "error": null,
+  "name": "city_building",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 27,
+  "tris": 324,
+  "materials": 5,
+  "size": [
+   9.6,
+   0.32,
+   40
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.0922,
+    "edgeDensity": 0.2111
+   },
+   "right": {
+    "coverage": 0.0892,
+    "edgeDensity": 0.3483
+   },
+   "back": {
+    "coverage": 0.0922,
+    "edgeDensity": 0.2108
+   },
+   "left": {
+    "coverage": 0.0892,
+    "edgeDensity": 0.3475
+   }
+  },
+  "error": null,
+  "name": "city_road",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
   "meshes": 120,
   "tris": 1868,
   "materials": 7,

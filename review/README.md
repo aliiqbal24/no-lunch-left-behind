@@ -42,12 +42,12 @@ The table reports the production deployment at commit `48fdae9`. The harness rep
 
 ## Local rocket hub iteration
 
-The City Run now has a fixed road to the rocket, a launch hub visible from the start, and wayfinder arches along the route. Obstacle rows are placed before play instead of appearing ahead of the player. The rocket stays at the end of the road and the ladder transition waits until the player reaches it.
+The City Run now has a fixed road to the rocket, launch-route lighting and beacons, a launch hub visible from the start, and wayfinder arches along the route. Obstacle rows are placed before play instead of appearing ahead of the player. The rocket stays at the end of the road and the ladder transition waits until the player reaches it.
 
 - [Opening on the launch route](rocket-hub-opening.png)
 - [Approaching the rocket](rocket-hub-arrival.png)
-- [New asset contact sheet](rocket-hub-assets.png)
-- [New asset verifier report](rocket-hub-assets.json)
+- [Four City Run asset contact sheet](rocket-hub-assets.png)
+- [Four City Run asset verifier report](rocket-hub-assets.json)
 - [Passing local mobile gate verdict](rocket-hub-local-verdict.json)
 
 These are local 390×844 browser captures, not a new production gate verdict. The full City Run reached the ladder at 318 m with zero page errors or missing requests. The accelerated QA path still reached Space Flight. The local jam gate passed at commit `cb73a5f`: 4.1 s ready, 1.6 MB, 320 peak draw calls, 38,838 peak triangles, zero errors and 404s. The gate must be rerun against the final deployed commit.
