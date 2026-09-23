@@ -159,6 +159,91 @@ body.dev-paused * { animation-play-state:paused!important; }
   .briefing { justify-content:center; }
   #comic { height:min(42vh,330px); }
 }
+
+/* Keep controls and story panels usable when the viewport is short or narrow. */
+.screen {
+  padding-left:max(clamp(22px,6vw,54px),calc(env(safe-area-inset-left) + 12px));
+  padding-right:max(clamp(22px,6vw,54px),calc(env(safe-area-inset-right) + 12px));
+}
+.briefing.visible.intro-playing {
+  padding-left:max(16px,calc(env(safe-area-inset-left) + 12px));
+  padding-right:max(16px,calc(env(safe-area-inset-right) + 12px));
+}
+#comic { max-width:100%; }
+.finale-screen { overflow-y:auto; padding-bottom:calc(28px + var(--safe-bottom)); }
+
+@media (max-width:380px) and (max-height:620px) and (orientation:portrait) {
+  .briefing { gap:6px; padding-top:max(18px,var(--safe-top)); padding-bottom:calc(52px + var(--safe-bottom)); }
+  .briefing h1 { font-size:clamp(29px,9vw,36px); }
+  #comic { height:clamp(150px,33dvh,190px); }
+  .briefing .primary { min-height:44px; padding:9px 12px; font-size:13px; }
+  .controls { gap:4px; font-size:10px; }
+  .controls span { padding:4px 7px; }
+}
+
+@media (max-height:540px) and (orientation:portrait) {
+  .finale-screen .earth-orbit { width:min(190px,45dvh); }
+}
+
+@media (orientation:landscape) and (max-height:500px) {
+  .briefing.visible {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    grid-template-rows:repeat(5,auto);
+    align-content:center;
+    column-gap:14px;
+    row-gap:6px;
+    padding:18px max(36px,calc(env(safe-area-inset-right) + 18px)) 26px max(36px,calc(env(safe-area-inset-left) + 18px));
+  }
+  .briefing .memo { grid-column:2; grid-row:1; justify-self:center; }
+  .briefing h1 { grid-column:2; grid-row:2; font-size:clamp(27px,4vw,42px); }
+  #comic { grid-column:1; grid-row:1 / 5; width:100%; height:min(48dvh,190px); justify-self:center; }
+  .comic-nav { grid-column:1; grid-row:5; justify-self:center; }
+  .briefing .mission { grid-column:2; grid-row:3; font-size:clamp(12px,1.8vw,15px); }
+  .briefing .primary { grid-column:2; grid-row:4; width:100%; min-height:44px; padding:8px; font-size:clamp(12px,1.8vw,15px); }
+  .briefing .controls { grid-column:2; grid-row:5; gap:4px; font-size:10px; }
+  .briefing .controls span { padding:4px 6px; }
+  .briefing.visible ~ #mute { left:max(12px,env(safe-area-inset-left)); right:auto; }
+
+  #sceneBanner { top:52%; padding:9px 14px; }
+  #sceneBanner strong { font-size:clamp(28px,6vw,42px); }
+
+  .switch-screen.visible {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-rows:repeat(3,auto);
+    align-content:center;
+    column-gap:20px;
+    row-gap:8px;
+    padding-top:20px;
+    padding-bottom:28px;
+  }
+  .switch-screen .memo { grid-column:1; grid-row:1; justify-self:center; }
+  .switch-screen h2 { grid-column:1; grid-row:2; font-size:clamp(30px,5vw,48px); }
+  .switch-screen p { grid-column:1; grid-row:3; font-size:clamp(12px,1.8vw,16px); }
+  .master-button { grid-column:2; grid-row:1 / 4; width:min(190px,42dvh); border-width:7px; }
+  .master-button span { font-size:clamp(34px,8vw,56px); }
+  .master-button small { font-size:9px; }
+
+  .finale-screen.visible {
+    display:grid;
+    grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);
+    grid-template-rows:repeat(3,auto);
+    align-content:center;
+    column-gap:18px;
+    row-gap:12px;
+    padding-top:24px;
+    padding-bottom:30px;
+  }
+  .finale-screen .signal { grid-column:2; grid-row:1; justify-self:center; }
+  .earth-orbit { grid-column:1; grid-row:1 / 4; width:min(230px,50dvh); margin:0; justify-self:center; }
+  .subtitle { grid-column:2; grid-row:2; width:100%; min-height:56px; font-size:clamp(16px,2.5vw,22px); }
+  .final-summary { grid-column:2; grid-row:3; min-height:0; }
+}
+
+@media (min-width:900px) and (min-height:600px) {
+  .finale-screen { justify-content:center; }
+}
 @media (prefers-reduced-motion:reduce) {
   #humanityFill,.population-person,.robot-advance,.comic-panel,#comic,#mute { transition:none; }
   .briefing.intro-revealed .intro-extra { animation:none; }

@@ -50,6 +50,7 @@ const params = new URLSearchParams(location.search);
 const TEST_MODE = params.has('test');
 const DEV_MODE = params.has('dev') || TEST_MODE || ['localhost', '127.0.0.1'].includes(location.hostname);
 const START_SCENE = params.get('scene');
+const KEYBOARD_HINTS = !matchMedia('(pointer: coarse)').matches;
 const ACT_DURATION = TEST_MODE ? 3.6 : 25;
 const CLIMB_DURATION = TEST_MODE ? 1.8 : 5;
 const DOCK_DURATION = TEST_MODE ? 1.5 : 3;
@@ -422,7 +423,7 @@ function onGesture(kind) {
 
   if (state.act === 'city' && tutorialStage === 0 && (kind === 'left' || kind === 'right')) {
     tutorialStage = 1;
-    tutorialText.textContent = 'SWIPE UP TO JUMP · DOWN TO SLIDE';
+    tutorialText.textContent = KEYBOARD_HINTS ? 'UP / W TO JUMP · DOWN / S TO SLIDE' : 'SWIPE UP TO JUMP · DOWN TO SLIDE';
   } else if (state.act === 'city' && tutorialStage === 1 && (kind === 'up' || kind === 'down')) {
     tutorialStage = 2;
     tutorial.classList.remove('visible');
@@ -498,7 +499,9 @@ function startAct(name) {
   hud.classList.toggle('on-dark', name === 'space');
   stick.classList.add('visible');
   tutorial.classList.toggle('visible', name === 'city');
-  tutorialText.textContent = name === 'city' ? 'SWIPE TO CHANGE LANES' : 'SAME SWIPES · NOW WITH VACUUM';
+  tutorialText.textContent = name === 'city'
+    ? (KEYBOARD_HINTS ? 'LEFT / RIGHT OR A / D TO CHANGE LANES' : 'SWIPE TO CHANGE LANES')
+    : (KEYBOARD_HINTS ? 'SAME KEYS · NOW WITH VACUUM' : 'SAME SWIPES · NOW WITH VACUUM');
   if (name === 'space') {
     tutorial.classList.add('visible');
     setTimeout(() => {
@@ -752,7 +755,7 @@ function updateCamera(dt) {
       return;
     }
     const y = state.act === 'space' ? (portrait ? 4.1 : 3.7) : (portrait ? 4.5 : 4.1);
-    const z = state.act === 'space' ? (portrait ? -10.5 : -12) : (portrait ? -8.8 : -10.6);
+    const z = state.act === 'space' ? (portrait ? -10.5 : -9.4) : (portrait ? -8.8 : -10.6);
     const desired = new THREE.Vector3(actor.position.x * 0.14, y, z);
     camera.position.lerp(desired, 1 - Math.exp(-dt * 6));
     camera.lookAt(actor.position.x * 0.12, state.act === 'space' ? 1.5 + state.jumpY * 0.15 : 1.1 + state.jumpY * 0.18, 9.5);
@@ -976,11 +979,15 @@ function frame(now) {
 }
 
 function resize() {
-  camera.aspect = innerWidth / innerHeight;
-  camera.fov = innerWidth / innerHeight < 0.8 ? 58 : 50;
+  const aspect = innerWidth / innerHeight;
+  camera.aspect = aspect;
+  // Keep the road and player at a useful scale on ultrawide monitors.
+  camera.fov = aspect < 0.8 ? 58 : aspect > 1.8
+    ? Math.max(34, THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(50) / 2) * 1.8 / aspect)))
+    : 50;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight, false);
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, innerWidth < 700 ? 1.25 : 1.5));
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, innerWidth < 700 ? 1.25 : 1.5, Math.sqrt(4_500_000 / (innerWidth * innerHeight))));
   rig.resize(innerWidth, innerHeight);
 }
 
