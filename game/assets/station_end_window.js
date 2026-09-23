@@ -8,6 +8,7 @@ export default function (THREE) {
   const dark = new THREE.MeshStandardMaterial({ color: 0x172b33, roughness: 0.44, metalness: 0.52 }); dark.name = 'metal';
   const teal = new THREE.MeshStandardMaterial({ color: 0x45c4b0, roughness: 0.26, metalness: 0.28, emissive: 0x45c4b0, emissiveIntensity: 0.7 }); teal.name = 'metal';
   const glass = new THREE.MeshBasicMaterial({ color: 0x76c8e0, transparent: true, opacity: 0.07, depthWrite: false, side: THREE.DoubleSide, fog: false });
+  const matte = new THREE.MeshBasicMaterial({ color: 0x0a1928, side: THREE.DoubleSide, fog: false });
 
   function box(name, w, h, d, x, y, z, material) {
     const part = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
@@ -40,6 +41,14 @@ export default function (THREE) {
   pane.name = 'clearEarthPane';
   pane.position.set(0, 2.825, 0);
   end.add(pane);
+
+  // Side cladding sits just beyond the glass, masking corridor pieces that
+  // can otherwise appear in the outer aperture at the oblique switch angle.
+  // The 4.4 m clear centre still contains the full Earth disc in that shot.
+  for (const side of [-1, 1]) {
+    box('viewportSideMatte', 1.05, 3.12, 0.08, side * 2.725, 2.825, 0.4, matte);
+    box('viewportInnerTrim', 0.06, 3.12, 0.12, side * 2.23, 2.825, 0.33, teal);
+  }
 
   // The existing Earth asset has its globe centred at y=2.8. At scale .65,
   // this mount aligns its centre with the window and keeps it outside the hull.
@@ -74,7 +83,7 @@ export default function (THREE) {
 
   end.userData.earthMount = earthMount;
   end.userData.spaceBackdrop = space;
-  end.userData.aperture = { width: 6.5, height: 3.08, centreY: 2.825 };
+  end.userData.aperture = { width: 4.4, height: 3.08, centreY: 2.825 };
   end.userData.earthScale = 0.65;
   return end;
 }
