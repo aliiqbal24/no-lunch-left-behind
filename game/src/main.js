@@ -56,6 +56,9 @@ const ACT_DURATION = TEST_MODE ? 3.6 : 25;
 const CLIMB_DURATION = TEST_MODE ? 1.8 : 5;
 const DOCK_DURATION = TEST_MODE ? 1.5 : 3;
 const INTRO_TRANSITION = 0.9;
+const BOARD_DURATION = TEST_MODE ? 0.65 : 1.35;
+const PASSAGE_DURATION = TEST_MODE ? 0.65 : 1.35;
+const SWITCH_APPROACH_DURATION = TEST_MODE ? 0.55 : 1.15;
 // The chase camera looks toward +Z, so screen-left is world +X.
 const LANES = [2.2, 0, -2.2];
 const WORLD_POPULATION = 8_000_000_000;
@@ -113,16 +116,17 @@ renderer.setSize(innerWidth, innerHeight, false);
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.35));
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 850);
+scene.add(camera);
+const cameraAim = new THREE.Vector3(0, 1.1, 9.5);
 const introCameraFrom = new THREE.Vector3();
 const introCameraTarget = new THREE.Vector3(0, 1.1, 9.5);
 const cityRoot = new THREE.Group();
 const spaceRoot = new THREE.Group();
 const stationRoot = new THREE.Group();
-const interludeRoot = new THREE.Group();
 const actorRoot = new THREE.Group();
 const obstacleRoot = new THREE.Group();
 const robotRoot = new THREE.Group();
-scene.add(cityRoot, spaceRoot, stationRoot, interludeRoot, actorRoot, obstacleRoot, robotRoot);
+scene.add(cityRoot, spaceRoot, stationRoot, actorRoot, obstacleRoot, robotRoot);
 
 const rig = createRig(THREE, renderer, scene, {
   tier: 'phone', hour: 17.1, azimuth: 238, exposure: 1.04,
@@ -136,14 +140,15 @@ const setLoad = (percent, message) => {
 };
 
 const state = {
-  mode: 'loading', act: 'city', elapsed: 0, totalElapsed: 0, distance: 0,
+  mode: 'loading', act: 'city', elapsed: 0, totalElapsed: 0, distance: 0, actDistance: 0,
   lane: 0, targetLane: 0, jumpY: 0, jumpVelocity: 0, slide: 0,
   hitCooldown: 0, hits: 0, humanity: START_HUMANITY,
   survivors: Math.round(WORLD_POPULATION * START_HUMANITY / 100),
-  inputCount: 0, fps: 60, lookBack: 0, climbProgress: 0,
+  inputCount: 0, fps: 60, lookBack: 0, climbProgress: 0, climbTarget: 0,
   introCameraBlend: 0,
   introDelay: 0,
-  interludeElapsed: 0, dockSoundPlayed: false,
+  interludeElapsed: 0, dockSoundPlayed: false, visualClock: 0,
+  shot: null, passage: '', finaleElapsed: 0, finalePanStarted: false, summaryElapsed: 0,
   paused: false,
 };
 
@@ -157,10 +162,13 @@ let prototypes = { city: {}, space: {}, station: {} };
 let rocketGroup;
 let stationSwitch;
 let stationEarth;
+let stationTerminal;
+let stationWindow;
+let earthCrisis;
 let dockingPort;
 let spaceBackdrop;
 let climbLadder;
-let climbRocket;
+let climbAnchorZ = 0;
 let lastTime = performance.now();
 let fpsSamples = [];
 let patternIndex = 0;
@@ -168,7 +176,6 @@ let spawnClock = 0;
 let tutorialStage = 0;
 let comicIndex = 0;
 let comicTimer = 0;
-let finaleToken = 0;
 const introActorFrom = new THREE.Vector3();
 let introActorRotation = 0;
 let introHeadRotation = 0;
@@ -215,7 +222,7 @@ async function loadAssets() {
     ASSET(assetUrl('toaster')),
     ASSET(assetUrl('lawnmower')),
     ASSET(assetUrl('office_chair')),
-    ASSET(assetUrl('rocket')),
+    ASSET(assetUrl('rocket'), { keepHierarchy: true }),
     ASSET(assetUrl('rocket_hub'), { surfaces: true }),
     ASSET(assetUrl('spaceport_wayfinder'), { surfaces: true }),
     ASSET(assetUrl('city_sky')),
@@ -230,13 +237,15 @@ async function loadAssets() {
   ]);
 
   setLoad(72, 'installing corridor bureaucracy…');
-  const [corridor, laser, security, masterSwitch, earth, ladder] = await Promise.all([
+  const [corridor, laser, security, masterSwitch, earth, ladder, endWindow, crisis] = await Promise.all([
     ASSET(assetUrl('station_corridor')),
     ASSET(assetUrl('laser_gate'), { keepHierarchy: true }),
     ASSET(assetUrl('security_bot')),
     ASSET(assetUrl('master_switch'), { keepHierarchy: true }),
     ASSET(assetUrl('earth')),
     ASSET(assetUrl('ladder')),
+    ASSET(assetUrl('station_end_window'), { keepHierarchy: true }),
+    ASSET(assetUrl('earth_crisis'), { keepHierarchy: true }),
   ]);
 
   player = playerAsset;
@@ -271,8 +280,8 @@ async function loadAssets() {
   buildCity(road, building, billboard, rocket, hub, wayfinder, citySky);
   buildRobotArmy([boxy, spider, roller]);
   buildSpace(backdrop, port);
-  buildStation(corridor, masterSwitch, earth);
-  buildClimb(ladder, rocket, [boxy, spider, roller]);
+  buildStation(corridor, masterSwitch, earth, endWindow, crisis);
+  buildClimb(ladder);
 
   setLoad(92, 'warming emergency lighting…');
   await rig.ready;
@@ -351,52 +360,86 @@ function buildSpace(backdrop, port) {
   spaceBackdrop.position.y = -140;
   spaceRoot.add(spaceBackdrop);
   dockingPort = port;
-  dockingPort.position.set(0, 0, 120);
+  dockingPort.position.set(0, 0, ACTS.space.speed * ACT_DURATION + 10);
   dockingPort.visible = false;
   spaceRoot.add(dockingPort);
 }
 
-function buildStation(corridor, masterSwitch, earth) {
-  for (let i = 0; i < 7; i++) {
+function buildStation(corridor, masterSwitch, earth, endWindow, crisis) {
+  for (let i = 0; i < 9; i++) {
     const chunk = corridor.clone(true);
     chunk.position.z = i * 40 + 12;
     stationRoot.add(chunk);
     stationChunks.push(chunk);
   }
+  stationTerminal = new THREE.Group();
+  stationTerminal.position.z = 330;
+  stationRoot.add(stationTerminal);
   stationSwitch = masterSwitch;
-  stationSwitch.position.set(0, 0, 330);
-  stationRoot.add(stationSwitch);
+  stationSwitch.position.x = 2.1;
+  stationTerminal.add(stationSwitch);
+  stationWindow = endWindow;
+  // ASSET recentres the full window, including its large distant space plane.
+  // Put the actual end wall back on the corridor floor, 14 m beyond the console.
+  stationWindow.position.set(
+    -stationWindow.children[0].position.x,
+    -stationWindow.children[0].position.y,
+    14 - stationWindow.children[0].position.z,
+  );
+  stationTerminal.add(stationWindow);
   stationEarth = earth;
-  stationEarth.scale.setScalar(1.35);
-  stationEarth.position.set(0, 3.2, 365);
-  stationRoot.add(stationEarth);
+  stationEarth.scale.setScalar(0.65);
+  stationEarth.rotation.y = Math.PI;
+  stationWindow.userData.earthMount.add(stationEarth);
+  earthCrisis = crisis;
+  stationEarth.add(earthCrisis);
+  earthCrisis.traverse((part) => {
+    if (part.isMesh) { part.castShadow = false; part.receiveShadow = false; }
+  });
 }
 
-function buildClimb(ladder, rocket, robotAssets) {
+function buildClimb(ladder) {
   climbLadder = ladder;
-  climbLadder.position.set(0, 0, 4);
-  interludeRoot.add(climbLadder);
-  climbRocket = rocket.clone(true);
-  climbRocket.scale.setScalar(0.72);
-  climbRocket.position.set(4.1, 0, 11);
-  interludeRoot.add(climbRocket);
-  for (let i = 0; i < 8; i++) {
-    const bot = robotAssets[i % robotAssets.length].clone(true);
-    bot.scale.setScalar(0.62 + (i % 3) * 0.08);
-    bot.position.set(2 + (i % 4) * 1.15, 0.15, 7 + Math.floor(i / 4) * 1.8);
-    bot.rotation.y = -0.3;
-    bot.userData.phase = i;
-    interludeRoot.add(bot);
-  }
+  climbLadder.position.set(0, 0, -1.9);
+  rocketGroup.add(climbLadder);
 }
 
 function setWorld(kind) {
   cityRoot.visible = kind === 'city';
   spaceRoot.visible = kind === 'space' || kind === 'docking';
   stationRoot.visible = kind === 'station' || kind === 'switch';
-  interludeRoot.visible = kind === 'climb';
   obstacleRoot.visible = kind === 'city' || kind === 'space' || kind === 'station';
   robotRoot.visible = false;
+}
+
+function pointCamera(target) {
+  cameraAim.copy(target);
+  camera.lookAt(cameraAim);
+}
+
+function startShot(duration, position, target, onDone = null) {
+  state.shot = {
+    elapsed: 0,
+    duration: REDUCED_MOTION ? Math.min(duration, 0.55) : duration,
+    fromPosition: camera.position.clone(),
+    fromTarget: cameraAim.clone(),
+    toPosition: position.clone(),
+    toTarget: target.clone(),
+    onDone,
+  };
+}
+
+function updateShot(dt) {
+  const shot = state.shot;
+  if (!shot) return;
+  shot.elapsed = Math.min(shot.duration, shot.elapsed + dt);
+  const eased = THREE.MathUtils.smoothstep(shot.elapsed / shot.duration, 0, 1);
+  camera.position.lerpVectors(shot.fromPosition, shot.toPosition, eased);
+  pointCamera(shot.fromTarget.clone().lerp(shot.toTarget, eased));
+  if (shot.elapsed >= shot.duration) {
+    state.shot = null;
+    shot.onDone?.();
+  }
 }
 
 function showBanner(kicker, title, order) {
@@ -446,7 +489,7 @@ function onGesture(kind) {
 new SwipeInput(stick, onGesture);
 
 function syncDevPause() {
-  const available = DEV_MODE && ['playing', 'climb', 'docking'].includes(state.mode) && state.introDelay <= 0;
+  const available = DEV_MODE && ['playing', 'boarding', 'climb', 'launch', 'launchExit', 'docking', 'stationEntry', 'switchApproach', 'switch', 'finale'].includes(state.mode) && state.introDelay <= 0;
   devPauseButton.classList.toggle('visible', available);
   devPauseButton.classList.toggle('paused', state.paused);
   devPauseButton.textContent = state.paused ? '▶' : 'Ⅱ';
@@ -457,7 +500,7 @@ function syncDevPause() {
 }
 
 function setDevPaused(paused) {
-  if (!DEV_MODE || !['playing', 'climb', 'docking'].includes(state.mode)) return;
+  if (!DEV_MODE || !['playing', 'boarding', 'climb', 'launch', 'launchExit', 'docking', 'stationEntry', 'switchApproach', 'switch', 'finale'].includes(state.mode)) return;
   state.paused = paused;
   audio.setPaused(paused);
   syncDevPause();
@@ -469,13 +512,19 @@ function resetRun() {
   state.survivors = Math.round(WORLD_POPULATION * START_HUMANITY / 100);
   state.inputCount = 0;
   state.totalElapsed = 0;
+  state.visualClock = 0;
   state.distance = 0;
+  state.actDistance = 0;
   updateHumanity();
 }
 
 function startGame() {
   if (state.mode !== 'ready' || startScreen.classList.contains('exiting')) return;
-  finaleToken += 1;
+  state.shot = null;
+  state.passage = '';
+  state.finaleElapsed = 0;
+  state.finalePanStarted = false;
+  state.summaryElapsed = 0;
   clearInterval(comicTimer);
   document.body.classList.remove('intro-playing');
   const firstAct = ['city', 'space', 'station'].includes(START_SCENE) ? START_SCENE : 'city';
@@ -499,11 +548,12 @@ function startGame() {
   startAct(firstAct, fromIntro);
 }
 
-function startAct(name, fromIntro = false) {
+function startAct(name, fromIntro = false, fromTransition = false) {
   const act = ACTS[name];
   state.mode = 'playing';
   state.act = name;
   state.elapsed = 0;
+  state.actDistance = 0;
   state.lane = 0;
   state.targetLane = 0;
   state.jumpY = 0;
@@ -523,15 +573,15 @@ function startAct(name, fromIntro = false) {
   player.visible = name !== 'space';
   ship.visible = name === 'space';
   actLabel.textContent = `${act.title} · ${act.order}`;
-  hud.classList.toggle('visible', !fromIntro);
+  hud.classList.toggle('visible', !fromIntro && !fromTransition);
   hud.classList.toggle('on-dark', name === 'space');
   hud.classList.toggle('on-station', name === 'station');
-  stick.classList.toggle('visible', !fromIntro);
-  tutorial.classList.toggle('visible', name === 'city' && !fromIntro);
+  stick.classList.toggle('visible', !fromIntro && !fromTransition);
+  tutorial.classList.toggle('visible', name === 'city' && !fromIntro && !fromTransition);
   tutorialText.textContent = name === 'city'
     ? (KEYBOARD_HINTS ? 'LEFT / RIGHT OR A / D TO CHANGE LANES' : 'SWIPE TO CHANGE LANES')
     : (KEYBOARD_HINTS ? 'SAME KEYS · NOW WITH VACUUM' : 'SAME SWIPES · NOW WITH VACUUM');
-  if (name === 'space') {
+  if (name === 'space' && !fromTransition) {
     tutorial.classList.add('visible');
     setTimeout(() => {
       if (state.mode === 'playing' && state.act === 'space') tutorial.classList.remove('visible');
@@ -544,7 +594,21 @@ function startAct(name, fromIntro = false) {
     const spacing = ACTS.city.speed * ACTS.city.spawnEvery;
     for (let i = 0; i < 18; i++) spawnPattern(106 + i * spacing);
   }
-  if (!fromIntro) showBanner(act.kicker, act.title, act.order);
+  if (!fromIntro && !fromTransition) showBanner(act.kicker, act.title, act.order);
+}
+
+function revealAct(name) {
+  state.mode = 'playing';
+  hud.classList.add('visible');
+  stick.classList.add('visible');
+  if (name === 'space') {
+    tutorial.classList.add('visible');
+    window.setTimeout(() => {
+      if (state.mode === 'playing' && state.act === 'space') tutorial.classList.remove('visible');
+    }, 2200);
+  }
+  showBanner(ACTS[name].kicker, ACTS[name].title, ACTS[name].order);
+  syncDevPause();
 }
 
 function clearObstacles() {
@@ -554,14 +618,14 @@ function clearObstacles() {
 
 function resetWorld(name, preserveCamera = false) {
   cityChunks.forEach((chunk, index) => { chunk.position.z = index * 40 + 12; });
-  stationChunks.forEach((chunk, index) => { chunk.position.z = index * 40 + 12; });
+  stationChunks.forEach((chunk, index) => { chunk.position.z = index * 40 + 12; chunk.visible = true; });
   rocketGroup.position.set(0, 0, 330);
   rocketGroup.visible = name === 'city';
-  stationSwitch.position.set(0, 0, 330);
-  stationSwitch.visible = false;
-  stationEarth.position.z = 365;
-  dockingPort.position.set(0, 0, 120);
-  dockingPort.visible = false;
+  stationTerminal.position.set(0, 0, 330);
+  stationSwitch.visible = true;
+  stationEarth.position.set(0, 0, 0);
+  dockingPort.position.set(0, 0, ACTS.space.speed * ACT_DURATION + 10);
+  dockingPort.visible = name === 'space';
   robotRoot.children.forEach((bot) => { bot.position.z = bot.userData.homeZ; });
   if (!preserveCamera) {
     player.position.set(0, 0.2, 0);
@@ -587,7 +651,7 @@ function updateIntroCity() {
   const t = REDUCED_MOTION ? 0 : performance.now() * 0.001;
   const portrait = innerWidth / innerHeight < 0.8;
   camera.position.set(Math.sin(t * 0.36) * 0.17, portrait ? 4.5 : 4.1, portrait ? -8.8 : -10.6);
-  camera.lookAt(introCameraTarget);
+  pointCamera(introCameraTarget);
   player.position.set(portrait ? -0.7 : -1.2, 0.2, portrait ? -3.25 : -4.2);
   player.rotation.y = Math.sin(t * 0.7) * 0.16;
   if (playerJoints) {
@@ -747,6 +811,7 @@ function updatePlayingWorld(dt) {
   const speedFactor = state.hitCooldown > 0.35 ? 0.68 : 1;
   const travel = act.speed * speedFactor * dt;
   state.distance += travel;
+  state.actDistance += travel;
 
   const chunks = state.act === 'city' ? cityChunks : state.act === 'station' ? stationChunks : [];
   for (const chunk of chunks) {
@@ -756,16 +821,21 @@ function updatePlayingWorld(dt) {
 
   const remaining = Math.max(0, ACT_DURATION - state.elapsed);
   if (state.act === 'city') {
-    rocketGroup.position.z = Math.max(12, 330 - state.distance);
+    const approach = TEST_MODE
+      ? Math.max(state.actDistance, 318 * THREE.MathUtils.smoothstep(state.elapsed / ACT_DURATION, 0, 1))
+      : state.actDistance;
+    rocketGroup.position.z = Math.max(12, 330 - approach);
   } else if (state.act === 'space') {
     spaceBackdrop.rotation.y += dt * 0.012;
     dockingPort.position.z = Math.max(14, remaining * act.speed + 10);
-    dockingPort.visible = state.elapsed > ACT_DURATION * 0.62;
     dockingPort.children.forEach((child, i) => { if (child.name.startsWith('dockRing')) child.rotation.z += dt * (i % 2 ? -0.55 : 0.4); });
   } else {
-    stationSwitch.position.z = Math.max(11, remaining * act.speed + 8);
-    stationEarth.position.z = stationSwitch.position.z + 42;
-    stationSwitch.visible = state.elapsed > ACT_DURATION * 0.6;
+    const approach = TEST_MODE
+      ? Math.max(state.actDistance, 319 * THREE.MathUtils.smoothstep(state.elapsed / ACT_DURATION, 0, 1))
+      : state.actDistance;
+    stationTerminal.position.z = Math.max(11, 330 - approach);
+    // Recycled corridor pieces belong before the terminal, never beyond its window.
+    for (const chunk of stationChunks) chunk.visible = chunk.position.z <= stationTerminal.position.z + 14;
   }
 
   spawnClock -= dt;
@@ -835,10 +905,10 @@ function updateCamera(dt) {
         state.introCameraBlend = Math.max(0, state.introCameraBlend - dt);
         const reveal = THREE.MathUtils.smoothstep(1 - state.introCameraBlend, 0, 1);
         camera.position.copy(introCameraFrom).lerp(openingPosition, reveal);
-        camera.lookAt(introCameraTarget.clone().lerp(openingTarget, reveal));
+        pointCamera(introCameraTarget.clone().lerp(openingTarget, reveal));
       } else {
         camera.position.copy(openingPosition);
-        camera.lookAt(openingTarget);
+        pointCamera(openingTarget);
       }
       return;
     }
@@ -846,23 +916,44 @@ function updateCamera(dt) {
     const z = state.act === 'space' ? (portrait ? -10.5 : -9.4) : (portrait ? -8.8 : -10.6);
     const desired = new THREE.Vector3(actor.position.x * 0.14, y, z);
     camera.position.lerp(desired, 1 - Math.exp(-dt * 6));
-    camera.lookAt(actor.position.x * 0.12, state.act === 'space' ? 1.5 + state.jumpY * 0.15 : 1.1 + state.jumpY * 0.18, 9.5);
+    pointCamera(new THREE.Vector3(actor.position.x * 0.12, state.act === 'space' ? 1.5 + state.jumpY * 0.15 : 1.1 + state.jumpY * 0.18, 9.5));
   } else if (state.mode === 'climb') {
-    camera.position.lerp(new THREE.Vector3(4.8, 3.9, -8.5), 1 - Math.exp(-dt * 5));
-    camera.lookAt(0, 3.2, 5.5);
+    const y = 3.4 + state.climbProgress * 4.6;
+    camera.position.lerp(new THREE.Vector3(4.8, y, climbAnchorZ - 7), 1 - Math.exp(-dt * 4));
+    cameraAim.lerp(new THREE.Vector3(0, 2.2 + state.climbProgress * 5.1, climbAnchorZ), 1 - Math.exp(-dt * 5));
+    camera.lookAt(cameraAim);
   } else if (state.mode === 'docking') {
-    camera.position.lerp(new THREE.Vector3(3.8, 4.3, -10.8), 1 - Math.exp(-dt * 4));
-    camera.lookAt(0, 2.2, 5.5);
+    const p = Math.min(1, state.interludeElapsed / DOCK_DURATION);
+    camera.position.lerp(new THREE.Vector3(2.5 * (1 - p), 4.2, -9 + p * 5), 1 - Math.exp(-dt * 4));
+    pointCamera(new THREE.Vector3(0, 3.1, dockingPort.position.z + 0.5));
   } else if (state.mode === 'switch') {
-    camera.position.lerp(new THREE.Vector3(3.6, 3.2, -6.2), 1 - Math.exp(-dt * 5));
-    camera.lookAt(0, 1.6, 2.8);
+    const portraitSwitch = innerWidth / innerHeight < 0.8;
+    camera.position.lerp(portraitSwitch
+      ? new THREE.Vector3(-1.6, 3.8, -7.2)
+      : new THREE.Vector3(-3.6, 3.6, -2.5), 1 - Math.exp(-dt * 4));
+    pointCamera(new THREE.Vector3(portraitSwitch ? 0.5 : 0, 2.7, stationTerminal.position.z + 8));
   }
 }
 
 function finishPlayingAct() {
-  if (state.act === 'city') beginClimb();
+  if (state.act === 'city') beginBoarding();
   else if (state.act === 'space') beginDocking();
-  else beginSwitch();
+  else beginSwitchApproach();
+}
+
+function beginBoarding() {
+  state.mode = 'boarding';
+  state.interludeElapsed = 0;
+  state.boardFromX = player.position.x;
+  climbAnchorZ = rocketGroup.position.z + climbLadder.position.z - 0.52;
+  stick.classList.remove('visible');
+  tutorial.classList.remove('visible');
+  actLabel.textContent = 'ROCKET LADDER · BOARDING';
+  startShot(BOARD_DURATION,
+    new THREE.Vector3(4.6, 3.9, climbAnchorZ - 6.8),
+    new THREE.Vector3(0, 2.35, climbAnchorZ + 0.3),
+    beginClimb);
+  syncDevPause();
 }
 
 function beginClimb() {
@@ -870,16 +961,12 @@ function beginClimb() {
   syncDevPause();
   state.interludeElapsed = 0;
   state.climbProgress = 0.06;
-  clearObstacles();
-  setWorld('climb');
-  player.visible = true;
-  ship.visible = false;
-  player.position.set(0, 0.2, 3.7);
+  state.climbTarget = 0.06;
+  player.position.set(0, 0.2, climbAnchorZ);
   player.rotation.set(0, 0, 0);
   stick.classList.remove('visible');
   tutorial.classList.remove('visible');
   actLabel.textContent = 'ROCKET LADDER · TAP TAP TAP';
-  hud.classList.add('on-dark');
   climbFill.style.width = '6%';
   climbStatus.textContent = 'LADDER PROGRESS: LEGALLY INSUFFICIENT';
   climbScreen.classList.add('visible');
@@ -888,17 +975,25 @@ function beginClimb() {
 
 function registerClimbTap() {
   if (state.mode !== 'climb' || state.paused) return;
-  state.climbProgress = Math.min(1, state.climbProgress + 0.13);
+  state.climbTarget = Math.min(1, state.climbTarget + 0.13);
   state.inputCount += 1;
   audio.gesture('up');
-  updateClimbPresentation();
 }
 
 function updateClimbPresentation() {
   const p = state.climbProgress;
   climbFill.style.width = `${Math.round(p * 100)}%`;
-  player.position.y = 0.2 + p * 6.25;
-  player.position.x = Math.sin(p * 12) * 0.08;
+  player.position.y = 0.2 + p * 4.8;
+  player.position.x = Math.sin(p * 12) * 0.045;
+  player.position.z = climbAnchorZ;
+  if (playerJoints) {
+    const step = Math.sin(p * Math.PI * 12);
+    playerJoints.leftArm.rotation.x = -1.35 + step * 0.32;
+    playerJoints.rightArm.rotation.x = -1.35 - step * 0.32;
+    playerJoints.leftLeg.rotation.x = step * 0.38;
+    playerJoints.rightLeg.rotation.x = -step * 0.38;
+    playerJoints.torso.rotation.z = step * 0.035;
+  }
   climbStatus.textContent = p > 0.82
     ? 'LADDER PROGRESS: HEROIC ENOUGH'
     : p > 0.45 ? 'LADDER PROGRESS: AUDIT PENDING' : 'LADDER PROGRESS: LEGALLY INSUFFICIENT';
@@ -906,10 +1001,48 @@ function updateClimbPresentation() {
 
 function finishClimb() {
   if (state.mode !== 'climb') return;
+  state.climbTarget = 1;
   state.climbProgress = 1;
   updateClimbPresentation();
   climbScreen.classList.remove('visible');
-  startAct('space');
+  state.mode = 'launch';
+  state.interludeElapsed = 0;
+  startShot(PASSAGE_DURATION,
+    new THREE.Vector3(0, 5.28, rocketGroup.position.z - 0.64),
+    new THREE.Vector3(0, 5.28, rocketGroup.position.z + 0.17),
+    beginLaunchExit);
+  syncDevPause();
+}
+
+let passageShield = null;
+
+function coverPassage(source) {
+  if (passageShield) camera.remove(passageShield);
+  passageShield = source.clone(false);
+  passageShield.material = source.material.clone();
+  passageShield.material.depthTest = false;
+  passageShield.material.depthWrite = false;
+  passageShield.position.set(0, 0, -0.32);
+  passageShield.rotation.set(0, 0, 0);
+  passageShield.scale.setScalar(2.5);
+  passageShield.renderOrder = 1000;
+  camera.add(passageShield);
+}
+
+function uncoverPassage() {
+  if (passageShield) camera.remove(passageShield);
+  passageShield = null;
+}
+
+function beginLaunchExit() {
+  coverPassage(rocketGroup.getObjectByName('boardingOccluder'));
+  startAct('space', false, true);
+  state.mode = 'launchExit';
+  startShot(PASSAGE_DURATION,
+    new THREE.Vector3(0, innerWidth / innerHeight < 0.8 ? 4.1 : 3.7, innerWidth / innerHeight < 0.8 ? -10.5 : -9.4),
+    new THREE.Vector3(0, 1.5, 9.5),
+    () => { uncoverPassage(); revealAct('space'); });
+  syncDevPause();
 }
 
 function beginDocking() {
@@ -917,13 +1050,7 @@ function beginDocking() {
   syncDevPause();
   state.interludeElapsed = 0;
   state.dockSoundPlayed = false;
-  clearObstacles();
-  setWorld('docking');
-  player.visible = false;
-  ship.visible = true;
-  ship.position.set(0, 0.5, 0);
   dockingPort.visible = true;
-  dockingPort.position.set(0, 0, 10);
   stick.classList.remove('visible');
   tutorial.classList.remove('visible');
   actLabel.textContent = 'AUTO-DOCKING · PLEASE LOWER EXPECTATIONS';
@@ -937,25 +1064,50 @@ function beginDocking() {
 function finishDocking() {
   if (state.mode !== 'docking') return;
   dockingScreen.classList.remove('visible');
-  startAct('station');
+  state.mode = 'stationEntry';
+  state.passage = 'dockIn';
+  startShot(PASSAGE_DURATION,
+    new THREE.Vector3(0, 3.35, dockingPort.position.z + 0.62),
+    new THREE.Vector3(0, 3.35, dockingPort.position.z + 1.46),
+    beginStationExit);
+  syncDevPause();
+}
+
+function beginStationExit() {
+  coverPassage(dockingPort.getObjectByName('dockBulkhead').children[0]);
+  startAct('station', false, true);
+  player.position.z = 4;
+  state.mode = 'stationEntry';
+  state.passage = 'dockOut';
+  startShot(PASSAGE_DURATION,
+    new THREE.Vector3(0, innerWidth / innerHeight < 0.8 ? 4.5 : 4.1, innerWidth / innerHeight < 0.8 ? -8.8 : -10.6),
+    new THREE.Vector3(0, 1.1, 9.5),
+    () => { uncoverPassage(); revealAct('station'); });
+  syncDevPause();
+}
+
+function beginSwitchApproach() {
+  state.mode = 'switchApproach';
+  state.interludeElapsed = 0;
+  state.switchFromX = player.position.x;
+  clearObstacles();
+  stick.classList.remove('visible');
+  tutorial.classList.remove('visible');
+  hud.classList.remove('visible');
+  const portraitSwitch = innerWidth / innerHeight < 0.8;
+  startShot(SWITCH_APPROACH_DURATION,
+    portraitSwitch ? new THREE.Vector3(-1.6, 3.8, -7.2) : new THREE.Vector3(-3.6, 3.6, -2.5),
+    new THREE.Vector3(portraitSwitch ? 0.5 : 0, 2.7, stationTerminal.position.z + 8),
+    beginSwitch);
+  syncDevPause();
 }
 
 function beginSwitch() {
   state.mode = 'switch';
   syncDevPause();
   state.interludeElapsed = 0;
-  clearObstacles();
-  setWorld('switch');
-  player.visible = true;
-  ship.visible = false;
-  player.position.set(-1.65, 0.2, 1.8);
-  player.rotation.y = -0.2;
-  stationSwitch.visible = true;
-  stationSwitch.position.set(0.7, 0, 3.2);
-  stationEarth.position.set(0, 3.2, 32);
-  hud.classList.remove('visible');
-  stick.classList.remove('visible');
-  tutorial.classList.remove('visible');
+  player.position.set(1.6, 0.2, stationTerminal.position.z - 1.6);
+  player.rotation.y = -0.1;
   switchScreen.classList.add('visible');
   audio.complete();
 }
@@ -968,35 +1120,68 @@ function beginFinale() {
   finale.classList.remove('done');
   subtitle.textContent = '—hello? Hello?!';
   finalSummary.textContent = '';
-  const token = ++finaleToken;
+  state.finaleElapsed = 0;
+  state.finalePanStarted = false;
+  state.summaryElapsed = 0;
   audio.masterSwitch();
+  audio.finalCall();
+  syncDevPause();
+}
+
+function updateEarthCrisis(level) {
+  const flares = Object.values(earthCrisis?.userData.flares || {});
+  for (const flare of flares) {
+    flare.visible = level > 0.005;
+    if (!flare.visible) continue;
+    const pulse = 0.85 + 0.15 * Math.sin(state.visualClock * 7 + flare.userData.phase);
+    flare.scale.setScalar(level * flare.userData.baseSize * pulse);
+  }
+}
+
+function updateFinale(dt) {
+  state.finaleElapsed += dt;
+  const storyTime = state.finaleElapsed / (TEST_MODE ? 0.35 : 1);
+  const cap = stationSwitch.getObjectByName('buttonCap');
+  const press = THREE.MathUtils.smoothstep(storyTime, 0, 0.42);
+  if (cap) cap.position.y = 1.48 - press * 0.28;
+  player.position.z = stationTerminal.position.z - 1.6 + press * 0.8;
+  if (playerJoints) {
+    playerJoints.rightArm.rotation.x = -1.25 - press * 1.05;
+    playerJoints.torso.rotation.x = -press * 0.22;
+  }
+  if (!state.finalePanStarted && storyTime >= 0.42) {
+    state.finalePanStarted = true;
+    startShot(TEST_MODE ? 0.75 : 1.8,
+      new THREE.Vector3(-0.65, 3.05, stationTerminal.position.z + 2),
+      new THREE.Vector3(0, 2.825, stationTerminal.position.z + 17.6));
+  }
+  updateEarthCrisis(1 - THREE.MathUtils.smoothstep(storyTime, 0.35, 3.1));
   const lines = [
     [0, '—hello? Hello?!'],
-    [1450, 'They just… stopped?'],
-    [3000, 'The robots just stopped!'],
-    [4600, 'Are you there?'],
-    [6100, '…Thank you.'],
+    [1.45, 'They just… stopped?'],
+    [3, 'The robots just stopped!'],
+    [4.6, 'Are you there?'],
+    [6.1, '…Thank you.'],
   ];
-  lines.forEach(([delay, line]) => setTimeout(() => {
-    if (token === finaleToken) subtitle.textContent = line;
-  }, TEST_MODE ? delay * 0.35 : delay));
-  audio.finalCall();
-  setTimeout(() => {
-    if (token !== finaleToken) return;
+  for (const [time, line] of lines) {
+    if (storyTime >= time) subtitle.textContent = line;
+  }
+  updateShot(dt);
+  if (state.finaleElapsed >= (TEST_MODE ? 2.6 : 8)) {
     state.mode = 'complete';
+    state.summaryElapsed = 0;
     const survivors = state.survivors === 256 ? '256 people' : state.survivors.toLocaleString('en-US') + ' people';
     finalSummary.innerHTML = `<strong>${survivors} remain.</strong><br>${state.hits} collision${state.hits === 1 ? '' : 's'} were deemed operationally acceptable.`;
     finale.classList.add('done');
-    setTimeout(() => {
-      if (token === finaleToken) window.location.reload();
-    }, TEST_MODE ? 1800 : 5500);
-  }, TEST_MODE ? 2600 : 8000);
+    syncDevPause();
+  }
 }
 
 function frame(now) {
   const rawDt = Math.min(0.1, Math.max(0.001, (now - lastTime) / 1000));
   lastTime = now;
   if (!document.hidden && !state.paused) {
+    state.visualClock += rawDt;
     if (state.mode === 'ready') {
       updateIntroCity();
     } else if (state.mode === 'playing') {
@@ -1010,26 +1195,56 @@ function frame(now) {
         updatePlayingWorld(rawDt);
         updateRobots(rawDt);
         updateCamera(rawDt);
-        if (state.elapsed >= ACT_DURATION && (state.act !== 'city' || TEST_MODE || state.distance >= 318)) finishPlayingAct();
+        if (state.elapsed >= ACT_DURATION && (state.act !== 'city' || TEST_MODE || state.actDistance >= 318)) finishPlayingAct();
       }
+    } else if (state.mode === 'boarding') {
+      state.interludeElapsed += rawDt;
+      const p = Math.min(1, state.interludeElapsed / BOARD_DURATION);
+      const travel = THREE.MathUtils.smoothstep(p, 0, 1);
+      const leap = Math.max(0, Math.min(1, (p - 0.55) / 0.45));
+      player.position.set(THREE.MathUtils.lerp(state.boardFromX, 0, travel),
+        0.2 + Math.sin(leap * Math.PI) * 0.85,
+        THREE.MathUtils.lerp(0, climbAnchorZ, travel));
+      player.rotation.y = THREE.MathUtils.lerp(player.rotation.y, 0, travel);
+      if (playerJoints) {
+        playerJoints.leftArm.rotation.x = -0.35 - leap * 1.1;
+        playerJoints.rightArm.rotation.x = -0.35 - leap * 1.1;
+        playerJoints.leftLeg.rotation.x = Math.sin(p * 18) * (1 - leap) * 0.6;
+        playerJoints.rightLeg.rotation.x = -playerJoints.leftLeg.rotation.x;
+      }
+      updateShot(rawDt);
     } else if (state.mode === 'climb') {
       state.interludeElapsed += rawDt;
       state.totalElapsed += rawDt;
-      state.climbProgress = Math.min(1, state.climbProgress + rawDt * 0.035);
+      state.climbTarget = Math.min(1, state.climbTarget + rawDt * (0.94 / CLIMB_DURATION));
+      state.climbProgress = THREE.MathUtils.damp(state.climbProgress, state.climbTarget, 9, rawDt);
       updateClimbPresentation();
-      interludeRoot.children.forEach((child, index) => {
-        if (child !== climbLadder && child !== climbRocket) child.position.y = 0.15 + Math.abs(Math.sin(state.interludeElapsed * 6 + index)) * 0.1;
-      });
       updateCamera(rawDt);
-      if ((state.climbProgress >= 1 && state.interludeElapsed > 1.1) || state.interludeElapsed >= CLIMB_DURATION) finishClimb();
+      if ((state.climbTarget >= 1 && state.climbProgress >= 0.99 && state.interludeElapsed > 1.1)
+        || (state.interludeElapsed >= CLIMB_DURATION && state.climbProgress >= 0.985)) finishClimb();
+    } else if (state.mode === 'launch') {
+      state.interludeElapsed += rawDt;
+      const p = Math.min(1, state.interludeElapsed / PASSAGE_DURATION);
+      const open = THREE.MathUtils.smoothstep(p, 0, 0.68);
+      const left = rocketGroup.getObjectByName('boardingDoorLeft');
+      const right = rocketGroup.getObjectByName('boardingDoorRight');
+      if (left) left.position.x = -0.335 - 0.82 * open;
+      if (right) right.position.x = 0.335 + 0.82 * open;
+      player.position.z = climbAnchorZ + 1.45 * THREE.MathUtils.smoothstep(p, 0.35, 1);
+      updateShot(rawDt);
+    } else if (state.mode === 'launchExit') {
+      const shot = state.shot;
+      if (passageShield && shot) passageShield.scale.setScalar(2.5 * (1 - THREE.MathUtils.smoothstep(shot.elapsed / shot.duration, 0.28, 0.92)));
+      updateShot(rawDt);
     } else if (state.mode === 'docking') {
       state.interludeElapsed += rawDt;
       state.totalElapsed += rawDt;
       const p = Math.min(1, state.interludeElapsed / DOCK_DURATION);
-      dockingPort.position.z = THREE.MathUtils.lerp(10, 2.25, THREE.MathUtils.smoothstep(p, 0, 1));
+      dockingPort.position.z = THREE.MathUtils.lerp(14, 2.25, THREE.MathUtils.smoothstep(p, 0, 1));
       dockingPort.children.forEach((child, i) => { if (child.name.startsWith('dockRing')) child.rotation.z += rawDt * (i % 2 ? -0.8 : 0.55); });
       ship.rotation.z = Math.sin(state.interludeElapsed * 5) * (1 - p) * 0.12;
-      ship.position.x = Math.sin(state.interludeElapsed * 4) * (1 - p) * 0.22;
+      ship.position.x = THREE.MathUtils.lerp(ship.position.x, 0, Math.min(1, rawDt * 2.2));
+      ship.position.y = THREE.MathUtils.lerp(0.4, 3.35, THREE.MathUtils.smoothstep(p, 0, 1));
       if (p > 0.72 && !state.dockSoundPlayed) {
         state.dockSoundPlayed = true;
         dockingTitle.innerHTML = 'CONNECTION<br>SECURE';
@@ -1038,11 +1253,35 @@ function frame(now) {
       }
       updateCamera(rawDt);
       if (state.interludeElapsed >= DOCK_DURATION) finishDocking();
+    } else if (state.mode === 'stationEntry') {
+      if (state.passage === 'dockOut' && state.shot) {
+        const p = state.shot.elapsed / state.shot.duration;
+        player.position.z = 4 * (1 - THREE.MathUtils.smoothstep(p, 0, 1));
+        if (passageShield) passageShield.scale.setScalar(2.5 * (1 - THREE.MathUtils.smoothstep(p, 0.28, 0.92)));
+      }
+      updateShot(rawDt);
+    } else if (state.mode === 'switchApproach') {
+      state.interludeElapsed += rawDt;
+      const p = THREE.MathUtils.smoothstep(Math.min(1, state.interludeElapsed / SWITCH_APPROACH_DURATION), 0, 1);
+      player.position.set(THREE.MathUtils.lerp(state.switchFromX, 1.6, p), 0.2,
+        THREE.MathUtils.lerp(0, stationTerminal.position.z - 1.6, p));
+      if (playerJoints) {
+        playerJoints.leftLeg.rotation.x = Math.sin(p * 16) * (1 - p) * 0.45;
+        playerJoints.rightLeg.rotation.x = -playerJoints.leftLeg.rotation.x;
+        playerJoints.rightArm.rotation.x = -0.35 - p * 0.9;
+      }
+      updateShot(rawDt);
     } else if (state.mode === 'switch') {
       state.interludeElapsed += rawDt;
       stationSwitch.getObjectByName('buttonCap')?.rotation.set(0, state.interludeElapsed * 0.4, 0);
       updateCamera(rawDt);
+    } else if (state.mode === 'finale') {
+      updateFinale(rawDt);
+    } else if (state.mode === 'complete') {
+      state.summaryElapsed += rawDt;
+      if (state.summaryElapsed >= (TEST_MODE ? 1.8 : 5.5)) window.location.reload();
     }
+    if (state.mode !== 'finale' && state.mode !== 'complete') updateEarthCrisis(1);
   }
 
   fpsSamples.push(1 / rawDt);
@@ -1116,10 +1355,15 @@ muteButton.addEventListener('click', () => {
 window.__READY__ = false;
 window.__START__ = startGame;
 window.__SKIP__ = () => {
-  if (state.mode === 'playing') state.elapsed = ACT_DURATION;
+  if (state.mode === 'playing') {
+    state.elapsed = ACT_DURATION;
+    if (state.act === 'city') state.actDistance = 318;
+  }
+  else if (state.shot) state.shot.elapsed = state.shot.duration;
   else if (state.mode === 'climb') finishClimb();
   else if (state.mode === 'docking') finishDocking();
   else if (state.mode === 'switch') beginFinale();
+  else if (state.mode === 'finale') state.finaleElapsed = TEST_MODE ? 2.6 : 8;
 };
 window.__GAME__ = { pos: [0, 0], fps: 0, speed: 0, score: 0, over: false, draws: 0, tris: 0 };
 

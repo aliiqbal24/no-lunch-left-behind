@@ -4,7 +4,7 @@ Record every shipped image, sound, music track, voice, and generated reference h
 
 ## Code-built 3D
 
-All 27 modules in `game/assets/` are original Three.js source authored through the 404 recipe contract. Each default-exports a function of `THREE` and returns one `THREE.Group`. They cover the hoodie player, three robot families, city/launch props, the rocket hub and spaceport wayfinder, procedural city sky, ladder, player ship, satellites and debris, space backdrop, docking port, station corridor, lasers, security bots, master switch, and Earth. The city clouds and sun, layered stars and planets, and corridor window views are built entirely from code with no imported media.
+All 29 modules in `game/assets/` are original Three.js source authored through the 404 recipe contract. Each default-exports a function of `THREE` and returns one `THREE.Group`. They cover the hoodie player, three robot families, city/launch props, the rocket hub and spaceport wayfinder, procedural city sky, ladder, player ship, satellites and debris, space backdrop, docking port, station corridor, terminal Earth window, Earth surface flares, lasers, security bots, master switch, and Earth. The rocket hatch, docking passage, city sky, layered stars, corridor windows, and finale Earth effects are built entirely from code with no imported media.
 
 The original 24 modules passed the official recipe verifier; their contact sheet and report are preserved in `review/full-game-assets.png` and `review/full-game-assets.json`. The new rocket hub and wayfinder, plus the revised city road and building, passed load, render, framing, finite-bounds, ground, centre, and side-view checks. Their sheet and report are preserved in `review/rocket-hub-assets.png` and `review/rocket-hub-assets.json`.
 
@@ -13,7 +13,7 @@ The original 24 modules passed the official recipe verifier; their contact sheet
 No external media files, stock assets, downloaded meshes, textures, or runtime CDNs are present in the pre-Atlas build.
 
 - Comic panels are original inline SVG assembled in `game/index.html`.
-- The finale Earth is an original CSS illustration; a recipe-compatible procedural Earth module is also included in the asset library.
+- The finale shows the original procedural Earth module through the station's code-built terminal window.
 - Billboard text is generated at runtime with Canvas 2D.
 - Music, impacts, gestures, interlude cues, docking, and the master-switch cue are synthesized at runtime with the Web Audio API.
 - The final radio call uses the device's built-in Web Speech voice as a temporary pre-Atlas treatment, with complete subtitles on screen.
