@@ -9,6 +9,7 @@ Updated: 2026-09-23. Only the integration session edits this file. Check Git for
 - City transition checkpoint: `d009316` — City Run appears behind the comic briefing and blends into play. The earlier responsive layout and rocket hub are also on `main`.
 - Continuous-passage asset handoffs are integrated on `main`: rocket hatch/docking port `c07f402`; Earth window/crisis `f1e13bf`; window masking `6da5a8a`, `d7222e9`, and `46f299c`.
 - Chase speed visuals are integrated on `main`: contributor `251f6e0` was cherry-picked as `202a2bb`; the runner, ship, camera, and streak hook is connected in `game/src/main.js`. The 404 recipe ship check, city/space/station phone checks, pause, transitions, and reduced motion passed locally.
+- The station corridor now opens into a broad domed hub: the central master switch has no backing plate, and Earth appears through a hemispherical viewport. Local phone and desktop approach, switch, and finale views were checked.
 - Last confirmed public Vercel game-code commit: `48fdae9`. Production is deliberately behind local development.
 - Vercel Git connection: none, confirmed in project settings on 2026-09-22. GitHub pushes are source-history updates, not deployments.
 - Atlas: pre-Atlas baseline; no credits spent. Scene refinement requires explicit owner approval.

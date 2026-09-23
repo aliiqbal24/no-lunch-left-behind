@@ -166,6 +166,7 @@ let stationSwitch;
 let stationEarth;
 let stationTerminal;
 let stationWindow;
+let stationEntryPassage;
 let earthCrisis;
 let dockingPort;
 let spaceBackdrop;
@@ -378,19 +379,24 @@ function buildStation(corridor, masterSwitch, earth, endWindow, crisis) {
   stationTerminal.position.z = 330;
   stationRoot.add(stationTerminal);
   stationSwitch = masterSwitch;
-  stationSwitch.position.x = 2.1;
+  stationSwitch.position.set(0, 0, 0);
   stationTerminal.add(stationSwitch);
   stationWindow = endWindow;
-  // ASSET recentres the full window, including its large distant space plane.
-  // Put the actual end wall back on the corridor floor, 14 m beyond the console.
+  // ASSET recentres the room including its distant space plane. Restore its
+  // authored origin so the circular floor surrounds the central switch.
   stationWindow.position.set(
     -stationWindow.children[0].position.x,
     -stationWindow.children[0].position.y,
-    14 - stationWindow.children[0].position.z,
+    -stationWindow.children[0].position.z,
   );
+  stationWindow.traverse((part) => {
+    if (part.isMesh) part.castShadow = false;
+  });
+  stationEntryPassage = stationWindow.getObjectByName('hubEntryPassage');
+  stationEntryPassage.visible = false;
   stationTerminal.add(stationWindow);
   stationEarth = earth;
-  stationEarth.scale.setScalar(0.65);
+  stationEarth.scale.setScalar(1.1);
   stationEarth.rotation.y = Math.PI;
   stationWindow.userData.earthMount.add(stationEarth);
   earthCrisis = crisis;
@@ -624,6 +630,7 @@ function resetWorld(name, preserveCamera = false) {
   rocketGroup.position.set(0, 0, 330);
   rocketGroup.visible = name === 'city';
   stationTerminal.position.set(0, 0, 330);
+  stationEntryPassage.visible = false;
   stationSwitch.visible = true;
   stationEarth.position.set(0, 0, 0);
   dockingPort.position.set(0, 0, ACTS.space.speed * ACT_DURATION + 10);
@@ -836,8 +843,9 @@ function updatePlayingWorld(dt) {
       ? Math.max(state.actDistance, 319 * THREE.MathUtils.smoothstep(state.elapsed / ACT_DURATION, 0, 1))
       : state.actDistance;
     stationTerminal.position.z = Math.max(11, 330 - approach);
-    // Recycled corridor pieces belong before the terminal, never beyond its window.
-    for (const chunk of stationChunks) chunk.visible = chunk.position.z <= stationTerminal.position.z + 14;
+    // Replace the last corridor piece with the hub's windowed entry passage.
+    for (const chunk of stationChunks) chunk.visible = chunk.position.z < stationTerminal.position.z - 18;
+    stationEntryPassage.visible = stationTerminal.position.z <= 30;
   }
 
   spawnClock -= dt;
@@ -933,7 +941,7 @@ function updateCamera(dt) {
     camera.position.lerp(portraitSwitch
       ? new THREE.Vector3(-1.6, 3.8, -7.2)
       : new THREE.Vector3(-3.6, 3.6, -2.5), 1 - Math.exp(-dt * 4));
-    pointCamera(new THREE.Vector3(portraitSwitch ? 0.5 : 0, 2.7, stationTerminal.position.z + 8));
+    pointCamera(new THREE.Vector3(portraitSwitch ? 0.5 : 0, 3.3, stationTerminal.position.z + 8));
   }
 }
 
@@ -1099,7 +1107,7 @@ function beginSwitchApproach() {
   const portraitSwitch = innerWidth / innerHeight < 0.8;
   startShot(SWITCH_APPROACH_DURATION,
     portraitSwitch ? new THREE.Vector3(-1.6, 3.8, -7.2) : new THREE.Vector3(-3.6, 3.6, -2.5),
-    new THREE.Vector3(portraitSwitch ? 0.5 : 0, 2.7, stationTerminal.position.z + 8),
+    new THREE.Vector3(portraitSwitch ? 0.5 : 0, 3.3, stationTerminal.position.z + 8),
     beginSwitch);
   syncDevPause();
 }
@@ -1154,8 +1162,8 @@ function updateFinale(dt) {
   if (!state.finalePanStarted && storyTime >= 0.42) {
     state.finalePanStarted = true;
     startShot(TEST_MODE ? 0.75 : 1.8,
-      new THREE.Vector3(-0.65, 3.05, stationTerminal.position.z + 2),
-      new THREE.Vector3(0, 2.825, stationTerminal.position.z + 17.6));
+      new THREE.Vector3(-0.9, 5.1, stationTerminal.position.z + 3),
+      new THREE.Vector3(0, 5.55, stationTerminal.position.z + 17.6));
   }
   updateEarthCrisis(1 - THREE.MathUtils.smoothstep(storyTime, 0.35, 3.1));
   const lines = [
