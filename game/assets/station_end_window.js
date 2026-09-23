@@ -51,18 +51,19 @@ export default function (THREE) {
   // An opaque view beyond Earth hides any recycled corridor chunks behind
   // the end wall. The star points sit just in front of this distant plane.
   const space = new THREE.Mesh(
-    new THREE.PlaneGeometry(16, 6.5),
+    new THREE.PlaneGeometry(40, 20),
     new THREE.MeshBasicMaterial({ color: 0x071127, side: THREE.DoubleSide, fog: false }),
   );
   space.name = 'spaceBeyondEarth';
-  space.position.set(0, 3.25, 8);
+  space.position.set(0, 2.825, 8);
   end.add(space);
+  // Stars occupy the viewable central part, not the entire occlusion plane.
   const starPositions = new Float32Array(42 * 3);
   let seed = 404;
   const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
   for (let i = 0; i < 42; i++) {
-    starPositions[i * 3] = -7.5 + random() * 15;
-    starPositions[i * 3 + 1] = 0.25 + random() * 6;
+    starPositions[i * 3] = -13 + random() * 26;
+    starPositions[i * 3 + 1] = -1 + random() * 9;
     starPositions[i * 3 + 2] = 7.92;
   }
   const starGeometry = new THREE.BufferGeometry();
