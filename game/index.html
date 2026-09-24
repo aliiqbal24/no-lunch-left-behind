@@ -92,17 +92,17 @@
       <span id="comicCount">1 / 4</span>
       <button id="comicNext" class="small-button" aria-label="Next comic panel">→</button>
     </div>
-    <p class="mission intro-extra">The AI owns the grid. The last physical switch is on the station. Get there before Earth goes silent.</p>
+    <p class="mission intro-extra">The AI optimized the grid. Humans became the expense. Reach the station's last physical switch before Earth goes silent.</p>
     <button id="beginRun" class="primary intro-extra">RUN FOR THE LAST SWITCH</button>
-    <div class="controls intro-extra"><span>← → lanes</span><span>↑ jump</span><span>↓ slide</span><span>E / tap override</span></div>
+    <div class="controls intro-extra"><span>← → lanes</span><span>↑ jump</span><span>↓ slide</span><span id="overrideControlHint">E / tap override</span></div>
   </div>
 
-  <div id="hud" aria-live="polite">
-    <div class="hud-label"><span>HUMANITY REMAINING</span><strong id="humanityLabel">95%</strong></div>
-    <div class="humanity-track" aria-hidden="true">
+  <div id="hud">
+    <div class="hud-label"><span>HUMANITY REMAINING</span><strong id="humanityLabel" aria-hidden="true">95%</strong></div>
+    <div class="humanity-track" role="progressbar" aria-label="Humanity remaining" aria-valuemin="0" aria-valuemax="100" aria-valuenow="95" aria-valuetext="95 percent humanity remaining">
       <div id="humanityFill"></div>
-      <div id="populationCrowd" class="population-crowd"></div>
-      <div id="robotAdvance" class="robot-advance">
+      <div id="populationCrowd" class="population-crowd" aria-hidden="true"></div>
+      <div id="robotAdvance" class="robot-advance" aria-hidden="true">
         <svg viewBox="0 0 34 28" focusable="false" aria-hidden="true">
           <path d="M17 6V2" fill="none" stroke="#172b33" stroke-width="2" stroke-linecap="round"/>
           <circle cx="17" cy="2.5" r="2" fill="#d7263d" stroke="#172b33" stroke-width="1.5"/>
@@ -153,7 +153,7 @@
   </div>
 
   <div id="finale" class="screen finale-screen">
-    <div class="signal">EARTH AUDIO LINK · 1 BAR</div>
+    <div id="signalLabel" class="signal">EARTH AUDIO LINK · 1 BAR</div>
     <div id="subtitle" class="subtitle">—hello? Hello?!</div>
     <section id="resultsCard" class="results-card" aria-labelledby="resultsTitle" aria-hidden="true" inert>
       <div class="results-form"><span>FORM 404-S</span><span>POST-APOCALYPSE PERFORMANCE REVIEW</span></div>
@@ -171,7 +171,7 @@
         <div class="results-stat"><span>MISSION TIME</span><strong id="resultsTime">00:00.0</strong></div>
         <div class="results-stat"><span>COLLISIONS</span><strong id="resultsHits">0</strong></div>
       </div>
-      <div id="resultsOverrides" class="results-overrides">0 / 2 MANUAL OVERRIDES SECURED</div>
+      <div id="resultsOverrides" class="results-overrides">0 / 2 CUT-OFFS · NO EXTRA LIVES PROTECTED</div>
       <button id="playAgain" class="primary results-replay">PLAY AGAIN</button>
     </section>
   </div>

@@ -7,7 +7,8 @@ const THEMES = {
 export class AudioEngine {
   constructor() {
     this.ctx = null;
-    this.enabled = true;
+    try { this.enabled = window.sessionStorage.getItem('nflt-muted') !== '1'; }
+    catch { this.enabled = true; }
     this.beat = 0;
     this.timer = 0;
     this.act = 'city';
@@ -100,6 +101,14 @@ export class AudioEngine {
     this.noise(0.14, 0.035);
   }
 
+  netGate() {
+    [392, 494, 587, 784].forEach((note, index) => this.tone(note, 0.12, 'square', 0.03, index * 0.32));
+  }
+
+  netCleared() {
+    [330, 440, 659].forEach((note, index) => this.tone(note, 0.22, 'sine', 0.04, index * 0.12));
+  }
+
   override() {
     this.tone(220, 0.11, 'square', 0.055);
     this.tone(330, 0.12, 'triangle', 0.05, 0.13);
@@ -148,13 +157,13 @@ export class AudioEngine {
     this.noise(0.38, 0.07, 0.05);
   }
 
-  finalCall() {
+  finalCall(lineText = 'The machines stopped. We are still here. Thank you.') {
     if (!this.enabled) return;
     this.tone(880, 0.07, 'sine', 0.03, 1.42);
     this.tone(1100, 0.07, 'sine', 0.03, 1.55);
     if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) return;
     window.speechSynthesis.cancel();
-    const line = new SpeechSynthesisUtterance('Hello? The machines stopped. People are coming out. You did it. Thank you.');
+    const line = new SpeechSynthesisUtterance(lineText);
     line.rate = 0.88;
     line.pitch = 0.92;
     line.volume = 0.76;
@@ -174,6 +183,8 @@ export class AudioEngine {
 
   toggle() {
     this.enabled = !this.enabled;
+    try { window.sessionStorage.setItem('nflt-muted', this.enabled ? '0' : '1'); }
+    catch { /* Storage is optional; sound still works for this run. */ }
     if (!this.enabled && 'speechSynthesis' in window) window.speechSynthesis.cancel();
     return this.enabled;
   }

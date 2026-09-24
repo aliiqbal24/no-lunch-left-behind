@@ -44,16 +44,42 @@ export default function (THREE) {
     g.add(cloud);
   }
 
-  const planet = new THREE.Mesh(new THREE.SphereGeometry(6.3, 22, 14), new THREE.MeshStandardMaterial({ color: 0x4b95b7, roughness: 0.86, emissive: 0x1f4e6e, emissiveIntensity: 0.35 }));
-  planet.position.set(-9, 17, 75);
-  g.add(planet);
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(8.7, 0.32, 6, 52), new THREE.MeshBasicMaterial({ color: 0x9ad9dc, side: THREE.DoubleSide, fog: false }));
-  ring.position.copy(planet.position);
-  ring.rotation.set(1.05, 0.2, -0.25);
-  g.add(ring);
-  const moon = new THREE.Mesh(new THREE.SphereGeometry(3.3, 16, 10), new THREE.MeshStandardMaterial({ color: 0xdfa780, roughness: 0.92, emissive: 0x6b403d, emissiveIntensity: 0.25 }));
-  moon.position.set(18, -7, 100);
-  g.add(moon);
+  // Earth stays in view throughout the flight, then fills the final station window.
+  const earth = new THREE.Mesh(new THREE.SphereGeometry(29, 32, 20),
+    new THREE.MeshBasicMaterial({ color: 0x2c88ba, fog: false }));
+  earth.position.set(-16, -28, 94);
+  g.add(earth);
+  const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(29.8, 32, 20),
+    new THREE.MeshBasicMaterial({ color: 0x9ad9dc, transparent: true, opacity: 0.18, side: THREE.BackSide, depthWrite: false, fog: false }));
+  atmosphere.position.copy(earth.position);
+  g.add(atmosphere);
+  const land = new THREE.MeshBasicMaterial({ color: 0x88bc74, fog: false });
+  for (const [x, y, z, sx, sy, rotation] of [
+    [-26, -13, 67.5, 7, 3.8, 0.45], [-6, -20, 68.4, 5.5, 8, -0.35],
+    [-18, -35, 65.7, 7.5, 3.5, 0.15], [2, -37, 76, 4.2, 3.6, -0.3],
+  ]) {
+    const patch = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), land);
+    patch.position.set(x, y, z);
+    patch.scale.set(sx, sy, 0.28);
+    patch.rotation.z = rotation;
+    g.add(patch);
+  }
+  for (const [y, radius] of [[-21, 27.7], [-38, 25.7]]) {
+    const cloud = new THREE.Mesh(new THREE.TorusGeometry(radius, 0.15, 5, 48),
+      new THREE.MeshBasicMaterial({ color: 0xdaf4f1, transparent: true, opacity: 0.56, depthWrite: false, fog: false }));
+    cloud.position.set(-16, y, 66.2);
+    cloud.scale.y = 0.38;
+    g.add(cloud);
+  }
+  const distantPlanet = new THREE.Mesh(new THREE.SphereGeometry(5.2, 20, 12),
+    new THREE.MeshStandardMaterial({ color: 0x8da4d7, roughness: 0.92, emissive: 0x3c4d7a, emissiveIntensity: 0.25 }));
+  distantPlanet.position.set(24, 17, 105);
+  g.add(distantPlanet);
+  const distantRing = new THREE.Mesh(new THREE.TorusGeometry(7.3, 0.22, 5, 40),
+    new THREE.MeshBasicMaterial({ color: 0xb8dcdf, side: THREE.DoubleSide, fog: false }));
+  distantRing.position.copy(distantPlanet.position);
+  distantRing.rotation.set(1.05, 0.2, -0.25);
+  g.add(distantRing);
   g.children.forEach((child) => { child.position.y += 140; });
   return g;
 }

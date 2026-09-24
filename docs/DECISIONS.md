@@ -61,6 +61,14 @@ Record decisions while they are fresh. This is both a guard against scope drift 
 - Current title: `No free lunch theorem`.
 - The source repository and deployment URL keep their existing slugs so published links and gate evidence remain valid.
 
+## 2026-09-23 — Complete-content pass before Atlas
+
+- Kept the three-act route and existing touch vocabulary. The middle act needed a memorable choice, so its new orbital shutter uses lane movement rather than another button or mode.
+- Moved the first AI strike after the City hazard lesson and widened each optional physical cut-off to about three seconds. Each successful cut-off now shows its five-point rescue immediately; its 400-million-person effect remains unchanged at the ending.
+- Gave Space Flight a consistent Earth landmark and station windows a matching view. The three final radio responses now acknowledge strong survival, severe losses, or the 256-person floor.
+- Local evidence: four changed assets passed the recipe verifier; unit suites and ship check pass; the phone jam harness passed at 4.6 s ready, 1.7 MB, 513 draws, 38,770 triangles, zero errors and 404s. Browser routes reached the cut-off, both orbital-gate outcomes, the master switch, and the 256-person ending.
+- Atlas art, Vercel deployment, the exact-commit public gate, and jam submission remain separate owner-approved release work.
+
 ## Decision template
 
 ### YYYY-MM-DD — Decision

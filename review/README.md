@@ -2,6 +2,16 @@
 
 Live build: https://no-lunch-left-behind.vercel.app
 
+## Local complete-content pass (2026-09-23)
+
+The local game now teaches hazards before its first AI strike, gives both physical cut-offs a wider and more visible rescue window, and stages a right-lane orbital-net escape during Space Flight. Gold low satellites and red high satellites cue the jump and slide; beacons frame the approaching dock. Earth anchors the flight and appears through corridor windows; the final radio call reflects how many people survived. Mute persists when replay returns to the start page.
+
+- [Phone gameplay frame](finish-pass-phone.png)
+- [Five changed procedural assets](finish-pass-assets.png) and [verifier report](finish-pass-assets.json): 5/5 clean
+- [Local phone jam verdict](finish-pass-local-verdict.json): PASS, 4.6 s ready, 1.7 MB, 524 peak draws, 38,818 peak triangles, no errors or 404s
+
+This is local development evidence, not a new production gate verdict. The public build listed below is older.
+
 The complete playable sequence is represented here at a 390×844 touch viewport:
 
 - [23-second accelerated full-game clip](full-game-pre-atlas.mp4)

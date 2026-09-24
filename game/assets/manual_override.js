@@ -11,5 +11,16 @@ export default function generate(THREE) {
   button.name = 'overrideButton'; button.rotation.x = Math.PI / 2; button.position.set(0, 1.57, -0.37); group.add(button);
   const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.29, 10, 8), live);
   beacon.name = 'overrideBeacon'; beacon.position.y = 2.18; group.add(beacon);
+  const halo = new THREE.Group();
+  halo.name = 'overrideHalo';
+  halo.position.set(0, 1.57, -0.54);
+  halo.add(new THREE.Mesh(new THREE.TorusGeometry(0.48, 0.07, 6, 20), live));
+  group.add(halo);
+  for (const side of [-1, 1]) {
+    const chevron = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.56, 0.12), warning);
+    chevron.position.set(side * 0.28, 2.72, -0.12);
+    chevron.rotation.z = side * 0.48;
+    group.add(chevron);
+  }
   return group;
 }

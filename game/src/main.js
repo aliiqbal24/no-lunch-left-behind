@@ -6,6 +6,7 @@ import { AudioEngine } from './audio.js';
 import { createChaseVisuals } from './chase_visuals.js';
 import { calculateRating } from './results.js';
 import { calculateStakes, WORLD_POPULATION, START_HUMANITY } from './mission_stakes.js';
+import { finaleResponse, LOCK_START_SECONDS, LOCK_WARNING_SECONDS, OVERRIDE_RANGE, SPACE_NET } from './mission_cues.js';
 import createLaunchCityDistricts from '../assets/launch_city_districts.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -21,6 +22,7 @@ const stick = $('#stick');
 const tutorial = $('#tutorial');
 const tutorialText = $('#tutorialText');
 const humanityLabel = $('#humanityLabel');
+const humanityTrack = $('.humanity-track');
 const humanityFill = $('#humanityFill');
 const populationCrowd = $('#populationCrowd');
 const robotAdvance = $('#robotAdvance');
@@ -53,6 +55,7 @@ const switchScreen = $('#switchScreen');
 const masterTap = $('#masterTap');
 const finale = $('#finale');
 const subtitle = $('#subtitle');
+const signalLabel = $('#signalLabel');
 const resultsCard = $('#resultsCard');
 const resultsGrade = $('#resultsGrade');
 const resultsTitle = $('#resultsTitle');
@@ -66,6 +69,7 @@ const resultsOverrides = $('#resultsOverrides');
 const playAgain = $('#playAgain');
 const comicPanels = [...document.querySelectorAll('.comic-panel')];
 const comicCount = $('#comicCount');
+const overrideControlHint = $('#overrideControlHint');
 
 const params = new URLSearchParams(location.search);
 const TEST_MODE = params.has('test');
@@ -73,6 +77,7 @@ const DEV_MODE = params.has('dev') || TEST_MODE || ['localhost', '127.0.0.1'].in
 const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const START_SCENE = params.get('scene');
 const KEYBOARD_HINTS = !matchMedia('(pointer: coarse)').matches;
+overrideControlHint.textContent = KEYBOARD_HINTS ? 'E to cut off' : 'tap to cut off';
 const ACT_DURATION = TEST_MODE ? 3.6 : 25;
 const CLIMB_DURATION = TEST_MODE ? 1.8 : 5;
 const DOCK_DURATION = TEST_MODE ? 1.5 : 3;
@@ -175,6 +180,7 @@ const rig = createRig(THREE, renderer, scene, {
   fogStart: 28, fogDensity: 0.0042, shadowDist: 38,
 });
 const audio = new AudioEngine();
+muteButton.textContent = audio.enabled ? 'SOUND ON' : 'SOUND OFF';
 const assetUrl = (name) => new URL(`../assets/${name}.js`, import.meta.url).href;
 const setLoad = (percent, message) => {
   loadingFill.style.width = `${percent}%`;
@@ -195,6 +201,7 @@ const state = {
   paused: false,
   overrides: { city: 'pending', station: 'pending' }, overtime: 0,
   lockOn: { phase: 'idle', lane: 0, timer: 0 },
+  netGate: { phase: 'idle', timer: 0 }, finaleOutcome: null,
 };
 
 let chaseVisuals = null;
@@ -222,6 +229,8 @@ let stationEntryPassage;
 let earthCrisis;
 let dockingPort;
 let spaceBackdrop;
+let spaceGate;
+let spaceDrift = [];
 let climbLadder;
 let climbAnchorZ = 0;
 let lastTime = performance.now();
@@ -286,11 +295,12 @@ async function loadAssets() {
   ]);
 
   setLoad(54, 'auditing low-orbit litter…');
-  const [satellite, debris, backdrop, port] = await Promise.all([
+  const [satellite, debris, backdrop, port, netGateAsset] = await Promise.all([
     ASSET(assetUrl('satellite')),
     ASSET(assetUrl('space_debris')),
     ASSET(assetUrl('space_backdrop'), { keepHierarchy: true }),
     ASSET(assetUrl('docking_port'), { keepHierarchy: true }),
+    ASSET(assetUrl('orbital_net_gate'), { keepHierarchy: true }),
   ]);
 
   setLoad(72, 'installing corridor bureaucracy…');
@@ -339,7 +349,7 @@ async function loadAssets() {
   cityRelay.position.set(LANES[0], 0.2, OVERRIDE_EVENTS.city.at);
   cityRoot.add(cityRelay);
   buildRobotArmy([boxy, spider, roller]);
-  buildSpace(backdrop, port);
+  buildSpace(backdrop, port, netGateAsset, satellite, debris);
   buildStation(corridor, masterSwitch, earth, endWindow, crisis);
   stationBreaker = relayAsset.clone(true);
   stationBreaker.position.set(LANES[2], 0.2, OVERRIDE_EVENTS.station.at);
@@ -438,10 +448,24 @@ function buildRobotArmy(robotAssets) {
   }
 }
 
-function buildSpace(backdrop, port) {
+function buildSpace(backdrop, port, netGateAsset, satellite, debris) {
   spaceBackdrop = backdrop;
   spaceBackdrop.position.y = -140;
   spaceRoot.add(spaceBackdrop);
+  spaceGate = netGateAsset;
+  spaceGate.visible = false;
+  spaceRoot.add(spaceGate);
+  for (const [asset, x, y, z, scale] of [
+    [satellite, 12, 7, 35, 1.45], [debris, -11, 2, 61, 1.8],
+    [satellite, -13, -4, 88, 1.15], [debris, 10, 9, 109, 1.55],
+  ]) {
+    const object = asset.clone(true);
+    object.scale.setScalar(scale);
+    object.position.set(x, y, z);
+    object.userData.homeZ = z;
+    spaceRoot.add(object);
+    spaceDrift.push(object);
+  }
   dockingPort = port;
   dockingPort.position.set(0, 0, ACTS.space.speed * ACT_DURATION + 10);
   dockingPort.visible = false;
@@ -551,6 +575,22 @@ function revealIntro() {
   document.body.classList.remove('intro-playing');
 }
 
+function showHazardHint() {
+  tutorialStage = 1;
+  tutorialText.textContent = KEYBOARD_HINTS
+    ? 'UP / W JUMPS LOW HAZARDS · DOWN / S SLIDES UNDER HIGH ONES'
+    : 'SWIPE UP OVER LOW HAZARDS · DOWN UNDER HIGH ONES';
+}
+
+function updateCityTutorial() {
+  if (state.act !== 'city' || state.mode !== 'playing') return;
+  if (tutorialStage === 0 && state.elapsed >= 5) showHazardHint();
+  if (tutorialStage < 2 && state.elapsed >= 11) {
+    tutorialStage = 2;
+    tutorial.classList.remove('visible');
+  }
+}
+
 function onGesture(kind) {
   if (state.mode !== 'playing' || state.paused || state.introDelay > 0) return;
   state.inputCount += 1;
@@ -570,8 +610,7 @@ function onGesture(kind) {
   if (kind === 'down' && state.jumpY < 0.12) state.slide = state.act === 'space' ? 0.78 : 0.65;
 
   if (state.act === 'city' && tutorialStage === 0 && (kind === 'left' || kind === 'right')) {
-    tutorialStage = 1;
-    tutorialText.textContent = KEYBOARD_HINTS ? 'UP / W TO JUMP · DOWN / S TO SLIDE' : 'SWIPE UP TO JUMP · DOWN TO SLIDE';
+    showHazardHint();
   } else if (state.act === 'city' && tutorialStage === 1 && (kind === 'up' || kind === 'down')) {
     tutorialStage = 2;
     tutorial.classList.remove('visible');
@@ -615,8 +654,10 @@ function resetRun() {
   state.overrides = { city: 'pending', station: 'pending' };
   state.overtime = 0;
   state.lockOn = { phase: 'idle', lane: 0, timer: 0 };
+  state.netGate = { phase: 'idle', timer: 0 };
+  state.finaleOutcome = null;
   overridePrompt.classList.remove('visible', 'in-range');
-  lockWarning.classList.remove('visible', 'firing');
+  lockWarning.classList.remove('visible', 'firing', 'cleared', 'net-gate');
   updateHumanity();
 }
 
@@ -664,7 +705,9 @@ function startAct(name, fromIntro = false, fromTransition = false) {
   state.slide = 0;
   state.hitCooldown = 0;
   state.lockOn = { phase: 'idle', lane: 0, timer: 0 };
-  lockWarning.classList.remove('visible', 'firing');
+  state.netGate = { phase: 'idle', timer: 0 };
+  lockWarning.classList.remove('visible', 'firing', 'cleared', 'net-gate');
+  lockLanes.forEach((lane) => lane.classList.remove('targeted', 'safe'));
   overridePrompt.classList.remove('visible', 'in-range');
   state.lookBack = name === 'city' ? 2 : 0;
   state.introCameraBlend = fromIntro ? 1 : 0;
@@ -688,7 +731,8 @@ function startAct(name, fromIntro = false, fromTransition = false) {
   tutorial.classList.toggle('visible', name === 'city' && !fromIntro && !fromTransition);
   tutorialText.textContent = name === 'city'
     ? (KEYBOARD_HINTS ? 'LEFT / RIGHT OR A / D TO CHANGE LANES' : 'SWIPE TO CHANGE LANES')
-    : (KEYBOARD_HINTS ? 'SAME KEYS · NOW WITH VACUUM' : 'SAME SWIPES · NOW WITH VACUUM');
+    : name === 'space' ? 'GOLD LOW: JUMP · RED HIGH: SLIDE' :
+      (KEYBOARD_HINTS ? 'SAME KEYS · REACH THE SWITCH' : 'SAME SWIPES · REACH THE SWITCH');
   if (name === 'space' && !fromTransition) {
     tutorial.classList.add('visible');
     setTimeout(() => {
@@ -763,6 +807,8 @@ function resetWorld(name, preserveCamera = false) {
   ship.rotation.set(0, 0, 0);
   ship.scale.setScalar(0.88);
   if (spaceBackdrop) spaceBackdrop.rotation.set(0, 0, 0);
+  if (spaceGate) spaceGate.visible = false;
+  for (const part of spaceDrift) part.position.z = part.userData.homeZ;
   if (name === 'city' && !preserveCamera) camera.position.set(0, 2.9, 6.8);
 }
 
@@ -821,6 +867,16 @@ function spawnPattern(z = state.act === 'space' ? 82 : 72) {
     const object = proto.object.clone(true);
     object.scale.setScalar(proto.scale);
     object.position.set(LANES[def.lane + 1], proto.y, z);
+    if (def.type === 'satelliteLow' || def.type === 'satelliteHigh') {
+      const tint = def.type === 'satelliteLow' ? 0xf6c453 : 0xf56b54;
+      object.traverse((part) => {
+        if (!part.isMesh || !part.material?.emissive) return;
+        part.material = part.material.clone();
+        part.material.color.setHex(tint);
+        part.material.emissive.setHex(tint);
+        part.material.emissiveIntensity = 0.38;
+      });
+    }
     if (def.type === 'chair') object.rotation.y = Math.PI;
     if (proto.beamLift) {
       object.traverse((node) => {
@@ -861,7 +917,8 @@ function hitObstacle(item) {
     station: '−240,000,000 · EARTH LINK EXPOSED',
   };
   impactCopy.textContent = state.hits >= 32 ? 'ONLY 256 VOICES REMAIN' : item.type === 'lockOn'
-    ? 'AI STRIKE · −240,000,000' : copy[state.act];
+    ? 'AI STRIKE · −240,000,000' : item.type === 'netGate'
+      ? 'AI NET IMPACT · −240,000,000' : copy[state.act];
   impactCopy.classList.add('show');
   humanityFill.classList.add('impact');
   setTimeout(() => humanityFill.classList.remove('impact'), 260);
@@ -883,7 +940,14 @@ function updateHumanity() {
   const atFloor = state.survivors === 256;
   const visibleHumanity = atFloor ? 0.35 : state.humanity;
   const survivingIcons = atFloor ? 1 : Math.ceil(visibleHumanity * crowdPeople.length / 100);
-  humanityLabel.textContent = atFloor ? '256 LEFT' : Math.round(state.humanity) + '%';
+  const roundedHumanity = atFloor ? 0 : Math.round(state.humanity);
+  const valueText = atFloor ? 'Only 256 people remain' : `${roundedHumanity} percent humanity remaining`;
+  humanityLabel.textContent = atFloor ? '256 LEFT' : roundedHumanity + '%';
+  if (humanityTrack.getAttribute('aria-valuenow') !== String(roundedHumanity) ||
+      humanityTrack.getAttribute('aria-valuetext') !== valueText) {
+    humanityTrack.setAttribute('aria-valuenow', String(roundedHumanity));
+    humanityTrack.setAttribute('aria-valuetext', valueText);
+  }
   humanityFill.style.width = `${visibleHumanity}%`;
   robotAdvance.style.left = `${Math.min(95, Math.max(5, 100 - visibleHumanity))}%`;
   crowdPeople.forEach((person, index) => {
@@ -892,9 +956,9 @@ function updateHumanity() {
   forecast.textContent = atFloor
     ? 'ONLY 256 PEOPLE LEFT · FINISH THE MISSION'
     : state.act === 'city' && state.overrides.city === 'done'
-      ? 'RAIL OVERRIDE HELD · EVACUATION TRAINS MOVING'
+      ? '400M PROTECTED · EVACUATION TRAINS MOVING'
       : state.act === 'station' && state.overrides.station === 'done'
-        ? 'SAFETY BREAKER HELD · EARTH LINK ISOLATING'
+        ? '400M PROTECTED · EARTH LINK ISOLATING'
         : state.act === 'city' ? 'REMOTE SHUTDOWN FAILED · REACH THE ROCKET'
           : state.act === 'space' ? 'AI ORBITAL NET · EARTH IS RUNNING OUT OF TIME'
             : 'LAST PHYSICAL SWITCH AHEAD · KEEP MOVING';
@@ -945,7 +1009,7 @@ function tryOverride() {
   const event = OVERRIDE_EVENTS[state.act];
   if (!event || state.overrides[state.act] !== 'pending') return;
   const delta = event.at - overrideDistance(event);
-  if (delta < -13 || delta > 15 || state.targetLane !== event.lane) return;
+  if (delta < -OVERRIDE_RANGE.behind || delta > OVERRIDE_RANGE.ahead || state.targetLane !== event.lane) return;
   state.overrides[state.act] = 'done';
   overridePrompt.classList.remove('visible', 'in-range');
   impactCopy.textContent = event.saved;
@@ -972,29 +1036,33 @@ function updateOverride() {
   const delta = event.at - overrideDistance(event);
   const fixture = state.act === 'city' ? cityRelay : stationBreaker;
   fixture.position.z = delta;
+  const halo = fixture.getObjectByName('overrideHalo');
+  if (halo) halo.scale.setScalar(1 + (REDUCED_MOTION ? 0 : 0.1 * Math.sin(state.visualClock * 10)));
   if (state.overrides[state.act] !== 'pending') return;
-  if (delta < -13) {
+  if (delta < -OVERRIDE_RANGE.behind) {
     state.overrides[state.act] = 'missed';
     overridePrompt.classList.remove('visible', 'in-range');
     return;
   }
-  const visible = delta <= 42 && delta >= -13;
+  const visible = delta <= OVERRIDE_RANGE.announce && delta >= -OVERRIDE_RANGE.behind;
   overridePrompt.classList.toggle('visible', visible);
   if (visible) {
     tutorial.classList.remove('visible');
     overrideTitle.textContent = event.label;
-    overrideInstruction.textContent = delta > 15
-      ? (event.lane < 0 ? 'LEFT' : 'RIGHT') + ' LANE · APPROACH THE SWITCH'
-      : (KEYBOARD_HINTS ? 'PRESS E' : 'TAP SCREEN') +
-        ' · ' + (event.lane < 0 ? 'LEFT' : 'RIGHT') + ' LANE';
-    overridePrompt.classList.toggle('in-range', delta <= 15);
+    const lane = event.lane < 0 ? 'LEFT' : 'RIGHT';
+    overrideInstruction.textContent = delta > OVERRIDE_RANGE.ahead
+      ? `${lane} LANE · SAVE 400M PEOPLE`
+      : state.targetLane !== event.lane
+        ? `MOVE ${lane} · THEN ${KEYBOARD_HINTS ? 'PRESS E' : 'TAP'}`
+        : `${KEYBOARD_HINTS ? 'PRESS E' : 'TAP NOW'} · SAVE 400M`;
+    overridePrompt.classList.toggle('in-range', delta <= OVERRIDE_RANGE.ahead && state.targetLane === event.lane);
   }
 }
 
 function updateLockOn(dt) {
   if (TEST_MODE && OVERRIDE_EVENTS[state.act]) return;
   const attack = state.lockOn;
-  if (attack.phase === 'idle' && state.elapsed >= (state.act === 'city' ? 2.75 : 0.4)) {
+  if (attack.phase === 'idle' && state.elapsed >= LOCK_START_SECONDS[state.act]) {
     attack.phase = 'warning';
     attack.timer = 0;
     attack.lane = state.targetLane;
@@ -1005,8 +1073,8 @@ function updateLockOn(dt) {
   }
   if (attack.phase !== 'warning') return;
   attack.timer += dt;
-  lockWarning.style.setProperty('--remaining', Math.max(0, 100 * (1 - attack.timer / 1.5)) + '%');
-  if (attack.timer < 1.5) return;
+  lockWarning.style.setProperty('--remaining', Math.max(0, 100 * (1 - attack.timer / LOCK_WARNING_SECONDS)) + '%');
+  if (attack.timer < LOCK_WARNING_SECONDS) return;
   attack.phase = 'done';
   lockWarning.classList.add('firing');
   if (Math.abs(activeActor().position.x - LANES[attack.lane + 1]) < 0.74 && state.hitCooldown <= 0) {
@@ -1014,6 +1082,50 @@ function updateLockOn(dt) {
   }
   audio.lockFire();
   window.setTimeout(() => lockWarning.classList.remove('visible', 'firing'), 450);
+}
+
+function updateNetGate(dt, travel) {
+  if (state.act !== 'space') return;
+  const gate = state.netGate;
+  if (gate.phase === 'idle' && state.elapsed >= SPACE_NET.announceAt) {
+    gate.phase = 'warning';
+    gate.timer = 0;
+    spaceGate.position.set(0, 0, ACTS.space.speed * (SPACE_NET.impactAt - state.elapsed));
+    spaceGate.visible = true;
+    lockTitle.textContent = 'AI NET · RIGHT LANE OPEN';
+    lockLanes.forEach((lane, index) => {
+      lane.classList.toggle('targeted', index !== SPACE_NET.safeLane + 1);
+      lane.classList.toggle('safe', index === SPACE_NET.safeLane + 1);
+    });
+    lockWarning.classList.remove('firing', 'cleared');
+    lockWarning.classList.add('visible', 'net-gate');
+    audio.netGate();
+  }
+  if (gate.phase === 'idle') return;
+  spaceGate.position.z -= travel;
+  if (gate.phase === 'warning') {
+    gate.timer += dt;
+    lockWarning.style.setProperty('--remaining', Math.max(0, 100 * (1 - gate.timer / (SPACE_NET.impactAt - SPACE_NET.announceAt))) + '%');
+    if (spaceGate.position.z > 0) return;
+    gate.phase = 'done';
+    const clearLane = Math.abs(ship.position.x - LANES[SPACE_NET.safeLane + 1]) <= 0.74;
+    if (!clearLane) {
+      if (state.hitCooldown <= 0) hitObstacle({ lane: state.targetLane, type: 'netGate', object: null, hit: false });
+      lockTitle.textContent = 'AI NET · SHIP HIT';
+      lockWarning.classList.add('firing');
+    } else {
+      state.obstaclesDodged += 1;
+      lockTitle.textContent = 'AI NET · CLEAR';
+      impactCopy.textContent = 'ORBITAL NET BREACHED · DOCK AHEAD';
+      impactCopy.classList.remove('show');
+      void impactCopy.offsetWidth;
+      impactCopy.classList.add('show');
+      lockWarning.classList.add('cleared');
+      audio.netCleared();
+    }
+    window.setTimeout(() => lockWarning.classList.remove('visible', 'firing', 'cleared', 'net-gate'), 450);
+  }
+  if (gate.phase === 'done' && spaceGate.position.z < -12) spaceGate.visible = false;
 }
 
 function updateCityLife(dt) {
@@ -1043,8 +1155,10 @@ function updatePlayingWorld(dt) {
   const travel = act.speed * speedFactor * dt;
   state.distance += travel;
   state.actDistance += travel;
+  updateCityTutorial();
   updateOverride();
   updateLockOn(dt);
+  updateNetGate(dt, travel);
   if (state.act === 'city') updateCityLife(dt);
   updateHumanity();
 
@@ -1061,7 +1175,15 @@ function updatePlayingWorld(dt) {
       : state.actDistance;
     rocketGroup.position.z = Math.max(12, 330 - approach);
   } else if (state.act === 'space') {
+    if (state.elapsed >= SPACE_NET.impactAt + 0.5 && districtLabel.textContent !== 'STATION DOCK · HOLD COURSE') {
+      districtLabel.textContent = 'STATION DOCK · HOLD COURSE';
+    }
     spaceBackdrop.rotation.y += dt * 0.012;
+    for (const part of spaceDrift) {
+      part.position.z -= travel * 0.55;
+      if (part.position.z < -18) part.position.z += 130;
+      part.rotation.y += dt * 0.18;
+    }
     dockingPort.position.z = Math.max(14, remaining * act.speed + 10);
     dockingPort.children.forEach((child, i) => { if (child.name.startsWith('dockRing')) child.rotation.z += dt * (i % 2 ? -0.55 : 0.4); });
   } else {
@@ -1075,7 +1197,8 @@ function updatePlayingWorld(dt) {
   }
 
   spawnClock -= dt;
-  if (state.act !== 'city' && state.elapsed > 2.35 && spawnClock <= 0) {
+  if (state.act !== 'city' && state.elapsed > 2.35 && spawnClock <= 0 &&
+      (state.act !== 'space' || state.elapsed < 12.5)) {
     spawnPattern();
     spawnClock = act.spawnEvery;
   }
@@ -1089,7 +1212,7 @@ function updatePlayingWorld(dt) {
       item.passed = true;
       if (!item.hit) state.obstaclesDodged += 1;
     }
-    if (item.object.position.z < -9) {
+    if (item.object.position.z < -4) {
       obstacleRoot.remove(item.object);
       obstacles.splice(i, 1);
       continue;
@@ -1411,13 +1534,16 @@ function beginFinale() {
   switchScreen.classList.remove('visible');
   finale.classList.add('visible');
   finale.classList.remove('done');
-  subtitle.textContent = '—hello? Hello?!';
+  state.finaleOutcome = finaleResponse(state.humanity, state.survivors);
+  finale.dataset.outcome = state.finaleOutcome.kind;
+  signalLabel.textContent = state.finaleOutcome.signal;
+  subtitle.textContent = state.finaleOutcome.lines[0][1];
   state.finaleElapsed = 0;
   state.finalePanStarted = false;
   resultsCard.inert = true;
   resultsCard.setAttribute('aria-hidden', 'true');
   audio.masterSwitch();
-  audio.finalCall();
+  audio.finalCall(state.finaleOutcome.spoken);
   syncDevPause();
 }
 
@@ -1448,8 +1574,11 @@ function updateResultCounters(dt) {
   resultsDodged.textContent = Math.round(state.obstaclesDodged * eased).toLocaleString('en-US');
   resultsTime.textContent = formatMissionTime(state.missionTimeFinal * eased);
   resultsHits.textContent = Math.round(state.hits * eased).toLocaleString('en-US');
-  resultsOverrides.textContent = ((state.overrides.city === 'done' ? 1 : 0) +
-    (state.overrides.station === 'done' ? 1 : 0)) + ' / 2 MANUAL OVERRIDES SECURED';
+  const secured = (state.overrides.city === 'done' ? 1 : 0) +
+    (state.overrides.station === 'done' ? 1 : 0);
+  resultsOverrides.textContent = secured
+    ? `${secured} / 2 CUT-OFFS · ${secured * 400}M PEOPLE PROTECTED`
+    : '0 / 2 CUT-OFFS · NO EXTRA LIVES PROTECTED';
 }
 
 function revealResults() {
@@ -1495,14 +1624,7 @@ function updateFinale(dt) {
       new THREE.Vector3(0, 5.55, stationTerminal.position.z + 17.6));
   }
   updateEarthCrisis(1 - THREE.MathUtils.smoothstep(storyTime, 0.35, 3.1));
-  const lines = [
-    [0, '—hello? Hello?!'],
-    [1.45, 'They just… stopped?'],
-    [3, 'The robots just stopped!'],
-    [4.6, 'Are you there?'],
-    [6.1, '…Thank you.'],
-  ];
-  for (const [time, line] of lines) {
+  for (const [time, line] of state.finaleOutcome.lines) {
     if (storyTime >= time) subtitle.textContent = line;
   }
   updateShot(dt);
@@ -1660,6 +1782,7 @@ function frame(now) {
     hits: state.hits,
     overrides: { ...state.overrides },
     lockOn: { ...state.lockOn },
+    netGate: { ...state.netGate },
     obstaclesDodged: state.obstaclesDodged,
     missionTime: state.mode === 'finale' || state.mode === 'complete' ? state.missionTimeFinal : state.missionElapsed,
     rating: state.rating?.grade || null,

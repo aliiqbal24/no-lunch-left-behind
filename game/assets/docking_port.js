@@ -3,6 +3,7 @@ export default function (THREE) {
   const ivory = new THREE.MeshStandardMaterial({ color: 0xf7f3e8, roughness: 0.48, metalness: 0.36 }); ivory.name = 'metal';
   const dark = new THREE.MeshStandardMaterial({ color: 0x172b33, roughness: 0.36, metalness: 0.7 }); dark.name = 'metal';
   const teal = new THREE.MeshStandardMaterial({ color: 0x45c4b0, roughness: 0.2, emissive: 0x45c4b0, emissiveIntensity: 1.1 }); teal.name = 'metal';
+  const amber = new THREE.MeshStandardMaterial({ color: 0xf6c453, roughness: 0.24, emissive: 0xf6c453, emissiveIntensity: 1.35 }); amber.name = 'metal';
   const innerDark = new THREE.MeshStandardMaterial({ color: 0x10232b, roughness: 0.85, side: THREE.BackSide }); innerDark.name = 'metal';
   const bulkheadDark = new THREE.MeshStandardMaterial({ color: 0x09161d, roughness: 0.9 }); bulkheadDark.name = 'metal';
   for (let i = 0; i < 3; i++) {
@@ -18,6 +19,16 @@ export default function (THREE) {
     strut.position.set(Math.cos(angle) * 3.2, 3.05 + Math.sin(angle) * 3.2, 0);
     strut.rotation.z = angle;
     g.add(strut);
+  }
+  for (const side of [-1, 1]) {
+    const approachRail = new THREE.Mesh(new THREE.BoxGeometry(0.22, 1.4, 0.32), dark);
+    approachRail.position.set(side * 3.88, 3.05, -0.18);
+    g.add(approachRail);
+    for (const height of [-0.46, 0.46]) {
+      const beacon = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.26, 0.12), amber);
+      beacon.position.set(side * 3.88, 3.05 + height, -0.43);
+      g.add(beacon);
+    }
   }
   const tunnel = new THREE.Mesh(new THREE.CylinderGeometry(3.35, 3.35, 2.8, 20, 1, true), dark);
   tunnel.rotation.x = Math.PI / 2;

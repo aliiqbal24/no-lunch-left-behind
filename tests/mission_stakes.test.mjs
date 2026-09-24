@@ -12,6 +12,8 @@ test('a clean run steadily loses ground across all three acts', () => {
 test('both physical overrides protect ten points by the finale', () => {
   assert.equal(calculateStakes({ act: 'station', progress: 1, overrides: { city: true, station: true } }).survivors, 5_600_000_000);
   assert.equal(calculateStakes({ act: 'station', progress: 1, overrides: { station: true } }).humanity, 65);
+  assert.equal(calculateStakes({ act: 'city', progress: 0.7, overrides: { city: true } }).humanity,
+    calculateStakes({ act: 'city', progress: 0.7 }).humanity + 5);
 });
 
 test('collisions and wasted time cost lives; the 256 survivor ending remains reachable', () => {

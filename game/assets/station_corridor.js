@@ -8,7 +8,8 @@ export default function (THREE) {
   const voidMaterial = new THREE.MeshBasicMaterial({ color: 0x071127, side: THREE.DoubleSide, fog: false });
   const glass = new THREE.MeshBasicMaterial({ color: 0x5ca5c5, transparent: true, opacity: 0.1, depthWrite: false, side: THREE.DoubleSide, fog: false });
   const planetMaterial = new THREE.MeshBasicMaterial({ color: 0x3b91b6, fog: false });
-  const orbitMaterial = new THREE.MeshBasicMaterial({ color: 0x8de2db, fog: false });
+  const landMaterial = new THREE.MeshBasicMaterial({ color: 0x86bd76, fog: false });
+  const atmosphereMaterial = new THREE.MeshBasicMaterial({ color: 0xb7eaf0, fog: false });
   const floor = new THREE.Mesh(new THREE.BoxGeometry(8.3, 0.2, 40), dark);
   floor.position.y = 0.1;
   floor.receiveShadow = true;
@@ -62,15 +63,22 @@ export default function (THREE) {
     stars.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
     stars.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
     g.add(new THREE.Points(stars, new THREE.PointsMaterial({ size: 0.12, vertexColors: true, fog: false, depthWrite: false })));
-    const planet = new THREE.Mesh(new THREE.SphereGeometry(0.82, 14, 10), planetMaterial);
+    const earthView = new THREE.Group();
+    earthView.name = 'windowEarth';
+    earthView.position.set(side * 5.05, 2.75, side < 0 ? -9 : 8);
+    const planet = new THREE.Mesh(new THREE.SphereGeometry(1.28, 18, 12), planetMaterial);
     planet.scale.x = 0.13;
-    planet.position.set(side * 5.05, 2.75, side < 0 ? -9 : 8);
-    g.add(planet);
-    const orbit = new THREE.Mesh(new THREE.TorusGeometry(1.08, 0.035, 5, 28), orbitMaterial);
-    orbit.rotation.y = Math.PI / 2;
-    orbit.rotation.x = -0.25;
-    orbit.position.copy(planet.position);
-    g.add(orbit);
+    earthView.add(planet);
+    for (const [y, z, sy, sz] of [[0.4, -0.45, 0.34, 0.5], [-0.42, 0.35, 0.38, 0.3]]) {
+      const continent = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), landMaterial);
+      continent.scale.set(0.04, sy, sz);
+      continent.position.set(-side * 0.1, y, z);
+      earthView.add(continent);
+    }
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.055, 6, 32), atmosphereMaterial);
+    rim.rotation.y = Math.PI / 2;
+    earthView.add(rim);
+    g.add(earthView);
     const rail = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.35, 40), orange);
     rail.position.set(side * 4.03, 1.25, 0);
     g.add(rail);

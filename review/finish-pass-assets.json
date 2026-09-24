@@ -1,0 +1,195 @@
+[
+ {
+  "ok": true,
+  "mounts": [
+   "left",
+   "right"
+  ],
+  "meshes": 23,
+  "tris": 1992,
+  "materials": 6,
+  "size": [
+   8.06,
+   6.7,
+   3.44
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   -0.15
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.1718,
+    "edgeDensity": 0.4111
+   },
+   "right": {
+    "coverage": 0.1676,
+    "edgeDensity": 0.0486
+   },
+   "back": {
+    "coverage": 0.2618,
+    "edgeDensity": 0.2989
+   },
+   "left": {
+    "coverage": 0.1716,
+    "edgeDensity": 0.0417
+   }
+  },
+  "error": null,
+  "name": "docking_port",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 8,
+  "tris": 516,
+  "materials": 3,
+  "size": [
+   1.96,
+   2.998,
+   1.96
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.1676,
+    "edgeDensity": 0.0633
+   },
+   "right": {
+    "coverage": 0.1393,
+    "edgeDensity": 0.0702
+   },
+   "back": {
+    "coverage": 0.1721,
+    "edgeDensity": 0.1277
+   },
+   "left": {
+    "coverage": 0.1391,
+    "edgeDensity": 0.0863
+   }
+  },
+  "error": null,
+  "name": "manual_override",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 32,
+  "tris": 384,
+  "materials": 4,
+  "size": [
+   8.5,
+   4.39,
+   0.54
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   -0.04
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.1409,
+    "edgeDensity": 0.2273
+   },
+   "right": {
+    "coverage": 0.0322,
+    "edgeDensity": 0.2127
+   },
+   "back": {
+    "coverage": 0.1343,
+    "edgeDensity": 0.22
+   },
+   "left": {
+    "coverage": 0.032,
+    "edgeDensity": 0.2349
+   }
+  },
+  "error": null,
+  "name": "orbital_net_gate",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 13,
+  "tris": 6592,
+  "materials": 10,
+  "size": [
+   280,
+   280,
+   280
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.2202,
+    "edgeDensity": 0.2338
+   },
+   "right": {
+    "coverage": 0.2202,
+    "edgeDensity": 0.234
+   },
+   "back": {
+    "coverage": 0.2202,
+    "edgeDensity": 0.2496
+   },
+   "left": {
+    "coverage": 0.2202,
+    "edgeDensity": 0.2388
+   }
+  },
+  "error": null,
+  "name": "space_backdrop",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 85,
+  "tris": 3004,
+  "materials": 10,
+  "size": [
+   10.433,
+   5.35,
+   40.48
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.1154,
+    "edgeDensity": 0.1624
+   },
+   "right": {
+    "coverage": 0.1638,
+    "edgeDensity": 0.1007
+   },
+   "back": {
+    "coverage": 0.117,
+    "edgeDensity": 0.178
+   },
+   "left": {
+    "coverage": 0.1665,
+    "edgeDensity": 0.1275
+   }
+  },
+  "error": null,
+  "name": "station_corridor",
+  "problems": []
+ }
+]
