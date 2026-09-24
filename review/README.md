@@ -2,6 +2,16 @@
 
 Live build: https://no-lunch-left-behind.vercel.app
 
+## Scene 3 final station visual pass (2026-09-24)
+
+Station gameplay is unchanged, but its complete visual language is rebuilt around a massive **CODE RED AI occupation**. The pressure corridor now has authored ribs, service trenches, cable arteries, equipment cabinets and scan infrastructure; hazards are articulated security drones and industrial laser barricades; the final observatory surrounds a monumental wired switch and a much larger wounded Earth. Pressing the switch visibly changes the same environment from hostile red alarm systems to passive cyan life-support systems while the Earth crisis scars fade.
+
+- [Eight-asset verifier sheet](scene3-final-assets.png) and [machine report](scene3-final-assets.json): all 8 render, 6 completely clean; the globe-mounted crisis overlay and passage/backdrop hub carry documented contextual framing warnings
+- [Local phone jam verdict](scene3-final-local-verdict.json): PASS, 5.2 s ready, 1.8 MB, 771 peak draws, 290,068 peak triangles, no errors or 404s
+- Atlas references: [code-red hero frame](atlas/scene3-code-red-hero.png) and [active/passive production sheet](atlas/scene3-active-passive-assets.png)
+
+Normal-speed and accelerated browser routes exercised the rebuilt corridor, switch approach, physical press, passive-state transformation, Earth finale, and results handoff without application errors. This is local development evidence; the public build above remains older until release approval.
+
 ## Scene 2 final visual and free-flight pass (2026-09-24)
 
 Space Flight is no longer a three-lane reskin. The craft now flies continuously in two dimensions with held keyboard input or an anchored mobile drag joystick. The rebuilt encounter adds articulated hostile drones, tumbling orbital wreckage, a large AI interceptor that crosses in front and fires paired red lasers, and a full-width orbital defence lattice with one cyan breach aperture. A wounded Earth and the monumental rotating station hold the emotional frame from pursuit through docking.

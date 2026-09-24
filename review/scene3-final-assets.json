@@ -1,0 +1,312 @@
+[
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 35,
+  "tris": 11160,
+  "materials": 9,
+  "size": [
+   5.88,
+   5.96,
+   5.96
+  ],
+  "groundOffset": 0.02,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.2201,
+    "edgeDensity": 0.0767
+   },
+   "right": {
+    "coverage": 0.2202,
+    "edgeDensity": 0.0794
+   },
+   "back": {
+    "coverage": 0.2192,
+    "edgeDensity": 0.0599
+   },
+   "left": {
+    "coverage": 0.2208,
+    "edgeDensity": 0.0856
+   }
+  },
+  "error": null,
+  "name": "earth",
+  "problems": []
+ },
+ {
+  "ok": false,
+  "mounts": null,
+  "meshes": 48,
+  "tris": 3392,
+  "materials": 3,
+  "size": [
+   3.729,
+   5.488,
+   5.484
+  ],
+  "groundOffset": 0.256,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.03,
+    "edgeDensity": 0.5091
+   },
+   "right": {
+    "coverage": 0.0185,
+    "edgeDensity": 0.5887
+   },
+   "back": {
+    "coverage": 0.03,
+    "edgeDensity": 0.5077
+   },
+   "left": {
+    "coverage": 0.0186,
+    "edgeDensity": 0.5911
+   }
+  },
+  "error": null,
+  "name": "earth_crisis",
+  "problems": [
+   "base sits at y=0.256, should be 0"
+  ]
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 42,
+  "tris": 1804,
+  "materials": 10,
+  "size": [
+   2.742,
+   2.365,
+   0.96
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.2221,
+    "edgeDensity": 0.1249
+   },
+   "right": {
+    "coverage": 0.1341,
+    "edgeDensity": 0.0772
+   },
+   "back": {
+    "coverage": 0.2203,
+    "edgeDensity": 0.113
+   },
+   "left": {
+    "coverage": 0.1339,
+    "edgeDensity": 0.0872
+   }
+  },
+  "error": null,
+  "name": "laser_gate",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 33,
+  "tris": 3080,
+  "materials": 7,
+  "size": [
+   2.64,
+   4.302,
+   2.64
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.1847,
+    "edgeDensity": 0.0968
+   },
+   "right": {
+    "coverage": 0.158,
+    "edgeDensity": 0.1195
+   },
+   "back": {
+    "coverage": 0.1776,
+    "edgeDensity": 0.1343
+   },
+   "left": {
+    "coverage": 0.1622,
+    "edgeDensity": 0.119
+   }
+  },
+  "error": null,
+  "name": "manual_override",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 52,
+  "tris": 5192,
+  "materials": 8,
+  "size": [
+   4.1,
+   2.84,
+   4.1
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.2096,
+    "edgeDensity": 0.0877
+   },
+   "right": {
+    "coverage": 0.2013,
+    "edgeDensity": 0.0902
+   },
+   "back": {
+    "coverage": 0.212,
+    "edgeDensity": 0.0931
+   },
+   "left": {
+    "coverage": 0.2038,
+    "edgeDensity": 0.1005
+   }
+  },
+  "error": null,
+  "name": "master_switch",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 27,
+  "tris": 3840,
+  "materials": 7,
+  "size": [
+   1.86,
+   2.315,
+   1.44
+  ],
+  "groundOffset": 0.005,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.179,
+    "edgeDensity": 0.0883
+   },
+   "right": {
+    "coverage": 0.1543,
+    "edgeDensity": 0.0861
+   },
+   "back": {
+    "coverage": 0.1729,
+    "edgeDensity": 0.0757
+   },
+   "left": {
+    "coverage": 0.1528,
+    "edgeDensity": 0.082
+   }
+  },
+  "error": null,
+  "name": "security_bot",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 309,
+  "tris": 4940,
+  "materials": 25,
+  "size": [
+   9.04,
+   5.425,
+   41.18
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.1052,
+    "edgeDensity": 0.1012
+   },
+   "right": {
+    "coverage": 0.1678,
+    "edgeDensity": 0.0626
+   },
+   "back": {
+    "coverage": 0.0881,
+    "edgeDensity": 0.1091
+   },
+   "left": {
+    "coverage": 0.166,
+    "edgeDensity": 0.0697
+   }
+  },
+  "error": null,
+  "name": "station_corridor",
+  "problems": []
+ },
+ {
+  "ok": false,
+  "mounts": null,
+  "meshes": 164,
+  "tris": 15726,
+  "materials": 15,
+  "size": [
+   50,
+   26,
+   70
+  ],
+  "groundOffset": -6,
+  "centreOffset": [
+   0,
+   -10
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.1954,
+    "edgeDensity": 0.032
+   },
+   "right": {
+    "coverage": 0.0894,
+    "edgeDensity": 0.2139
+   },
+   "back": {
+    "coverage": 0.1099,
+    "edgeDensity": 0.1459
+   },
+   "left": {
+    "coverage": 0.0894,
+    "edgeDensity": 0.2154
+   }
+  },
+  "error": null,
+  "name": "station_end_window",
+  "problems": [
+   "base sits at y=-6, should be 0",
+   "not centred on x/z (offset 0, -10)",
+   "front face is nearly featureless next to the others, it was probably never modelled"
+  ]
+ }
+]

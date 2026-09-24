@@ -238,6 +238,10 @@ let stationTerminal;
 let stationWindow;
 let stationEntryPassage;
 let earthCrisis;
+let stationAlarmGroups = [];
+let stationPassiveGroups = [];
+let stationAlarmMaterials = [];
+let stationPassiveMaterials = [];
 let dockingPort;
 let spaceBackdrop;
 let spaceGate;
@@ -363,9 +367,9 @@ async function loadAssets() {
 
   setLoad(72, 'installing corridor bureaucracy…');
   const [corridor, laser, security, masterSwitch, earth, ladder, endWindow, crisis] = await Promise.all([
-    ASSET(assetUrl('station_corridor')),
+    ASSET(assetUrl('station_corridor'), { keepHierarchy: true }),
     ASSET(assetUrl('laser_gate'), { keepHierarchy: true }),
-    ASSET(assetUrl('security_bot')),
+    ASSET(assetUrl('security_bot'), { keepHierarchy: true }),
     ASSET(assetUrl('master_switch'), { keepHierarchy: true }),
     ASSET(assetUrl('earth')),
     ASSET(assetUrl('ladder')),
@@ -408,7 +412,8 @@ async function loadAssets() {
   cityRoot.add(cityRelay);
   buildRobotArmy([boxy, spider, roller]);
   buildSpace(backdrop, port, netGateAsset, satellite, debris, wreckage, interceptor, laserBolt);
-  buildStation(corridor, masterSwitch, earth, endWindow, crisis);
+  const optimizedCorridor = bakePreserving(corridor, new Set(['stationAlarmSystem', 'stationPassiveSystem']));
+  buildStation(optimizedCorridor, masterSwitch, earth, endWindow, crisis);
   stationBreaker = relayAsset.clone(true);
   stationBreaker.position.set(LANES[2], 0.2, OVERRIDE_EVENTS.station.at);
   stationRoot.add(stationBreaker);
@@ -618,7 +623,7 @@ function buildStation(corridor, masterSwitch, earth, endWindow, crisis) {
   stationEntryPassage.visible = false;
   stationTerminal.add(stationWindow);
   stationEarth = earth;
-  stationEarth.scale.setScalar(1.1);
+  stationEarth.scale.setScalar(1.48);
   stationEarth.rotation.y = Math.PI;
   stationWindow.userData.earthMount.add(stationEarth);
   earthCrisis = crisis;
@@ -626,6 +631,46 @@ function buildStation(corridor, masterSwitch, earth, endWindow, crisis) {
   earthCrisis.traverse((part) => {
     if (part.isMesh) { part.castShadow = false; part.receiveShadow = false; }
   });
+  collectStationVisualState();
+  setStationThreatLevel(1);
+}
+
+function collectStationVisualState() {
+  stationAlarmGroups = [];
+  stationPassiveGroups = [];
+  const alarmMaterials = new Set();
+  const passiveMaterials = new Set();
+  stationRoot.traverse((part) => {
+    if (part.name === 'stationAlarmSystem') stationAlarmGroups.push(part);
+    if (part.name === 'stationPassiveSystem') stationPassiveGroups.push(part);
+    if (!part.isMesh || !part.material) return;
+    const materials = Array.isArray(part.material) ? part.material : [part.material];
+    for (const material of materials) {
+      if (material.name === 'stationAlarmMaterial') alarmMaterials.add(material);
+      if (material.name === 'stationPassiveMaterial') passiveMaterials.add(material);
+    }
+  });
+  stationAlarmMaterials = [...alarmMaterials];
+  stationPassiveMaterials = [...passiveMaterials];
+  for (const material of [...stationAlarmMaterials, ...stationPassiveMaterials]) {
+    material.userData.stationBaseEmissive = material.emissiveIntensity || 0;
+    material.userData.stationBaseOpacity = material.opacity;
+  }
+}
+
+function setStationThreatLevel(level) {
+  const threat = THREE.MathUtils.clamp(level, 0, 1);
+  const safe = 1 - threat;
+  for (const group of stationAlarmGroups) group.visible = threat > 0.015;
+  for (const group of stationPassiveGroups) group.visible = safe > 0.015;
+  for (const material of stationAlarmMaterials) {
+    material.emissiveIntensity = material.userData.stationBaseEmissive * (0.08 + threat * 0.92);
+    if (material.transparent) material.opacity = material.userData.stationBaseOpacity * threat;
+  }
+  for (const material of stationPassiveMaterials) {
+    material.emissiveIntensity = material.userData.stationBaseEmissive * safe;
+    if (material.transparent) material.opacity = material.userData.stationBaseOpacity * safe;
+  }
 }
 
 function buildClimb(ladder) {
@@ -892,7 +937,7 @@ function startAct(name, fromIntro = false, fromTransition = false) {
     }, 2600);
   }
   audio.setAct(name);
-  rig.setTime(name === 'city' ? { hour: 17.1, azimuth: 238 } : name === 'space' ? { hour: 10.5, azimuth: 210 } : { hour: 12.2, azimuth: 160 });
+  rig.setTime(name === 'city' ? { hour: 17.1, azimuth: 238 } : name === 'space' ? { hour: 10.5, azimuth: 210 } : { hour: 17.2, azimuth: 166 });
   if (name === 'city') {
     // Place the obstacles along the road now, so each one is approached in space.
     const spacing = ACTS.city.speed * ACTS.city.spawnEvery;
@@ -943,6 +988,9 @@ function resetWorld(name, preserveCamera = false) {
   stationTerminal.position.set(0, 0, 330);
   stationEntryPassage.visible = false;
   stationSwitch.visible = true;
+  const resetCap = stationSwitch.getObjectByName('buttonCap');
+  if (resetCap) resetCap.position.y = resetCap.userData.restY ?? 2;
+  setStationThreatLevel(1);
   stationEarth.position.set(0, 0, 0);
   dockingPort.position.set(0, 0, ACT_DURATION * 6 + 10);
   dockingPort.visible = name === 'space';
@@ -1893,7 +1941,10 @@ function updateFinale(dt) {
   const storyTime = state.finaleElapsed / (TEST_MODE ? 0.35 : 1);
   const cap = stationSwitch.getObjectByName('buttonCap');
   const press = THREE.MathUtils.smoothstep(storyTime, 0, 0.42);
-  if (cap) cap.position.y = 1.48 - press * 0.28;
+  if (cap) {
+    const restY = cap.userData.restY ?? 2;
+    cap.position.y = restY - press * 0.34;
+  }
   player.position.z = stationTerminal.position.z - 1.6 + press * 0.8;
   if (playerJoints) {
     playerJoints.rightArm.rotation.x = -1.25 - press * 1.05;
@@ -1905,6 +1956,7 @@ function updateFinale(dt) {
       new THREE.Vector3(-0.9, 5.1, stationTerminal.position.z + 3),
       new THREE.Vector3(0, 5.55, stationTerminal.position.z + 17.6));
   }
+  setStationThreatLevel(1 - THREE.MathUtils.smoothstep(storyTime, 0.34, 2.4));
   updateEarthCrisis(1 - THREE.MathUtils.smoothstep(storyTime, 0.35, 3.1));
   for (const [time, line] of state.finaleOutcome.lines) {
     if (storyTime >= time) subtitle.textContent = line;

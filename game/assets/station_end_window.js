@@ -147,6 +147,89 @@ export default function (THREE) {
     display.rotation.z = side * -0.08;
   }
 
+  // The observatory is also the station's emergency nerve centre. These two
+  // named systems allow the final switch to extinguish CODE RED and restore a
+  // quieter life-support language without replacing the architecture.
+  const alarmRed = new THREE.MeshStandardMaterial({ color: 0xff4057, roughness: 0.18, metalness: 0.18, emissive: 0xd7263d, emissiveIntensity: 3 });
+  alarmRed.name = 'stationAlarmMaterial';
+  const safeTeal = new THREE.MeshStandardMaterial({ color: 0x8cf4e7, roughness: 0.2, metalness: 0.18, emissive: 0x45c4b0, emissiveIntensity: 2.2 });
+  safeTeal.name = 'stationPassiveMaterial';
+  const brass = new THREE.MeshStandardMaterial({ color: 0xc68b44, roughness: 0.43, metalness: 0.68 }); brass.name = 'metal';
+  const cable = new THREE.MeshStandardMaterial({ color: 0x0a1a24, roughness: 0.54, metalness: 0.48 }); cable.name = 'metal';
+  const alarmSystem = new THREE.Group(); alarmSystem.name = 'stationAlarmSystem'; hub.add(alarmSystem);
+  const passiveSystem = new THREE.Group(); passiveSystem.name = 'stationPassiveSystem'; passiveSystem.visible = false; hub.add(passiveSystem);
+  const addTo = (parent, name, geometry, material, x = 0, y = 0, z = 0) => {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = name;
+    mesh.position.set(x, y, z);
+    parent.add(mesh);
+    return mesh;
+  };
+
+  // Concentric overhead machinery and cable arteries frame the switch as a
+  // planet-scale control rather than a prop sitting in an empty room.
+  for (const radiusValue of [4.8, 7.4]) {
+    const gantry = add('hubOverheadGantry', new THREE.TorusGeometry(radiusValue, 0.18, 8, 48), dark, 0, 8.35, 0);
+    gantry.rotation.x = Math.PI / 2;
+  }
+  for (let i = 0; i < 8; i++) {
+    const angle = i * Math.PI / 4;
+    const x = Math.cos(angle) * 7.35;
+    const z = Math.sin(angle) * 7.35;
+    add('gantryDrop', new THREE.CylinderGeometry(0.1, 0.13, 1.2, 8), ivory, x, 7.75, z);
+    // Keep the Earth sightline clear; side-mounted cabinets still sell the
+    // gantry's density without drifting through the finale camera.
+    if (Math.abs(x) > 1.4) {
+      add('gantryCabinet', new THREE.BoxGeometry(0.62, 0.72, 0.46), dark, x, 6.85, z);
+      addTo(alarmSystem, 'stationAlarmBeacon', new THREE.SphereGeometry(0.13, 10, 7), alarmRed, x, 6.44, z);
+      addTo(passiveSystem, 'stationPassiveBeacon', new THREE.SphereGeometry(0.1, 10, 7), safeTeal, x, 6.44, z);
+    }
+  }
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 3; i++) {
+      const points = [
+        new THREE.Vector3(side * (5.7 + i * 0.22), 5.15, -5.8),
+        new THREE.Vector3(side * (6.4 + i * 0.16), 4.35, -1.4),
+        new THREE.Vector3(side * (6.1 + i * 0.18), 3.2, 3.9),
+      ];
+      add('hubCableArtery', new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 28, 0.065 - i * 0.008, 7, false), i === 1 ? brass : cable);
+    }
+  }
+
+  // Layered blast-shutter petals sit around the Earth aperture. They remain
+  // open enough for the ending composition while suggesting huge hidden mass.
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 3; i++) {
+      const shutter = add('viewportBlastShutter', new THREE.BoxGeometry(0.72, 5.6 - i * 0.7, 0.3), i % 2 ? dark : ivory,
+        side * (5.75 + i * 0.52), 5.45, 7.5 + i * 0.08);
+      shutter.rotation.z = side * (0.08 + i * 0.04);
+      for (const y of [3.55, 5.45, 7.35]) add('shutterRivet', new THREE.CylinderGeometry(0.07, 0.07, 0.08, 8), brass,
+        side * (5.75 + i * 0.52), y, 7.29 + i * 0.08).rotation.x = Math.PI / 2;
+    }
+  }
+
+  // Floor-level relay banks add authored detail where the finale camera pans.
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 4; i++) {
+      const angle = side * (0.7 + i * 0.18);
+      const x = Math.sin(angle) * 8.05;
+      const z = Math.cos(angle) * 8.05;
+      const cabinet = add('relayBank', new THREE.BoxGeometry(0.72, 1.45, 0.58), i % 2 ? dark : ivory, x, 0.84, z);
+      cabinet.rotation.y = angle;
+      addTo(alarmSystem, 'stationAlarmRelay', new THREE.BoxGeometry(0.38, 0.06, 0.08), alarmRed, x, 1.12, z - 0.31).rotation.y = angle;
+      addTo(passiveSystem, 'stationPassiveRelay', new THREE.BoxGeometry(0.38, 0.06, 0.08), safeTeal, x, 1.12, z - 0.315).rotation.y = angle;
+    }
+  }
+
+  const scanMaterial = new THREE.MeshBasicMaterial({ color: 0xd7263d, transparent: true, opacity: 0.11, depthWrite: false, side: THREE.DoubleSide, fog: false });
+  scanMaterial.name = 'stationAlarmMaterial';
+  for (const angle of [-0.75, 0, 0.75]) {
+    const scan = addTo(alarmSystem, 'stationAlarmScanFan', new THREE.ConeGeometry(2.5, 9.5, 20, 1, true, -0.8, 1.6), scanMaterial,
+      Math.sin(angle) * 6.7, 4.7, Math.cos(angle) * -5.2);
+    scan.rotation.x = Math.PI / 2;
+    scan.rotation.z = angle;
+  }
+
   const earthMount = new THREE.Group();
   earthMount.name = 'earthMount';
   earthMount.position.set(0, 2.47, 17.6);

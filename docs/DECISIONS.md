@@ -89,6 +89,16 @@ Record decisions while they are fresh. This is both a guard against scope drift 
 - Evidence: the eight Scene 2 modules pass the recipe verifier 8/8; 13 unit tests and the recipe ship check pass; a real browser touch drag moved the craft diagonally; the normal-speed interceptor, laser hit, both orbital-net outcomes, docking transition, and Station entry were exercised. The local phone jam harness passes at 5.5 seconds ready, 1.8 MB, 773 peak draws, 290,836 peak triangles, zero errors and 404s.
 - Deployment remains unapproved and was not changed.
 
+## 2026-09-24 — Scene 3 code-red station and passive-state pass
+
+- Kept the Station act's established lane, obstacle, safety-breaker, approach, and physical-switch mechanics. This pass is visual and emotional rather than a control redesign.
+- Rebuilt the pressure corridor, laser barricade, security drone, master switch, Earth, and observatory detailing from two approved Atlas references. The active station uses structural ribs, exposed service trenches, cable arteries, junction hardware, scan fans, alarm beacons, live red emitters, and a wounded-Earth focal point.
+- Authored paired named alarm and passive systems into the same recipe assets. Pressing the switch now fades the red AI infrastructure and crisis flares while cyan life-support lines, safe relays, switch tracers, and passive status optics take over; the architecture and camera composition remain continuous.
+- Runtime decision: bake each corridor module's dense static shell while preserving the two state groups. This retains authored detail across nine repeating modules without consuming the phone draw-call budget.
+- Evidence: all eight station modules parse and render in the multi-view verifier, with six completely clean and two documented contextual mounting/backdrop warnings; 13 unit tests and the recipe ship check pass. Browser checks exercised the normal station corridor, switch chamber, physical press, passive-state finale, and zero-error console. The local phone jam harness passes at 5.2 seconds ready, 1.8 MB, 771 peak draws, 290,068 peak triangles, zero errors and 404s.
+- Atlas Scene 3 cost was 33 image credits, bringing recorded visual-development generation to 114 credits. Atlas outputs remain references only; no generated raster or mesh is loaded by the game.
+- Deployment remains unapproved and was not changed.
+
 ## Decision template
 
 ### YYYY-MM-DD — Decision

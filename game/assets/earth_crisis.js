@@ -1,4 +1,4 @@
-// Surface flares for the existing Earth asset (radius 2.8, centre y=2.8).
+// Surface flares for the existing Earth asset (radius 2.8, centre y=3).
 // Load with keepHierarchy so each named flare remains independently animatable.
 export default function (THREE) {
   const crisis = new THREE.Group();
@@ -22,7 +22,7 @@ export default function (THREE) {
       const flare = new THREE.Group();
       const index = i * 2 + (side + 1) / 2;
       flare.name = `earthFlare${index}`;
-      flare.position.set(normal.x * radius, 2.8 + normal.y * radius, normal.z * radius);
+      flare.position.set(normal.x * radius, 3 + normal.y * radius, normal.z * radius);
       flare.quaternion.setFromUnitVectors(axis, normal);
       flare.userData.phase = i * 1.31 + (side === 1 ? 0.7 : 0);
       flare.userData.baseSize = 0.82 + (i % 3) * 0.16;
@@ -46,6 +46,6 @@ export default function (THREE) {
 
   crisis.userData.flares = flares;
   crisis.userData.radius = radius;
-  crisis.userData.centreY = 2.8;
+  crisis.userData.centreY = 3;
   return crisis;
 }
