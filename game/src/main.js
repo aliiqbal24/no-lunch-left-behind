@@ -19,6 +19,7 @@ const startButton = $('#startb');
 const beginButton = $('#beginRun');
 const hud = $('#hud');
 const stick = $('#stick');
+const flightJoystick = $('#flightJoystick');
 const tutorial = $('#tutorial');
 const tutorialText = $('#tutorialText');
 const humanityLabel = $('#humanityLabel');
@@ -34,6 +35,7 @@ const overrideTitle = $('#overrideTitle');
 const overrideInstruction = $('#overrideInstruction');
 const lockWarning = $('#lockWarning');
 const lockTitle = $('#lockTitle');
+const lockInstruction = $('#lockInstruction');
 const lockLanes = [...document.querySelectorAll('.lock-lane')];
 const damageFlash = $('#damageFlash');
 const impactCopy = $('#impactCopy');
@@ -86,6 +88,8 @@ const BOARD_DURATION = TEST_MODE ? 0.65 : 1.35;
 const PASSAGE_DURATION = TEST_MODE ? 0.65 : 1.35;
 const LIFTOFF_DURATION = TEST_MODE ? 1.8 : 3;
 const SWITCH_APPROACH_DURATION = TEST_MODE ? 0.55 : 1.15;
+const SPACE_BOUNDS = Object.freeze({ x: 5.7, minY: 0.35, maxY: 7.6 });
+const INTERCEPTOR_SHOTS = Object.freeze([5.8, 10.2, 14.4]);
 const ROCKET_SCALE = 4;
 const LAUNCH_COMPLEX_SCALE = 4;
 const ROCKET_BASE_Y = 0.55;
@@ -138,14 +142,13 @@ const CITY_PATTERNS = [
 ];
 
 const SPACE_PATTERNS = [
-  [{ lane: 0, type: 'debris' }],
-  [{ lane: -1, type: 'satelliteLow' }],
-  [{ lane: 1, type: 'satelliteHigh' }],
-  [{ lane: -1, type: 'debris' }, { lane: 1, type: 'debris' }],
-  [{ lane: 0, type: 'satelliteHigh' }, { lane: 1, type: 'debris' }],
-  [{ lane: -1, type: 'satelliteLow' }, { lane: 0, type: 'debris' }],
-  [{ lane: 1, type: 'satelliteLow' }],
-  [{ lane: -1, type: 'satelliteHigh' }, { lane: 1, type: 'satelliteHigh' }],
+  [{ x: -3.8, y: 1.4, type: 'drone' }],
+  [{ x: 3.6, y: 5.8, type: 'wreckage' }],
+  [{ x: -3.2, y: 5.5, type: 'drone' }, { x: 3.4, y: 1.2, type: 'debris' }],
+  [{ x: 0.2, y: 3.6, type: 'wreckage' }],
+  [{ x: -4.2, y: 2.2, type: 'debris' }, { x: 3.8, y: 5.9, type: 'drone' }],
+  [{ x: -3.7, y: 6.2, type: 'wreckage' }, { x: 3.5, y: 1.0, type: 'drone' }],
+  [{ x: 0, y: 1.1, type: 'debris' }, { x: 0.6, y: 6.3, type: 'drone' }],
 ];
 
 const STATION_PATTERNS = [
@@ -206,7 +209,10 @@ const state = {
   paused: false,
   overrides: { city: 'pending', station: 'pending' }, overtime: 0,
   lockOn: { phase: 'idle', lane: 0, timer: 0 },
-  netGate: { phase: 'idle', timer: 0 }, finaleOutcome: null,
+  netGate: { phase: 'idle', timer: 0 },
+  flightInput: { x: 0, y: 0, active: false }, flightVelocity: { x: 0, y: 0 },
+  interceptor: { shotIndex: 0, warning: false }, dockFromY: 0.4,
+  finaleOutcome: null,
 };
 
 let chaseVisuals = null;
@@ -236,6 +242,9 @@ let dockingPort;
 let spaceBackdrop;
 let spaceGate;
 let spaceDrift = [];
+let spaceInterceptor;
+let interceptorLaserPrototype;
+let spaceProjectiles = [];
 let climbLadder;
 let climbAnchorZ = 0;
 let lastTime = performance.now();
@@ -340,12 +349,16 @@ async function loadAssets() {
   ]);
 
   setLoad(54, 'auditing low-orbit litter…');
-  const [satellite, debris, backdrop, port, netGateAsset] = await Promise.all([
+  const [satellite, debris, backdrop, port, netGateAsset, drone, wreckage, interceptor, laserBolt] = await Promise.all([
     ASSET(assetUrl('satellite')),
     ASSET(assetUrl('space_debris')),
     ASSET(assetUrl('space_backdrop'), { keepHierarchy: true }),
     ASSET(assetUrl('docking_port'), { keepHierarchy: true }),
     ASSET(assetUrl('orbital_net_gate'), { keepHierarchy: true }),
+    ASSET(assetUrl('space_drone'), { keepHierarchy: true }),
+    ASSET(assetUrl('orbital_wreckage'), { keepHierarchy: true }),
+    ASSET(assetUrl('ai_interceptor'), { keepHierarchy: true }),
+    ASSET(assetUrl('ai_laser_bolt'), { keepHierarchy: true }),
   ]);
 
   setLoad(72, 'installing corridor bureaucracy…');
@@ -379,9 +392,9 @@ async function loadAssets() {
     chair: { object: chair, kind: 'high', clearance: 0.84, scale: 0.95, y: 1.06 },
   };
   prototypes.space = {
-    debris: { object: debris, kind: 'low', clearance: 0.74, scale: 0.95, y: 0.45 },
-    satelliteLow: { object: satellite, kind: 'low', clearance: 0.88, scale: 0.72, y: 0.2 },
-    satelliteHigh: { object: satellite, kind: 'high', clearance: 0.9, scale: 0.72, y: 1.2 },
+    debris: { object: debris, scale: 1.05, radius: 0.82 },
+    drone: { object: drone, scale: 0.82, radius: 1.0 },
+    wreckage: { object: wreckage, scale: 0.72, radius: 1.28 },
   };
   prototypes.station = {
     security: { object: security, kind: 'low', clearance: 0.82, scale: 0.95, y: 0.2 },
@@ -394,7 +407,7 @@ async function loadAssets() {
   cityRelay.position.set(LANES[0], 0.2, OVERRIDE_EVENTS.city.at);
   cityRoot.add(cityRelay);
   buildRobotArmy([boxy, spider, roller]);
-  buildSpace(backdrop, port, netGateAsset, satellite, debris);
+  buildSpace(backdrop, port, netGateAsset, satellite, debris, wreckage, interceptor, laserBolt);
   buildStation(corridor, masterSwitch, earth, endWindow, crisis);
   stationBreaker = relayAsset.clone(true);
   stationBreaker.position.set(LANES[2], 0.2, OVERRIDE_EVENTS.station.at);
@@ -547,7 +560,7 @@ function buildRobotArmy(robotAssets) {
   }
 }
 
-function buildSpace(backdrop, port, netGateAsset, satellite, debris) {
+function buildSpace(backdrop, port, netGateAsset, satellite, debris, wreckage, interceptor, laserBolt) {
   spaceBackdrop = backdrop;
   spaceBackdrop.position.y = -140;
   spaceRoot.add(spaceBackdrop);
@@ -556,7 +569,7 @@ function buildSpace(backdrop, port, netGateAsset, satellite, debris) {
   spaceRoot.add(spaceGate);
   for (const [asset, x, y, z, scale] of [
     [satellite, 12, 7, 35, 1.45], [debris, -11, 2, 61, 1.8],
-    [satellite, -13, -4, 88, 1.15], [debris, 10, 9, 109, 1.55],
+    [satellite, -13, -4, 88, 1.15], [wreckage, 10, 9, 109, 1.0],
   ]) {
     const object = asset.clone(true);
     object.scale.setScalar(scale);
@@ -565,8 +578,14 @@ function buildSpace(backdrop, port, netGateAsset, satellite, debris) {
     spaceRoot.add(object);
     spaceDrift.push(object);
   }
+  spaceInterceptor = interceptor;
+  spaceInterceptor.scale.setScalar(1.02);
+  spaceInterceptor.position.set(0, 4.8, 23);
+  spaceInterceptor.visible = false;
+  spaceRoot.add(spaceInterceptor);
+  interceptorLaserPrototype = laserBolt;
   dockingPort = port;
-  dockingPort.position.set(0, 0, ACTS.space.speed * ACT_DURATION + 10);
+  dockingPort.position.set(0, 0, ACT_DURATION * 6 + 10);
   dockingPort.visible = false;
   spaceRoot.add(dockingPort);
 }
@@ -691,11 +710,17 @@ function updateCityTutorial() {
   }
 }
 
-function onGesture(kind) {
+function onGesture(kind, source = 'touch') {
   if (state.mode !== 'playing' || state.paused || state.introDelay > 0) return;
   state.inputCount += 1;
   if (kind === 'tap') {
     tryOverride();
+    return;
+  }
+  // Space Flight is continuous and two-dimensional. Keyboard presses and touch
+  // drags are consumed by onFlightAnalog instead of being quantised into lanes.
+  if (state.act === 'space') {
+    if (source === 'keyboard') audio.gesture(kind);
     return;
   }
   audio.gesture(kind);
@@ -704,10 +729,10 @@ function onGesture(kind) {
   if (kind === 'left') state.targetLane = THREE.MathUtils.clamp(state.targetLane + screenLeftStep, -1, 1);
   if (kind === 'right') state.targetLane = THREE.MathUtils.clamp(state.targetLane - screenLeftStep, -1, 1);
   if (kind === 'up' && state.jumpY < 0.04) {
-    state.jumpVelocity = state.act === 'space' ? 9.8 : 8.6;
+    state.jumpVelocity = 8.6;
     state.slide = 0;
   }
-  if (kind === 'down' && state.jumpY < 0.12) state.slide = state.act === 'space' ? 0.78 : 0.65;
+  if (kind === 'down' && state.jumpY < 0.12) state.slide = 0.65;
 
   if (state.act === 'city' && tutorialStage === 0 && (kind === 'left' || kind === 'right')) {
     showHazardHint();
@@ -717,7 +742,25 @@ function onGesture(kind) {
   }
 }
 
-new SwipeInput(stick, onGesture);
+function onFlightAnalog(input) {
+  if (state.act !== 'space' || state.mode !== 'playing' || state.paused || state.introDelay > 0) {
+    state.flightInput = { x: 0, y: 0, active: false };
+    flightJoystick.classList.remove('active');
+    return;
+  }
+  state.flightInput = { x: input.x, y: input.y, active: input.active };
+  if (input.active && input.source === 'touch') {
+    flightJoystick.style.left = `${input.originX}px`;
+    flightJoystick.style.top = `${input.originY}px`;
+    flightJoystick.style.setProperty('--joy-dx', `${input.x * 30}px`);
+    flightJoystick.style.setProperty('--joy-dy', `${-input.y * 30}px`);
+    flightJoystick.classList.add('active');
+  } else {
+    flightJoystick.classList.remove('active');
+  }
+}
+
+new SwipeInput(stick, onGesture, onFlightAnalog);
 
 function syncDevPause() {
   const available = DEV_MODE && ['playing', 'boarding', 'climb', 'launch', 'liftoff', 'launchExit', 'docking', 'stationEntry', 'switchApproach', 'switch', 'finale'].includes(state.mode) && state.introDelay <= 0;
@@ -755,9 +798,14 @@ function resetRun() {
   state.overtime = 0;
   state.lockOn = { phase: 'idle', lane: 0, timer: 0 };
   state.netGate = { phase: 'idle', timer: 0 };
+  state.flightInput = { x: 0, y: 0, active: false };
+  state.flightVelocity = { x: 0, y: 0 };
+  state.interceptor = { shotIndex: 0, warning: false };
+  state.dockFromY = 0.4;
   state.finaleOutcome = null;
   overridePrompt.classList.remove('visible', 'in-range');
-  lockWarning.classList.remove('visible', 'firing', 'cleared', 'net-gate');
+  lockWarning.classList.remove('visible', 'firing', 'cleared', 'net-gate', 'free-flight');
+  flightJoystick.classList.remove('active');
   updateHumanity();
 }
 
@@ -806,7 +854,10 @@ function startAct(name, fromIntro = false, fromTransition = false) {
   state.hitCooldown = 0;
   state.lockOn = { phase: 'idle', lane: 0, timer: 0 };
   state.netGate = { phase: 'idle', timer: 0 };
-  lockWarning.classList.remove('visible', 'firing', 'cleared', 'net-gate');
+  state.flightInput = { x: 0, y: 0, active: false };
+  state.flightVelocity = { x: 0, y: 0 };
+  state.interceptor = { shotIndex: 0, warning: false };
+  lockWarning.classList.remove('visible', 'firing', 'cleared', 'net-gate', 'free-flight');
   lockLanes.forEach((lane) => lane.classList.remove('targeted', 'safe'));
   overridePrompt.classList.remove('visible', 'in-range');
   state.lookBack = name === 'city' ? 2 : 0;
@@ -828,10 +879,11 @@ function startAct(name, fromIntro = false, fromTransition = false) {
   hud.classList.toggle('on-dark', name === 'space');
   hud.classList.toggle('on-station', name === 'station');
   stick.classList.toggle('visible', !fromIntro && !fromTransition);
+  stick.classList.toggle('flight-mode', name === 'space');
   tutorial.classList.toggle('visible', name === 'city' && !fromIntro && !fromTransition);
   tutorialText.textContent = name === 'city'
     ? (KEYBOARD_HINTS ? 'LEFT / RIGHT OR A / D TO CHANGE LANES' : 'SWIPE TO CHANGE LANES')
-    : name === 'space' ? 'GOLD LOW: JUMP · RED HIGH: SLIDE' :
+    : name === 'space' ? (KEYBOARD_HINTS ? 'WASD / ARROWS · FLY FREELY · EVADE RED FIRE' : 'DRAG ANY DIRECTION · RELEASE TO COAST') :
       (KEYBOARD_HINTS ? 'SAME KEYS · REACH THE SWITCH' : 'SAME SWIPES · REACH THE SWITCH');
   if (name === 'space' && !fromTransition) {
     tutorial.classList.add('visible');
@@ -854,6 +906,7 @@ function revealAct(name) {
   state.mode = 'playing';
   hud.classList.add('visible');
   stick.classList.add('visible');
+  stick.classList.toggle('flight-mode', name === 'space');
   if (name === 'space') {
     tutorial.classList.add('visible');
     window.setTimeout(() => {
@@ -867,6 +920,7 @@ function revealAct(name) {
 function clearObstacles() {
   for (const item of obstacles) obstacleRoot.remove(item.object);
   obstacles = [];
+  clearSpaceProjectiles();
 }
 
 function resetWorld(name, preserveCamera = false) {
@@ -890,7 +944,7 @@ function resetWorld(name, preserveCamera = false) {
   stationEntryPassage.visible = false;
   stationSwitch.visible = true;
   stationEarth.position.set(0, 0, 0);
-  dockingPort.position.set(0, 0, ACTS.space.speed * ACT_DURATION + 10);
+  dockingPort.position.set(0, 0, ACT_DURATION * 6 + 10);
   dockingPort.visible = name === 'space';
   robotRoot.children.forEach((bot) => { bot.position.z = bot.userData.homeZ; });
   if (!preserveCamera) {
@@ -906,11 +960,12 @@ function resetWorld(name, preserveCamera = false) {
     playerJoints.leftArm.rotation.z = 0;
     playerJoints.rightArm.rotation.z = 0;
   }
-  ship.position.set(0, 0.4, 0);
+  ship.position.set(0, name === 'space' ? 3.1 : 0.4, 0);
   ship.rotation.set(0, 0, 0);
   ship.scale.setScalar(0.88);
   if (spaceBackdrop) spaceBackdrop.rotation.set(0, 0, 0);
   if (spaceGate) spaceGate.visible = false;
+  if (spaceInterceptor) spaceInterceptor.visible = false;
   for (const part of spaceDrift) part.position.z = part.userData.homeZ;
   if (name === 'city' && !preserveCamera) camera.position.set(0, 2.9, 6.8);
 }
@@ -969,17 +1024,8 @@ function spawnPattern(z = state.act === 'space' ? 82 : 72) {
     const proto = prototypes[state.act][def.type];
     const object = proto.object.clone(true);
     object.scale.setScalar(proto.scale);
-    object.position.set(LANES[def.lane + 1], proto.y, z);
-    if (def.type === 'satelliteLow' || def.type === 'satelliteHigh') {
-      const tint = def.type === 'satelliteLow' ? 0xf6c453 : 0xf56b54;
-      object.traverse((part) => {
-        if (!part.isMesh || !part.material?.emissive) return;
-        part.material = part.material.clone();
-        part.material.color.setHex(tint);
-        part.material.emissive.setHex(tint);
-        part.material.emissiveIntensity = 0.38;
-      });
-    }
+    if (state.act === 'space') object.position.set(def.x, def.y, z);
+    else object.position.set(LANES[def.lane + 1], proto.y, z);
     if (def.type === 'chair') object.rotation.y = Math.PI;
     if (proto.beamLift) {
       object.traverse((node) => {
@@ -989,7 +1035,8 @@ function spawnPattern(z = state.act === 'space' ? 82 : 72) {
     obstacleRoot.add(object);
     obstacles.push({
       object, lane: def.lane, type: def.type, kind: proto.kind,
-      clearance: proto.clearance, hit: false, passed: false, phase: patternIndex + def.lane,
+      clearance: proto.clearance, radius: proto.radius, homeX: def.x, homeY: def.y,
+      hit: false, passed: false, phase: patternIndex + (def.lane ?? def.x ?? 0),
     });
   }
 }
@@ -1004,10 +1051,11 @@ function hitObstacle(item) {
   state.hits += 1;
   const actor = activeActor();
   actor.position.z = -0.65;
-  actor.rotation.z = (item.lane <= state.lane ? 1 : -1) * 0.18;
+  const impactSide = item.object ? item.object.position.x - actor.position.x : (item.lane ?? 0) - state.lane;
+  actor.rotation.z = (impactSide <= 0 ? 1 : -1) * 0.18;
   if (item.object) {
     item.object.rotation.x += 0.42;
-    item.object.rotation.z += (item.lane <= state.lane ? -1 : 1) * 0.6;
+    item.object.rotation.z += (impactSide <= 0 ? -1 : 1) * 0.6;
   }
   audio.hit();
   damageFlash.classList.remove('hit');
@@ -1021,7 +1069,8 @@ function hitObstacle(item) {
   };
   impactCopy.textContent = state.hits >= 32 ? 'ONLY 256 VOICES REMAIN' : item.type === 'lockOn'
     ? 'AI STRIKE · −240,000,000' : item.type === 'netGate'
-      ? 'AI NET IMPACT · −240,000,000' : copy[state.act];
+      ? 'AI NET IMPACT · −240,000,000' : item.type === 'interceptorLaser'
+        ? 'INTERCEPTOR HIT · −240,000,000' : copy[state.act];
   impactCopy.classList.add('show');
   humanityFill.classList.add('impact');
   setTimeout(() => humanityFill.classList.remove('impact'), 260);
@@ -1069,35 +1118,46 @@ function updateHumanity() {
 
 function updateActor(dt) {
   const actor = activeActor();
+  if (state.act === 'space') {
+    const input = state.flightInput;
+    const desiredX = input.x * 7.8;
+    const desiredY = input.y * 7.0;
+    const response = input.active ? 7.5 : 3.2;
+    state.flightVelocity.x = THREE.MathUtils.damp(state.flightVelocity.x, desiredX, response, dt);
+    state.flightVelocity.y = THREE.MathUtils.damp(state.flightVelocity.y, desiredY, response, dt);
+    ship.position.x = THREE.MathUtils.clamp(ship.position.x + state.flightVelocity.x * dt, -SPACE_BOUNDS.x, SPACE_BOUNDS.x);
+    ship.position.y = THREE.MathUtils.clamp(ship.position.y + state.flightVelocity.y * dt, SPACE_BOUNDS.minY, SPACE_BOUNDS.maxY);
+    ship.position.z = THREE.MathUtils.damp(ship.position.z, 0, 6, dt);
+    ship.rotation.z = THREE.MathUtils.damp(ship.rotation.z, -state.flightVelocity.x * 0.055, 6.5, dt);
+    ship.rotation.x = THREE.MathUtils.damp(ship.rotation.x, state.flightVelocity.y * 0.035, 6.5, dt);
+    ship.rotation.y = THREE.MathUtils.damp(ship.rotation.y, state.flightVelocity.x * 0.015, 5, dt);
+    state.targetLane = ship.position.x > 0.74 ? -1 : ship.position.x < -0.74 ? 1 : 0;
+    state.lane = state.targetLane;
+    return;
+  }
   const targetX = LANES[state.targetLane + 1];
   actor.position.x = THREE.MathUtils.damp(actor.position.x, targetX, 14, dt);
   state.lane = Math.abs(actor.position.x - targetX) < 0.05 ? state.targetLane : state.lane;
 
   if (state.jumpY > 0 || state.jumpVelocity > 0) {
-    state.jumpVelocity -= (state.act === 'space' ? 28 : 25) * dt;
+    state.jumpVelocity -= 25 * dt;
     state.jumpY = Math.max(0, state.jumpY + state.jumpVelocity * dt);
     if (state.jumpY === 0) state.jumpVelocity = 0;
   }
   state.slide = Math.max(0, state.slide - dt);
 
-  if (state.act === 'space') {
-    ship.position.y = 0.4 + state.jumpY - (state.slide > 0 ? 0.55 : 0) + Math.sin(state.elapsed * 4.2) * 0.06;
-    ship.rotation.x = THREE.MathUtils.damp(ship.rotation.x, state.slide > 0 ? -0.18 : state.jumpY > 0.1 ? 0.12 : 0, 8, dt);
-    ship.rotation.z = THREE.MathUtils.damp(ship.rotation.z, (targetX - ship.position.x) * -0.16, 9, dt);
-  } else {
-    player.position.y = 0.2 + state.jumpY - (state.slide > 0 ? 0.18 : 0);
-    player.scale.y = THREE.MathUtils.damp(player.scale.y, state.slide > 0 ? 0.68 : 1.02, 18, dt);
-    player.scale.x = THREE.MathUtils.damp(player.scale.x, state.slide > 0 ? 1.16 : 1.02, 18, dt);
-    const cycle = state.distance * 0.28;
-    if (playerJoints) {
-      playerJoints.leftLeg.rotation.x = Math.sin(cycle) * 0.68;
-      playerJoints.rightLeg.rotation.x = -Math.sin(cycle) * 0.68;
-      playerJoints.leftArm.rotation.x = -Math.sin(cycle) * 0.62;
-      playerJoints.rightArm.rotation.x = Math.sin(cycle) * 0.62;
-      playerJoints.torso.rotation.z = Math.sin(cycle * 0.5) * 0.035;
-    }
-    player.rotation.z = THREE.MathUtils.damp(player.rotation.z, (targetX - player.position.x) * -0.08, 10, dt);
+  player.position.y = 0.2 + state.jumpY - (state.slide > 0 ? 0.18 : 0);
+  player.scale.y = THREE.MathUtils.damp(player.scale.y, state.slide > 0 ? 0.68 : 1.02, 18, dt);
+  player.scale.x = THREE.MathUtils.damp(player.scale.x, state.slide > 0 ? 1.16 : 1.02, 18, dt);
+  const cycle = state.distance * 0.28;
+  if (playerJoints) {
+    playerJoints.leftLeg.rotation.x = Math.sin(cycle) * 0.68;
+    playerJoints.rightLeg.rotation.x = -Math.sin(cycle) * 0.68;
+    playerJoints.leftArm.rotation.x = -Math.sin(cycle) * 0.62;
+    playerJoints.rightArm.rotation.x = Math.sin(cycle) * 0.62;
+    playerJoints.torso.rotation.z = Math.sin(cycle * 0.5) * 0.035;
   }
+  player.rotation.z = THREE.MathUtils.damp(player.rotation.z, (targetX - player.position.x) * -0.08, 10, dt);
   actor.position.z = THREE.MathUtils.damp(actor.position.z, 0, 6, dt);
 }
 
@@ -1163,6 +1223,7 @@ function updateOverride() {
 }
 
 function updateLockOn(dt) {
+  if (state.act === 'space') return;
   if (TEST_MODE && OVERRIDE_EVENTS[state.act]) return;
   const attack = state.lockOn;
   if (attack.phase === 'idle' && state.elapsed >= LOCK_START_SECONDS[state.act]) {
@@ -1195,13 +1256,10 @@ function updateNetGate(dt, travel) {
     gate.timer = 0;
     spaceGate.position.set(0, 0, ACTS.space.speed * (SPACE_NET.impactAt - state.elapsed));
     spaceGate.visible = true;
-    lockTitle.textContent = 'AI NET · RIGHT LANE OPEN';
-    lockLanes.forEach((lane, index) => {
-      lane.classList.toggle('targeted', index !== SPACE_NET.safeLane + 1);
-      lane.classList.toggle('safe', index === SPACE_NET.safeLane + 1);
-    });
+    lockTitle.textContent = 'AI NET · CYAN BREACH DETECTED';
+    lockInstruction.textContent = 'FLY THROUGH THE CYAN APERTURE';
     lockWarning.classList.remove('firing', 'cleared');
-    lockWarning.classList.add('visible', 'net-gate');
+    lockWarning.classList.add('visible', 'net-gate', 'free-flight');
     audio.netGate();
   }
   if (gate.phase === 'idle') return;
@@ -1211,14 +1269,17 @@ function updateNetGate(dt, travel) {
     lockWarning.style.setProperty('--remaining', Math.max(0, 100 * (1 - gate.timer / (SPACE_NET.impactAt - SPACE_NET.announceAt))) + '%');
     if (spaceGate.position.z > 0) return;
     gate.phase = 'done';
-    const clearLane = Math.abs(ship.position.x - LANES[SPACE_NET.safeLane + 1]) <= 0.74;
-    if (!clearLane) {
+    const opening = spaceGate.userData.safeCenter || { x: 3.45, y: 6.55, radius: 1.72 };
+    const clearedOpening = Math.hypot(ship.position.x - opening.x, ship.position.y - opening.y) <= opening.radius * 0.78;
+    if (!clearedOpening) {
       if (state.hitCooldown <= 0) hitObstacle({ lane: state.targetLane, type: 'netGate', object: null, hit: false });
       lockTitle.textContent = 'AI NET · SHIP HIT';
+      lockInstruction.textContent = 'HULL BREACH · KEEP FLYING';
       lockWarning.classList.add('firing');
     } else {
       state.obstaclesDodged += 1;
       lockTitle.textContent = 'AI NET · CLEAR';
+      lockInstruction.textContent = 'BREACH CONFIRMED · STATION AHEAD';
       impactCopy.textContent = 'ORBITAL NET BREACHED · DOCK AHEAD';
       impactCopy.classList.remove('show');
       void impactCopy.offsetWidth;
@@ -1226,9 +1287,89 @@ function updateNetGate(dt, travel) {
       lockWarning.classList.add('cleared');
       audio.netCleared();
     }
-    window.setTimeout(() => lockWarning.classList.remove('visible', 'firing', 'cleared', 'net-gate'), 450);
+    window.setTimeout(() => lockWarning.classList.remove('visible', 'firing', 'cleared', 'net-gate', 'free-flight'), 450);
   }
   if (gate.phase === 'done' && spaceGate.position.z < -12) spaceGate.visible = false;
+}
+
+function clearSpaceProjectiles() {
+  for (const shot of spaceProjectiles) obstacleRoot.remove(shot.object);
+  spaceProjectiles = [];
+}
+
+function spawnInterceptorLaser() {
+  if (!interceptorLaserPrototype || !spaceInterceptor) return;
+  const object = interceptorLaserPrototype.clone(true);
+  object.scale.setScalar(0.72);
+  object.rotation.y = Math.PI;
+  object.position.copy(spaceInterceptor.position);
+  object.position.y -= 1.25;
+  obstacleRoot.add(object);
+  spaceProjectiles.push({
+    object, age: 0, startX: object.position.x, startY: object.position.y,
+    targetX: ship.position.x, targetY: ship.position.y, startZ: object.position.z,
+    hit: false,
+  });
+  audio.lockFire();
+}
+
+function updateSpaceCombat(dt) {
+  if (state.act !== 'space' || state.mode !== 'playing') {
+    if (spaceInterceptor) spaceInterceptor.visible = false;
+    return;
+  }
+  const combat = state.interceptor;
+  const shotAt = INTERCEPTOR_SHOTS[combat.shotIndex];
+  const active = state.elapsed >= 2.7 && state.elapsed <= 16.8;
+  spaceInterceptor.visible = active;
+  if (active) {
+    const t = state.elapsed - 2.7;
+    spaceInterceptor.position.set(Math.sin(t * 0.92) * 2.8, 4.5 + Math.sin(t * 1.31) * 0.9,
+      13.2 + Math.cos(t * 0.58) * 2.4);
+    spaceInterceptor.rotation.z = -Math.sin(t * 0.92) * 0.18;
+    spaceInterceptor.rotation.y = Math.PI + Math.sin(t * 0.48) * 0.2;
+    spaceInterceptor.getObjectByName('interceptorEye')?.scale.set(1 + Math.sin(t * 13) * 0.08, 1, 1);
+  }
+  if (shotAt !== undefined && state.elapsed >= shotAt - 0.9 && !combat.warning) {
+    combat.warning = true;
+    lockTitle.textContent = 'INTERCEPTOR LOCK';
+    lockInstruction.textContent = 'KEEP MOVING · RED FIRE INBOUND';
+    lockWarning.classList.remove('net-gate', 'cleared');
+    lockWarning.classList.add('visible', 'free-flight');
+    audio.lockOn();
+  }
+  if (shotAt !== undefined && state.elapsed >= shotAt) {
+    spawnInterceptorLaser();
+    combat.shotIndex += 1;
+    combat.warning = false;
+    lockWarning.classList.add('firing');
+    window.setTimeout(() => {
+      if (state.act === 'space' && state.netGate.phase !== 'warning') {
+        lockWarning.classList.remove('visible', 'firing', 'free-flight');
+      }
+    }, 420);
+  }
+  for (let i = spaceProjectiles.length - 1; i >= 0; i--) {
+    const shot = spaceProjectiles[i];
+    shot.age += dt;
+    shot.object.position.z -= 20 * dt;
+    const progress = THREE.MathUtils.clamp(1 - shot.object.position.z / Math.max(1, shot.startZ), 0, 1);
+    shot.object.position.x = THREE.MathUtils.lerp(shot.startX, shot.targetX, progress);
+    shot.object.position.y = THREE.MathUtils.lerp(shot.startY, shot.targetY, progress);
+    const halo = shot.object.getObjectByName('laserHalo');
+    if (halo) halo.rotation.z += dt * 6;
+    const telegraph = shot.object.getObjectByName('laserTelegraph');
+    if (telegraph?.material) telegraph.material.opacity = Math.max(0.04, 0.25 * (1 - progress));
+    if (!shot.hit && state.hitCooldown <= 0 && Math.abs(shot.object.position.z) < 1.15 &&
+        Math.hypot(shot.object.position.x - ship.position.x, shot.object.position.y - ship.position.y) < 0.92) {
+      shot.hit = true;
+      hitObstacle({ type: 'interceptorLaser', object: shot.object, lane: state.targetLane, hit: false });
+    }
+    if (shot.object.position.z < -7) {
+      obstacleRoot.remove(shot.object);
+      spaceProjectiles.splice(i, 1);
+    }
+  }
 }
 
 function updateCityLife(dt) {
@@ -1273,6 +1414,7 @@ function updatePlayingWorld(dt) {
   updateOverride();
   updateLockOn(dt);
   updateNetGate(dt, travel);
+  updateSpaceCombat(dt);
   if (state.act === 'city') updateCityLife(dt);
   updateHumanity();
 
@@ -1298,7 +1440,7 @@ function updatePlayingWorld(dt) {
       if (part.position.z < -18) part.position.z += 130;
       part.rotation.y += dt * 0.18;
     }
-    dockingPort.position.z = Math.max(14, remaining * act.speed + 10);
+    dockingPort.position.z = Math.max(14, remaining * 6 + 10);
     dockingPort.children.forEach((child, i) => { if (child.name.startsWith('dockRing')) child.rotation.z += dt * (i % 2 ? -0.55 : 0.4); });
   } else {
     const approach = TEST_MODE
@@ -1332,6 +1474,11 @@ function updatePlayingWorld(dt) {
       continue;
     }
     if (item.hit || state.hitCooldown > 0 || Math.abs(item.object.position.z) > 0.92) continue;
+    if (state.act === 'space') {
+      const distance = Math.hypot(item.object.position.x - actor.position.x, item.object.position.y - actor.position.y);
+      if (distance <= item.radius) hitObstacle(item);
+      continue;
+    }
     if (Math.abs(item.object.position.x - actor.position.x) > 0.74) continue;
     const safe = item.kind === 'low' ? state.jumpY > item.clearance : state.slide > 0.12;
     if (!safe) hitObstacle(item);
@@ -1345,9 +1492,21 @@ function animateObstacle(item, dt, index) {
     item.object.rotation.x += dt * 0.8;
     item.object.rotation.y += dt * 1.15;
   }
-  if (item.type.startsWith('satellite')) {
-    item.object.rotation.z += dt * 0.46;
-    item.object.rotation.y += dt * 0.2;
+  if (item.type === 'wreckage') {
+    item.object.rotation.z += dt * 0.42;
+    item.object.rotation.y -= dt * 0.31;
+  }
+  if (item.type === 'drone') {
+    item.object.position.x = item.homeX + Math.sin(state.elapsed * 2.2 + item.phase) * 0.42;
+    item.object.position.y = item.homeY + Math.cos(state.elapsed * 2.8 + item.phase) * 0.34;
+    item.object.rotation.z = Math.sin(state.elapsed * 2.2 + item.phase) * -0.18;
+    const rotor = item.object.getObjectByName('droneRotor');
+    if (rotor) rotor.rotation.z += dt * 2.4;
+    item.object.traverse((part) => {
+      if (part.name === 'droneWeapon' && part.material?.emissive) {
+        part.material.emissiveIntensity = 1.2 + Math.sin(state.elapsed * 12 + item.phase) * 0.55;
+      }
+    });
   }
   if (item.type === 'security') item.object.position.y += Math.sin(state.elapsed * 6 + item.phase) * dt * 0.13;
   if (item.type.startsWith('laser')) {
@@ -1389,11 +1548,15 @@ function updateCamera(dt) {
       }
       return;
     }
-    const y = state.act === 'space' ? (portrait ? 4.1 : 3.7) : (portrait ? 4.5 : 4.1);
-    const z = state.act === 'space' ? (portrait ? -10.5 : -9.4) : (portrait ? -8.8 : -10.6);
-    const desired = new THREE.Vector3(actor.position.x * 0.14, y, z);
+    const y = state.act === 'space'
+      ? (portrait ? 4.1 : 3.7) + (actor.position.y - 3.1) * 0.22
+      : (portrait ? 4.5 : 4.1);
+    const z = state.act === 'space' ? (portrait ? -11.8 : -10.3) : (portrait ? -8.8 : -10.6);
+    const desired = new THREE.Vector3(actor.position.x * (state.act === 'space' ? 0.2 : 0.14), y, z);
     camera.position.lerp(desired, 1 - Math.exp(-dt * 6));
-    pointCamera(new THREE.Vector3(actor.position.x * 0.12, state.act === 'space' ? 1.5 + state.jumpY * 0.15 : 1.1 + state.jumpY * 0.18, 9.5));
+    pointCamera(new THREE.Vector3(actor.position.x * 0.12,
+      state.act === 'space' ? 2.65 + (actor.position.y - 3.1) * 0.45 : 1.1 + state.jumpY * 0.18,
+      state.act === 'space' ? 10.5 : 9.5));
   } else if (state.mode === 'climb') {
     const y = 7.2 + state.climbProgress * 16.5;
     camera.position.lerp(new THREE.Vector3(14.5, y, climbAnchorZ - 21), 1 - Math.exp(-dt * 4));
@@ -1582,6 +1745,7 @@ function beginDocking() {
   state.mode = 'docking';
   syncDevPause();
   state.interludeElapsed = 0;
+  state.dockFromY = ship.position.y;
   state.dockSoundPlayed = false;
   dockingPort.visible = true;
   stick.classList.remove('visible');
@@ -1828,7 +1992,7 @@ function frame(now) {
       dockingPort.children.forEach((child, i) => { if (child.name.startsWith('dockRing')) child.rotation.z += rawDt * (i % 2 ? -0.8 : 0.55); });
       ship.rotation.z = Math.sin(state.interludeElapsed * 5) * (1 - p) * 0.12;
       ship.position.x = THREE.MathUtils.lerp(ship.position.x, 0, Math.min(1, rawDt * 2.2));
-      ship.position.y = THREE.MathUtils.lerp(0.4, 3.35, THREE.MathUtils.smoothstep(p, 0, 1));
+      ship.position.y = THREE.MathUtils.lerp(state.dockFromY, 3.35, THREE.MathUtils.smoothstep(p, 0, 1));
       if (p > 0.72 && !state.dockSoundPlayed) {
         state.dockSoundPlayed = true;
         dockingTitle.innerHTML = 'AIRLOCK<br>SECURE';
@@ -1877,7 +2041,7 @@ function frame(now) {
     paused: state.paused,
     act: state.act,
     distance: state.distance,
-    targetX: LANES[state.targetLane + 1],
+    targetX: state.act === 'space' ? ship.position.x : LANES[state.targetLane + 1],
     player, playerJoints, ship,
     jumpY: state.jumpY, slide: state.slide,
   });
@@ -1894,7 +2058,11 @@ function frame(now) {
     scene: state.mode === 'playing' ? state.act : state.mode,
     sceneProgress: state.mode === 'playing' ? Math.min(1, state.elapsed / ACT_DURATION) : 0,
     lane: state.targetLane,
-    verticalState: state.slide > 0 ? 'slide' : state.jumpY > 0.05 ? 'jump' : 'ground',
+    verticalState: state.act === 'space' ? 'free-flight' : state.slide > 0 ? 'slide' : state.jumpY > 0.05 ? 'jump' : 'ground',
+    flightPos: [ship?.position.x || 0, ship?.position.y || 0],
+    flightInput: { ...state.flightInput },
+    interceptorVisible: !!spaceInterceptor?.visible,
+    projectiles: spaceProjectiles.length,
     humanityPercent: state.humanity,
     survivors: state.survivors,
     hits: state.hits,

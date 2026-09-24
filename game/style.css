@@ -124,12 +124,20 @@ button { font:inherit; }
 #lockWarning.net-gate { border-color:var(--teal); box-shadow:0 0 30px rgba(69,196,176,.46); }
 #lockWarning.net-gate::after { background:var(--teal); }
 #lockWarning.net-gate.cleared { background:#17665c; }
+#lockWarning.free-flight .lock-lanes { display:none; }
+#lockWarning.free-flight strong { display:block; margin-bottom:4px; }
 #lockWarning::after { content:""; display:block; width:var(--remaining,100%); height:3px; margin-top:5px; background:var(--red); }
 @keyframes scene-in { 0%{opacity:0;transform:translate(-50%,-50%) scale(.72) rotate(-2deg)} 12%,72%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-2deg)} 100%{opacity:0;transform:translate(-50%,-62%) scale(.96) rotate(1deg)} }
 
 #stick { position:absolute; inset:0; z-index:12; display:none; touch-action:none; user-select:none; cursor:grab; }
 #stick.visible { display:block; }
 #stick:active { cursor:grabbing; }
+#flightJoystick { position:fixed; z-index:2; left:var(--joy-x,50%); top:var(--joy-y,72%); width:94px; height:94px; transform:translate(-50%,-50%) scale(.82); border:3px solid rgba(247,243,232,.82); border-radius:50%; background:radial-gradient(circle,rgba(31,78,95,.2),rgba(23,43,51,.72)); box-shadow:0 0 0 5px rgba(69,196,176,.16),0 0 28px rgba(69,196,176,.35); opacity:0; transition:opacity .14s ease,transform .14s ease; pointer-events:none; }
+#flightJoystick::before,#flightJoystick::after { content:""; position:absolute; background:rgba(69,196,176,.48); }
+#flightJoystick::before { left:12px; right:12px; top:50%; height:2px; }
+#flightJoystick::after { top:12px; bottom:12px; left:50%; width:2px; }
+#flightJoystick span { position:absolute; left:50%; top:50%; width:38px; height:38px; transform:translate(calc(-50% + var(--joy-dx,0px)),calc(-50% + var(--joy-dy,0px))); border:3px solid var(--paper); border-radius:50%; background:var(--teal); box-shadow:0 0 18px rgba(69,196,176,.8); }
+#stick.flight-mode #flightJoystick.active { opacity:1; transform:translate(-50%,-50%) scale(1); }
 #damageFlash { position:fixed; inset:0; z-index:18; pointer-events:none; opacity:0; background:radial-gradient(circle,rgba(215,38,61,0) 32%,rgba(215,38,61,.92)); }
 #damageFlash.hit { animation:damage .5s ease-out; }
 @keyframes damage { 0%{opacity:1} 100%{opacity:0} }
@@ -300,8 +308,8 @@ body.dev-paused * { animation-play-state:paused!important; }
 #climb .climb-track { width:min(340px,76vw); height:16px; background:rgba(23,43,51,.8); }
 #climbTap { pointer-events:auto; min-width:min(270px,76vw); min-height:56px; padding:10px 18px; font-size:clamp(16px,4vw,22px); }
 #climbStatus { min-height:18px; }
-#docking.screen.visible { justify-content:flex-start; align-items:flex-end; text-align:right; }
-#docking h2 { line-height:1; }
+#docking.screen.visible { justify-content:flex-end; align-items:flex-end; text-align:right; padding-right:max(24px,calc(env(safe-area-inset-right) + 18px)); padding-bottom:max(72px,calc(var(--safe-bottom) + 50px)); }
+#docking h2 { line-height:1; max-width:min(330px,calc(100vw - 56px)); }
 #docking .dock-rings { width:42px; height:42px; opacity:.8; }
 #docking .dock-rings i { border-width:3px; }
 #docking .dock-rings i:nth-child(2) { inset:8px; }

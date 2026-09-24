@@ -80,6 +80,15 @@ Record decisions while they are fresh. This is both a guard against scope drift 
 - Evidence: all sixteen Scene 1 recipe modules pass the official multi-view verifier; the throttled phone jam gate passes at 5.1 seconds ready, 1.7 MB, 771 draws, 290,068 triangles, zero errors and 404s. The complete accelerated Scene 1 route reaches Space Flight without console or request failures.
 - Deployment remains unapproved and was not changed.
 
+## 2026-09-24 — Scene 2 free-flight and Atlas production pass
+
+- Replaced Space Flight's three-lane jump/slide rules with bounded continuous two-axis movement. Keyboard input remains held-directional; a touch drag becomes an anchored analog joystick and coasts to rest on release.
+- Rebuilt the encounter around readable orbital threats: animated hostile drones, rotating wreckage, a close AI interceptor that crosses ahead and fires tracked paired lasers, and a full-field defence lattice with one cyan breach aperture.
+- Rebuilt the player ship, Earth-and-nebula backdrop, orbital net, and 23-metre docking station using the two approved Atlas Scene 2 references. Atlas images remain visual-development references only; all runtime geometry is original editable Three.js recipe code.
+- The station is visible earlier and grows through the approach so it reads as the mission destination, while the interceptor, red fire, cyan breach, and wounded Earth preserve a clear mobile hierarchy.
+- Evidence: the eight Scene 2 modules pass the recipe verifier 8/8; 13 unit tests and the recipe ship check pass; a real browser touch drag moved the craft diagonally; the normal-speed interceptor, laser hit, both orbital-net outcomes, docking transition, and Station entry were exercised. The local phone jam harness passes at 5.5 seconds ready, 1.8 MB, 773 peak draws, 290,836 peak triangles, zero errors and 404s.
+- Deployment remains unapproved and was not changed.
+
 ## Decision template
 
 ### YYYY-MM-DD — Decision

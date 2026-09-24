@@ -2,6 +2,16 @@
 
 Live build: https://no-lunch-left-behind.vercel.app
 
+## Scene 2 final visual and free-flight pass (2026-09-24)
+
+Space Flight is no longer a three-lane reskin. The craft now flies continuously in two dimensions with held keyboard input or an anchored mobile drag joystick. The rebuilt encounter adds articulated hostile drones, tumbling orbital wreckage, a large AI interceptor that crosses in front and fires paired red lasers, and a full-width orbital defence lattice with one cyan breach aperture. A wounded Earth and the monumental rotating station hold the emotional frame from pursuit through docking.
+
+- [Eight-asset verifier sheet](scene2-final-assets.png) and [machine report](scene2-final-assets.json): 8/8 clean
+- [Local phone jam verdict](scene2-local-verdict.json): PASS, 5.5 s ready, 1.8 MB, 773 peak draws, 290,836 peak triangles, no errors or 404s
+- Atlas references: [free-flight hero frame](atlas/scene2-free-flight-hero.png) and [production asset sheet](atlas/scene2-production-assets.png)
+
+Normal-speed browser routes exercised the interceptor lock and laser impact, both the cyan-aperture clear and impact branches, the full docking approach, and Station entry. A real diagonal touch drag moved the ship in both axes. This is local development evidence; the public build above remains older until release approval.
+
 ## Scene 1 final visual pass (2026-09-24)
 
 City Run now uses the approved Atlas-directed **code red AI apocalypse** language: monumental civic and launch infrastructure, occupied transit rails, machine checkpoints, evacuation activity, layered road hardware, surveillance scan light, smoke shelves, orbital debris, a detailed hero, and a fully staged last-rocket launch. The rocket and launch complex are shown at four times their authored scale, with the boarding and liftoff cinematics retuned around the new megastructure proportions. The Atlas generations were visual references; the shipped assets remain original editable Three.js recipe code.

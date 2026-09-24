@@ -1,0 +1,309 @@
+[
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 51,
+  "tris": 4056,
+  "materials": 9,
+  "size": [
+   11.609,
+   2.482,
+   9.413
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.0828,
+    "edgeDensity": 0.2938
+   },
+   "right": {
+    "coverage": 0.1065,
+    "edgeDensity": 0.2225
+   },
+   "back": {
+    "coverage": 0.1031,
+    "edgeDensity": 0.3123
+   },
+   "left": {
+    "coverage": 0.1066,
+    "edgeDensity": 0.2521
+   }
+  },
+  "error": null,
+  "name": "ai_interceptor",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 8,
+  "tris": 736,
+  "materials": 3,
+  "size": [
+   2.3,
+   2.3,
+   7.185
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.0929,
+    "edgeDensity": 0.2145
+   },
+   "right": {
+    "coverage": 0.1135,
+    "edgeDensity": 0.207
+   },
+   "back": {
+    "coverage": 0.0619,
+    "edgeDensity": 0.1778
+   },
+   "left": {
+    "coverage": 0.1135,
+    "edgeDensity": 0.2051
+   }
+  },
+  "error": null,
+  "name": "ai_laser_bolt",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": [
+   "left",
+   "right"
+  ],
+  "meshes": 131,
+  "tris": 11296,
+  "materials": 9,
+  "size": [
+   23.1,
+   7,
+   10.36
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.1272,
+    "edgeDensity": 0.4105
+   },
+   "right": {
+    "coverage": 0.1041,
+    "edgeDensity": 0.2889
+   },
+   "back": {
+    "coverage": 0.1477,
+    "edgeDensity": 0.5093
+   },
+   "left": {
+    "coverage": 0.1029,
+    "edgeDensity": 0.3101
+   }
+  },
+  "error": null,
+  "name": "docking_port",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 113,
+  "tris": 4060,
+  "materials": 7,
+  "size": [
+   17.75,
+   11.3,
+   2.46
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0.37
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.2068,
+    "edgeDensity": 0.3356
+   },
+   "right": {
+    "coverage": 0.055,
+    "edgeDensity": 0.2034
+   },
+   "back": {
+    "coverage": 0.2104,
+    "edgeDensity": 0.3283
+   },
+   "left": {
+    "coverage": 0.0552,
+    "edgeDensity": 0.2091
+   }
+  },
+  "error": null,
+  "name": "orbital_net_gate",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 29,
+  "tris": 2308,
+  "materials": 7,
+  "size": [
+   5.432,
+   2.205,
+   3.147
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0.065,
+   0.101
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.1232,
+    "edgeDensity": 0.2081
+   },
+   "right": {
+    "coverage": 0.109,
+    "edgeDensity": 0.3485
+   },
+   "back": {
+    "coverage": 0.1322,
+    "edgeDensity": 0.3344
+   },
+   "left": {
+    "coverage": 0.1254,
+    "edgeDensity": 0.3116
+   }
+  },
+  "error": null,
+  "name": "orbital_wreckage",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 51,
+  "tris": 4068,
+  "materials": 7,
+  "size": [
+   3.26,
+   2.255,
+   4.295
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.079,
+    "edgeDensity": 0.2819
+   },
+   "right": {
+    "coverage": 0.1002,
+    "edgeDensity": 0.2662
+   },
+   "back": {
+    "coverage": 0.0908,
+    "edgeDensity": 0.2846
+   },
+   "left": {
+    "coverage": 0.1005,
+    "edgeDensity": 0.2722
+   }
+  },
+  "error": null,
+  "name": "player_ship",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 99,
+  "tris": 12776,
+  "materials": 15,
+  "size": [
+   280,
+   280,
+   280
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.2202,
+    "edgeDensity": 0.2355
+   },
+   "right": {
+    "coverage": 0.2202,
+    "edgeDensity": 0.2353
+   },
+   "back": {
+    "coverage": 0.2202,
+    "edgeDensity": 0.2505
+   },
+   "left": {
+    "coverage": 0.2202,
+    "edgeDensity": 0.2399
+   }
+  },
+  "error": null,
+  "name": "space_backdrop",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 41,
+  "tris": 2540,
+  "materials": 7,
+  "size": [
+   4.387,
+   1.893,
+   2.4
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.1045,
+    "edgeDensity": 0.2788
+   },
+   "right": {
+    "coverage": 0.0978,
+    "edgeDensity": 0.241
+   },
+   "back": {
+    "coverage": 0.1076,
+    "edgeDensity": 0.2938
+   },
+   "left": {
+    "coverage": 0.0979,
+    "edgeDensity": 0.2824
+   }
+  },
+  "error": null,
+  "name": "space_drone",
+  "problems": []
+ }
+]
