@@ -1,7 +1,7 @@
 const THEMES = {
-  city: [261.63, 329.63, 392, 523.25, 392, 329.63, 293.66, 440],
-  space: [220, 329.63, 440, 659.25, 523.25, 392, 293.66, 587.33],
-  station: [196, 246.94, 293.66, 392, 349.23, 293.66, 233.08, 311.13],
+  city: [110, 110, 146.83, 110, 98, 110, 130.81, 82.41],
+  space: [164.81, 0, 220, 0, 146.83, 0, 246.94, 0],
+  station: [130.81, 146.83, 130.81, 98, 130.81, 146.83, 164.81, 98],
 };
 
 export class AudioEngine {
@@ -54,21 +54,28 @@ export class AudioEngine {
   }
 
   tick() {
-    if (!this.enabled || this.paused || document.hidden || this.act === 'results') return;
+    if (!this.enabled || this.paused || document.hidden || this.act === 'results' || this.act === 'silence') return;
     const notes = THEMES[this.act] || THEMES.city;
     const note = notes[this.beat % notes.length];
     const type = this.act === 'space' ? 'sine' : this.act === 'station' ? 'square' : 'triangle';
-    this.tone(note, this.act === 'space' ? 0.18 : 0.11, type, this.beat % 4 === 0 ? 0.035 : 0.018);
-    if (this.beat % 4 === 2) this.tone(note / 2, 0.06, 'square', 0.009, 0.03);
-    if (this.act === 'station' && this.beat % 8 === 7) this.tone(880, 0.035, 'square', 0.012);
+    if (note) this.tone(note, this.act === 'space' ? 0.15 : 0.1, type, this.beat % 4 === 0 ? 0.032 : 0.019);
+    if (this.act === 'city' && this.beat % 8 === 0) {
+      this.tone(415, 0.42, 'sine', 0.018, 0.04, -105);
+      this.noise(0.13, 0.014, 0.13);
+    }
+    if (this.act === 'space' && this.beat % 4 === 2) this.tone(1046, 0.045, 'sine', 0.013);
+    if (this.act === 'station' && this.beat % 8 === 7) {
+      this.tone(880, 0.1, 'square', 0.024);
+      this.tone(659.25, 0.1, 'square', 0.02, 0.1);
+    }
     this.beat += 1;
   }
 
   setAct(act) {
     this.act = act;
     this.beat = 0;
-    const lead = act === 'city' ? [261.63, 329.63, 392] : act === 'space' ? [220, 440, 659.25] : [196, 233.08, 293.66];
-    lead.forEach((note, i) => this.tone(note, 0.16, 'triangle', 0.035, i * 0.11));
+    const lead = act === 'city' ? [220, 164.81, 110] : act === 'space' ? [440, 329.63, 220] : [261.63, 196, 130.81];
+    lead.forEach((note, i) => this.tone(note, 0.17, 'triangle', 0.028, i * 0.1));
   }
 
   gesture(kind) {
@@ -80,6 +87,28 @@ export class AudioEngine {
     this.tone(105, 0.28, 'sawtooth', 0.1, 0, -55);
     this.tone(68, 0.34, 'square', 0.06, 0.04, -20);
     this.noise(0.18, 0.035);
+  }
+
+  lockOn() {
+    this.tone(740, 0.1, 'square', 0.038);
+    this.tone(880, 0.1, 'square', 0.038, 0.19);
+    this.tone(1046, 0.16, 'square', 0.043, 0.38);
+  }
+
+  lockFire() {
+    this.tone(78, 0.28, 'sawtooth', 0.055, 0, -35);
+    this.noise(0.14, 0.035);
+  }
+
+  override() {
+    this.tone(220, 0.11, 'square', 0.055);
+    this.tone(330, 0.12, 'triangle', 0.05, 0.13);
+    this.tone(440, 0.32, 'sine', 0.055, 0.3);
+  }
+
+  switchReady() {
+    this.tone(165, 0.15, 'square', 0.038);
+    this.tone(131, 0.26, 'square', 0.038, 0.2);
   }
 
   interlude(kind) {
@@ -114,24 +143,24 @@ export class AudioEngine {
   }
 
   masterSwitch() {
+    this.act = 'silence';
     this.tone(92, 0.7, 'sawtooth', 0.09, 0, -48);
     this.noise(0.38, 0.07, 0.05);
-    [261.63, 329.63, 392, 523.25].forEach((n, i) => this.tone(n, 0.5, 'sine', 0.04, 0.52 + i * 0.14));
   }
 
   finalCall() {
     if (!this.enabled) return;
-    this.tone(880, 0.07, 'sine', 0.03, 0.85);
-    this.tone(1100, 0.07, 'sine', 0.03, 0.98);
+    this.tone(880, 0.07, 'sine', 0.03, 1.42);
+    this.tone(1100, 0.07, 'sine', 0.03, 1.55);
     if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) return;
     window.speechSynthesis.cancel();
-    const line = new SpeechSynthesisUtterance('Hello? Hello! They just stopped. The robots just stopped! Are you there? Thank you.');
+    const line = new SpeechSynthesisUtterance('Hello? The machines stopped. People are coming out. You did it. Thank you.');
     line.rate = 0.88;
     line.pitch = 0.92;
     line.volume = 0.76;
     window.setTimeout(() => {
       if (this.enabled) window.speechSynthesis.speak(line);
-    }, 650);
+    }, 1550);
   }
 
   setPaused(paused) {

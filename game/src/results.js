@@ -1,4 +1,5 @@
-const STARTING_SURVIVORS = 7_600_000_000;
+// The best collision-free ending preserves 70% after both manual overrides.
+const STARTING_SURVIVORS = 5_600_000_000;
 
 const TITLES = {
   S: 'UNAUTHORIZED LEGEND',
@@ -18,11 +19,12 @@ const nonNegative = value => typeof value === 'number' && Number.isFinite(value)
  * counts are treated as zero; an invalid mission time earns no time bonus.
  * The return value is always finite and bounded, even for very large counts.
  */
-export function calculateRating({ survivors, hits, obstaclesDodged, timeSeconds, baselineSeconds } = {}) {
+export function calculateRating({ survivors, hits, obstaclesDodged, timeSeconds, baselineSeconds, overridesSecured } = {}) {
   const people = nonNegative(survivors);
   const collisions = nonNegative(hits);
   const dodges = nonNegative(obstaclesDodged);
   const baseline = nonNegative(baselineSeconds);
+  const cuts = clamp(nonNegative(overridesSecured), 0, 2);
 
   // Scale first so two individually finite, very large counts cannot overflow
   // when combined into the dodge rate's denominator.
@@ -37,9 +39,10 @@ export function calculateRating({ survivors, hits, obstaclesDodged, timeSeconds,
     ? clamp(1 - Math.max(0, timeSeconds - baseline) / 15, 0, 1)
     : 0;
   const score = Math.round(
-    80 * clamp(people / STARTING_SURVIVORS, 0, 1) +
+    65 * clamp(people / STARTING_SURVIVORS, 0, 1) +
     15 * dodgeRate +
-    5 * timeBonus,
+    5 * timeBonus +
+    15 * cuts / 2,
   );
 
   const grade = collisions === 0 && score >= 97 ? 'S'

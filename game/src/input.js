@@ -22,6 +22,9 @@ export class SwipeInput {
     this.element.addEventListener('pointerup', (event) => {
       if (!this.active || event.pointerId !== this.active.id) return;
       this.finish(event.clientX, event.clientY);
+      if (!this.active.sent && Math.hypot(event.clientX - this.active.x, event.clientY - this.active.y) < this.threshold) {
+        this.onGesture('tap', 'touch');
+      }
       this.active = null;
       event.preventDefault();
     });
@@ -33,6 +36,7 @@ export class SwipeInput {
         ArrowRight: 'right', KeyD: 'right',
         ArrowUp: 'up', KeyW: 'up', Space: 'up',
         ArrowDown: 'down', KeyS: 'down',
+        KeyE: 'tap',
       };
       const gesture = map[event.code];
       if (!gesture || event.repeat) return;

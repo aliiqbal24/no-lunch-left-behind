@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calculateRating } from '../game/src/results.js';
 
-const POPULATION = 7_600_000_000;
+const POPULATION = 5_600_000_000;
 const run = (overrides = {}) => calculateRating({
   survivors: POPULATION,
   hits: 0,
   obstaclesDodged: 20,
   timeSeconds: 60,
   baselineSeconds: 60,
+  overridesSecured: 2,
   ...overrides,
 });
 
@@ -19,6 +20,11 @@ test('a flawless, timely run earns the full S rating', () => {
     title: 'UNAUTHORIZED LEGEND',
     dodgeRate: 1,
   });
+});
+
+test('missing physical overrides lowers the grade even without collisions', () => {
+  assert.equal(run({ survivors: 4_800_000_000, overridesSecured: 0 }).grade, 'B');
+  assert.equal(run({ survivors: 5_200_000_000, overridesSecured: 1 }).grade, 'A');
 });
 
 test('one collision bars S even when the rounded score is 100', () => {
@@ -42,7 +48,7 @@ test('each grade changes at its specified inclusive score threshold', () => {
     [54, 'D', 'HUMAN RESOURCES IS CONCERNED'],
   ];
   for (const [score, grade, title] of cases) {
-    const rating = run({ survivors: POPULATION * ((score - 20) / 80) });
+    const rating = run({ survivors: POPULATION * ((score - 35) / 65) });
     assert.deepEqual(
       [rating.score, rating.grade, rating.title],
       [score, grade, title],
@@ -65,7 +71,7 @@ test('zero encountered obstacles is a perfect dodge rate only with no collisions
 });
 
 test('survivor count is floored at zero and capped at the starting maximum', () => {
-  assert.equal(run({ survivors: -12 }).score, 20);
+  assert.equal(run({ survivors: -12 }).score, 35);
   assert.equal(run({ survivors: POPULATION * 2 }).score, 100);
 });
 

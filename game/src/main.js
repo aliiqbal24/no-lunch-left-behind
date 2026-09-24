@@ -5,6 +5,8 @@ import { SwipeInput } from './input.js';
 import { AudioEngine } from './audio.js';
 import { createChaseVisuals } from './chase_visuals.js';
 import { calculateRating } from './results.js';
+import { calculateStakes, WORLD_POPULATION, START_HUMANITY } from './mission_stakes.js';
+import createLaunchCityDistricts from '../assets/launch_city_districts.js';
 
 const $ = (selector) => document.querySelector(selector);
 const canvas = $('#game');
@@ -24,6 +26,13 @@ const populationCrowd = $('#populationCrowd');
 const robotAdvance = $('#robotAdvance');
 const forecast = $('#forecast');
 const actLabel = $('#actLabel');
+const districtLabel = $('#districtLabel');
+const overridePrompt = $('#overridePrompt');
+const overrideTitle = $('#overrideTitle');
+const overrideInstruction = $('#overrideInstruction');
+const lockWarning = $('#lockWarning');
+const lockTitle = $('#lockTitle');
+const lockLanes = [...document.querySelectorAll('.lock-lane')];
 const damageFlash = $('#damageFlash');
 const impactCopy = $('#impactCopy');
 const muteButton = $('#mute');
@@ -53,6 +62,7 @@ const resultsPeopleExact = $('#resultsPeopleExact');
 const resultsDodged = $('#resultsDodged');
 const resultsTime = $('#resultsTime');
 const resultsHits = $('#resultsHits');
+const resultsOverrides = $('#resultsOverrides');
 const playAgain = $('#playAgain');
 const comicPanels = [...document.querySelectorAll('.comic-panel')];
 const comicCount = $('#comicCount');
@@ -73,8 +83,10 @@ const LIFTOFF_DURATION = TEST_MODE ? 1.8 : 3;
 const SWITCH_APPROACH_DURATION = TEST_MODE ? 0.55 : 1.15;
 // The chase camera looks toward +Z, so screen-left is world +X.
 const LANES = [2.2, 0, -2.2];
-const WORLD_POPULATION = 8_000_000_000;
-const START_HUMANITY = 95;
+const OVERRIDE_EVENTS = {
+  city: { at: 218, lane: -1, label: 'RAIL SIGNAL RELAY', saved: 'TRAINS RELEASED · 400M LIVES PROTECTED' },
+  station: { at: 215, lane: 1, label: 'STATION SAFETY BREAKER', saved: 'STATION GRID ISOLATED · 400M LIVES PROTECTED' },
+};
 const compactPeople = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
 const crowdPeople = Array.from({ length: 25 }, () => {
   const person = document.createElement('span');
@@ -84,9 +96,9 @@ const crowdPeople = Array.from({ length: 25 }, () => {
 });
 
 const ACTS = {
-  city: { kicker: 'ACT 1', title: 'CITY RUN', order: 'GET TO THE ROCKET', speed: 12.5, spawnEvery: 1.06 },
-  space: { kicker: 'ACT 2', title: 'SPACE FLIGHT', order: 'DODGE ORBITAL ADMINISTRATION', speed: 15.2, spawnEvery: 1.02 },
-  station: { kicker: 'ACT 3', title: 'STATION CORRIDOR', order: 'FIND THE BIG RED BUTTON', speed: 13.4, spawnEvery: 1.0 },
+  city: { kicker: 'ACT 1 · THE CITY IS FALLING', title: 'CITY RUN', order: 'REACH THE LAST LAUNCH', speed: 12.5, spawnEvery: 1.06 },
+  space: { kicker: 'ACT 2 · ORBIT IS COMPROMISED', title: 'SPACE FLIGHT', order: 'BREAK THROUGH THE AI NET', speed: 15.2, spawnEvery: 1.02 },
+  station: { kicker: 'ACT 3 · LAST HUMAN CHANCE', title: 'STATION CORRIDOR', order: 'CUT THE FINAL LINK', speed: 13.4, spawnEvery: 1.0 },
 };
 const MISSION_MODES = new Set(['playing', 'boarding', 'climb', 'launch', 'liftoff', 'launchExit', 'docking', 'stationEntry', 'switchApproach', 'switch']);
 
@@ -142,6 +154,10 @@ renderer.setSize(innerWidth, innerHeight, false);
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.35));
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 850);
+const overrideGreen = new THREE.MeshStandardMaterial({
+  color: 0x45c4b0, emissive: 0x45c4b0, emissiveIntensity: 1.1,
+});
+overrideGreen.name = 'metal';
 scene.add(camera);
 const cameraAim = new THREE.Vector3(0, 1.1, 9.5);
 const introCameraFrom = new THREE.Vector3();
@@ -177,6 +193,8 @@ const state = {
   interludeElapsed: 0, dockSoundPlayed: false, visualClock: 0,
   shot: null, passage: '', finaleElapsed: 0, finalePanStarted: false,
   paused: false,
+  overrides: { city: 'pending', station: 'pending' }, overtime: 0,
+  lockOn: { phase: 'idle', lane: 0, timer: 0 },
 };
 
 let chaseVisuals = null;
@@ -184,6 +202,9 @@ let player;
 let playerJoints;
 let ship;
 let cityChunks = [];
+let cityAnimated = [];
+let cityRelay;
+let stationBreaker;
 let stationChunks = [];
 let obstacles = [];
 let prototypes = { city: {}, space: {}, station: {} };
@@ -248,7 +269,7 @@ async function loadAssets() {
   ]);
 
   setLoad(26, 'weaponising household appliances…');
-  const [road, building, billboard, cone, toaster, mower, chair, rocket, launchFx, hub, wayfinder, citySky] = await Promise.all([
+  const [road, building, billboard, cone, toaster, mower, chair, rocket, launchFx, hub, wayfinder, citySky, relayAsset] = await Promise.all([
     ASSET(assetUrl('city_road'), { surfaces: true }),
     ASSET(assetUrl('city_building'), { surfaces: true }),
     ASSET(assetUrl('billboard'), { keepHierarchy: true }),
@@ -261,6 +282,7 @@ async function loadAssets() {
     ASSET(assetUrl('rocket_hub'), { surfaces: true }),
     ASSET(assetUrl('spaceport_wayfinder'), { surfaces: true }),
     ASSET(assetUrl('city_sky')),
+    ASSET(assetUrl('manual_override'), { keepHierarchy: true }),
   ]);
 
   setLoad(54, 'auditing low-orbit litter…');
@@ -313,9 +335,15 @@ async function loadAssets() {
   };
 
   buildCity(road, building, billboard, rocket, launchFx, hub, wayfinder, citySky);
+  cityRelay = relayAsset.clone(true);
+  cityRelay.position.set(LANES[0], 0.2, OVERRIDE_EVENTS.city.at);
+  cityRoot.add(cityRelay);
   buildRobotArmy([boxy, spider, roller]);
   buildSpace(backdrop, port);
   buildStation(corridor, masterSwitch, earth, endWindow, crisis);
+  stationBreaker = relayAsset.clone(true);
+  stationBreaker.position.set(LANES[2], 0.2, OVERRIDE_EVENTS.station.at);
+  stationRoot.add(stationBreaker);
   buildClimb(ladder);
 
   setLoad(92, 'warming emergency lighting…');
@@ -328,6 +356,7 @@ async function loadAssets() {
 
 function buildCity(road, building, billboard, rocket, launchFx, hub, wayfinder, citySky) {
   const signTexture = makeBillboardTexture();
+  const districtAssets = [...createLaunchCityDistricts(THREE).children];
   citySky.position.set(0, 18, 170);
   citySky.traverse((object) => { if (object.isMesh) { object.castShadow = false; object.receiveShadow = false; } });
   cityRoot.add(citySky);
@@ -336,12 +365,22 @@ function buildCity(road, building, billboard, rocket, launchFx, hub, wayfinder, 
     const chunk = new THREE.Group();
     chunk.position.z = i * 40 + 12;
     chunk.add(road.clone(true));
+    const detail = districtAssets[i];
+    chunk.add(detail);
+    detail.traverse((part) => {
+      if (['evacWorker', 'evacTrain', 'craneArm', 'ventFlare', 'alarmLamp', 'railSignal'].includes(part.name)) {
+        part.userData.homeZ = part.position.z;
+        if (part.name === 'evacTrain') part.userData.progress = 6;
+        cityAnimated.push(part);
+      }
+    });
     for (const side of [-1, 1]) {
+      if (i > 1) continue;
       for (let slot = 0; slot < 2; slot++) {
         const b = building.clone(true);
         const scale = 0.72 + ((i * 3 + slot * 5 + (side > 0 ? 2 : 0)) % 6) * 0.09;
         b.scale.set(scale * (slot ? 0.9 : 1.08), scale, scale);
-        b.position.set(side * (7.1 + slot * 4.4), 0, -9 + slot * 18);
+        b.position.set(side * (15.5 + slot * 4.4), 0, -9 + slot * 18);
         if (side < 0) b.rotation.y = Math.PI;
         chunk.add(b);
       }
@@ -515,6 +554,10 @@ function revealIntro() {
 function onGesture(kind) {
   if (state.mode !== 'playing' || state.paused || state.introDelay > 0) return;
   state.inputCount += 1;
+  if (kind === 'tap') {
+    tryOverride();
+    return;
+  }
   audio.gesture(kind);
   // The City introduction faces the runner briefly; follow screen direction during that camera flip.
   const screenLeftStep = camera.getWorldDirection(new THREE.Vector3()).z < 0 ? 1 : -1;
@@ -569,6 +612,11 @@ function resetRun() {
   state.visualClock = 0;
   state.distance = 0;
   state.actDistance = 0;
+  state.overrides = { city: 'pending', station: 'pending' };
+  state.overtime = 0;
+  state.lockOn = { phase: 'idle', lane: 0, timer: 0 };
+  overridePrompt.classList.remove('visible', 'in-range');
+  lockWarning.classList.remove('visible', 'firing');
   updateHumanity();
 }
 
@@ -615,6 +663,9 @@ function startAct(name, fromIntro = false, fromTransition = false) {
   state.jumpVelocity = 0;
   state.slide = 0;
   state.hitCooldown = 0;
+  state.lockOn = { phase: 'idle', lane: 0, timer: 0 };
+  lockWarning.classList.remove('visible', 'firing');
+  overridePrompt.classList.remove('visible', 'in-range');
   state.lookBack = name === 'city' ? 2 : 0;
   state.introCameraBlend = fromIntro ? 1 : 0;
   state.introDelay = fromIntro ? INTRO_TRANSITION : 0;
@@ -628,6 +679,8 @@ function startAct(name, fromIntro = false, fromTransition = false) {
   player.visible = name !== 'space';
   ship.visible = name === 'space';
   actLabel.textContent = `${act.title} · ${act.order}`;
+  districtLabel.textContent = name === 'city' ? 'WORKER DISTRICT · EVACUATION IN PROGRESS'
+    : name === 'space' ? 'ORBITAL DEFENCE GRID · ACTIVE' : 'STATION SAFETY GRID · COMPROMISED';
   hud.classList.toggle('visible', !fromIntro && !fromTransition);
   hud.classList.toggle('on-dark', name === 'space');
   hud.classList.toggle('on-station', name === 'station');
@@ -650,6 +703,7 @@ function startAct(name, fromIntro = false, fromTransition = false) {
     for (let i = 0; i < 18; i++) spawnPattern(106 + i * spacing);
   }
   if (!fromIntro && !fromTransition) showBanner(act.kicker, act.title, act.order);
+  updateHumanity();
 }
 
 function revealAct(name) {
@@ -789,24 +843,25 @@ function hitObstacle(item) {
   item.hit = true;
   state.hitCooldown = 0.9;
   state.hits += 1;
-  state.humanity = state.hits >= 32 ? 0 : Math.max(2, START_HUMANITY - state.hits * 3);
-  state.survivors = state.hits >= 32 ? 256 : Math.round(WORLD_POPULATION * state.humanity / 100);
   const actor = activeActor();
   actor.position.z = -0.65;
   actor.rotation.z = (item.lane <= state.lane ? 1 : -1) * 0.18;
-  item.object.rotation.x += 0.42;
-  item.object.rotation.z += (item.lane <= state.lane ? -1 : 1) * 0.6;
+  if (item.object) {
+    item.object.rotation.x += 0.42;
+    item.object.rotation.z += (item.lane <= state.lane ? -1 : 1) * 0.6;
+  }
   audio.hit();
   damageFlash.classList.remove('hit');
   impactCopy.classList.remove('show');
   void damageFlash.offsetWidth;
   damageFlash.classList.add('hit');
   const copy = {
-    city: '−240,000,000 · FORECAST REVISED',
-    space: 'HULL DENT · EARTH BLAMES YOU',
-    station: 'SECURITY INCIDENT FORM OPENED',
+    city: '−240,000,000 · EVACUATION ROUTE LOST',
+    space: '−240,000,000 · DEFENCE GRID BREACHED',
+    station: '−240,000,000 · EARTH LINK EXPOSED',
   };
-  impactCopy.textContent = state.hits >= 32 ? 'FORECAST: 256 LEFT' : copy[state.act];
+  impactCopy.textContent = state.hits >= 32 ? 'ONLY 256 VOICES REMAIN' : item.type === 'lockOn'
+    ? 'AI STRIKE · −240,000,000' : copy[state.act];
   impactCopy.classList.add('show');
   humanityFill.classList.add('impact');
   setTimeout(() => humanityFill.classList.remove('impact'), 260);
@@ -817,24 +872,32 @@ function hitObstacle(item) {
 }
 
 function updateHumanity() {
+  const progress = Math.min(1, Math.max(state.actDistance / (ACTS[state.act].speed * ACT_DURATION),
+    TEST_MODE ? state.elapsed / ACT_DURATION : 0));
+  const stakes = calculateStakes({
+    act: state.act, progress, hits: state.hits, overtime: state.overtime,
+    overrides: { city: state.overrides.city === 'done', station: state.overrides.station === 'done' },
+  });
+  state.humanity = stakes.humanity;
+  state.survivors = stakes.survivors;
   const atFloor = state.survivors === 256;
   const visibleHumanity = atFloor ? 0.35 : state.humanity;
   const survivingIcons = atFloor ? 1 : Math.ceil(visibleHumanity * crowdPeople.length / 100);
-  humanityLabel.textContent = atFloor ? '256 LEFT' : `${state.humanity}%`;
+  humanityLabel.textContent = atFloor ? '256 LEFT' : Math.round(state.humanity) + '%';
   humanityFill.style.width = `${visibleHumanity}%`;
   robotAdvance.style.left = `${Math.min(95, Math.max(5, 100 - visibleHumanity))}%`;
   crowdPeople.forEach((person, index) => {
     person.classList.toggle('gone', index < crowdPeople.length - survivingIcons);
   });
-  const lines = [
-    'CURRENT FORECAST: SURPRISINGLY NOT ZERO',
-    'STATUS: HUMAN RESOURCES REDUCED',
-    'NOTICE: POPULATION TARGET ADJUSTED',
-    'GOOD NEWS: THE BAR STILL HAS A COLOUR',
-  ];
   forecast.textContent = atFloor
-    ? 'STATUS: EVERY SURVIVOR NOW KNOWS EACH OTHER'
-    : lines[Math.min(lines.length - 1, Math.floor(state.hits / 4))];
+    ? 'ONLY 256 PEOPLE LEFT · FINISH THE MISSION'
+    : state.act === 'city' && state.overrides.city === 'done'
+      ? 'RAIL OVERRIDE HELD · EVACUATION TRAINS MOVING'
+      : state.act === 'station' && state.overrides.station === 'done'
+        ? 'SAFETY BREAKER HELD · EARTH LINK ISOLATING'
+        : state.act === 'city' ? 'REMOTE SHUTDOWN FAILED · REACH THE ROCKET'
+          : state.act === 'space' ? 'AI ORBITAL NET · EARTH IS RUNNING OUT OF TIME'
+            : 'LAST PHYSICAL SWITCH AHEAD · KEEP MOVING';
 }
 
 function updateActor(dt) {
@@ -871,12 +934,119 @@ function updateActor(dt) {
   actor.position.z = THREE.MathUtils.damp(actor.position.z, 0, 6, dt);
 }
 
+function overrideDistance(event) {
+  // The accelerated test route keeps the interaction window long enough for a real tap.
+  return TEST_MODE
+    ? event.at + (state.elapsed - ACT_DURATION * 0.58) * 24
+    : state.actDistance;
+}
+
+function tryOverride() {
+  const event = OVERRIDE_EVENTS[state.act];
+  if (!event || state.overrides[state.act] !== 'pending') return;
+  const delta = event.at - overrideDistance(event);
+  if (delta < -13 || delta > 15 || state.targetLane !== event.lane) return;
+  state.overrides[state.act] = 'done';
+  overridePrompt.classList.remove('visible', 'in-range');
+  impactCopy.textContent = event.saved;
+  impactCopy.classList.remove('show');
+  void impactCopy.offsetWidth;
+  impactCopy.classList.add('show');
+  const fixture = state.act === 'city' ? cityRelay : stationBreaker;
+  const button = fixture.getObjectByName('overrideButton');
+  const beacon = fixture.getObjectByName('overrideBeacon');
+  if (button && beacon) {
+    button.material = overrideGreen;
+    beacon.material = overrideGreen;
+    if (state.act === 'city') {
+      for (const part of cityAnimated) if (part.name === 'railSignal') part.material = overrideGreen;
+    }
+  }
+  audio.override();
+  updateHumanity();
+}
+
+function updateOverride() {
+  const event = OVERRIDE_EVENTS[state.act];
+  if (!event) return;
+  const delta = event.at - overrideDistance(event);
+  const fixture = state.act === 'city' ? cityRelay : stationBreaker;
+  fixture.position.z = delta;
+  if (state.overrides[state.act] !== 'pending') return;
+  if (delta < -13) {
+    state.overrides[state.act] = 'missed';
+    overridePrompt.classList.remove('visible', 'in-range');
+    return;
+  }
+  const visible = delta <= 42 && delta >= -13;
+  overridePrompt.classList.toggle('visible', visible);
+  if (visible) {
+    tutorial.classList.remove('visible');
+    overrideTitle.textContent = event.label;
+    overrideInstruction.textContent = delta > 15
+      ? (event.lane < 0 ? 'LEFT' : 'RIGHT') + ' LANE · APPROACH THE SWITCH'
+      : (KEYBOARD_HINTS ? 'PRESS E' : 'TAP SCREEN') +
+        ' · ' + (event.lane < 0 ? 'LEFT' : 'RIGHT') + ' LANE';
+    overridePrompt.classList.toggle('in-range', delta <= 15);
+  }
+}
+
+function updateLockOn(dt) {
+  if (TEST_MODE && OVERRIDE_EVENTS[state.act]) return;
+  const attack = state.lockOn;
+  if (attack.phase === 'idle' && state.elapsed >= (state.act === 'city' ? 2.75 : 0.4)) {
+    attack.phase = 'warning';
+    attack.timer = 0;
+    attack.lane = state.targetLane;
+    lockLanes.forEach((lane, index) => lane.classList.toggle('targeted', index === attack.lane + 1));
+    lockTitle.textContent = 'AI LOCK · ' + (attack.lane < 0 ? 'LEFT' : attack.lane > 0 ? 'RIGHT' : 'CENTRE') + ' LANE';
+    lockWarning.classList.add('visible');
+    audio.lockOn();
+  }
+  if (attack.phase !== 'warning') return;
+  attack.timer += dt;
+  lockWarning.style.setProperty('--remaining', Math.max(0, 100 * (1 - attack.timer / 1.5)) + '%');
+  if (attack.timer < 1.5) return;
+  attack.phase = 'done';
+  lockWarning.classList.add('firing');
+  if (Math.abs(activeActor().position.x - LANES[attack.lane + 1]) < 0.74 && state.hitCooldown <= 0) {
+    hitObstacle({ lane: attack.lane, type: 'lockOn', object: null, hit: false });
+  }
+  audio.lockFire();
+  window.setTimeout(() => lockWarning.classList.remove('visible', 'firing'), 450);
+}
+
+function updateCityLife(dt) {
+  const distance = state.actDistance;
+  const district = distance < 55 ? 'WORKER DISTRICT · EVACUATION IN PROGRESS'
+    : distance < 125 ? 'FACTORIES · PRODUCTION UNDER ATTACK'
+      : distance < 190 ? 'TANK FARM · FUEL PRESSURE CRITICAL'
+        : distance < 255 ? 'TRANSPORT RAILS · TRAINS HELD BY AI'
+          : 'LAUNCH PADS · LAST DEPARTURE';
+  if (districtLabel.textContent !== district) districtLabel.textContent = district;
+  const t = state.visualClock;
+  for (const part of cityAnimated) {
+    if (part.name === 'evacWorker') part.position.z = part.userData.homeZ + (REDUCED_MOTION ? 0 : Math.sin(t * 4 + part.position.x) * 0.45);
+    if (part.name === 'evacTrain' && !REDUCED_MOTION) {
+      part.userData.progress = (part.userData.progress + dt * (state.overrides.city === 'done' ? 3.5 : 0.55)) % 12;
+      part.position.z = part.userData.homeZ + part.userData.progress - 6;
+    }
+    if (part.name === 'craneArm') part.rotation.y = REDUCED_MOTION ? 0 : Math.sin(t * 0.9) * 0.16;
+    if (part.name === 'ventFlare') part.scale.setScalar(REDUCED_MOTION ? 1 : 0.72 + Math.sin(t * 11 + part.position.z) * 0.2);
+    if (part.name === 'alarmLamp') part.visible = REDUCED_MOTION || Math.sin(t * 8) > 0;
+  }
+}
+
 function updatePlayingWorld(dt) {
   const act = ACTS[state.act];
   const speedFactor = state.hitCooldown > 0.35 ? 0.68 : 1;
   const travel = act.speed * speedFactor * dt;
   state.distance += travel;
   state.actDistance += travel;
+  updateOverride();
+  updateLockOn(dt);
+  if (state.act === 'city') updateCityLife(dt);
+  updateHumanity();
 
   const chunks = state.act === 'city' ? cityChunks : state.act === 'station' ? stationChunks : [];
   for (const chunk of chunks) {
@@ -1006,6 +1176,10 @@ function updateCamera(dt) {
 }
 
 function finishPlayingAct() {
+  if (state.act !== 'city') {
+    state.actDistance = Math.max(state.actDistance, ACTS[state.act].speed * ACT_DURATION);
+    updateHumanity();
+  }
   if (state.act === 'city') beginBoarding();
   else if (state.act === 'space') beginDocking();
   else beginSwitchApproach();
@@ -1038,7 +1212,7 @@ function beginClimb() {
   tutorial.classList.remove('visible');
   actLabel.textContent = 'ROCKET LADDER · TAP TAP TAP';
   climbFill.style.width = '6%';
-  climbStatus.textContent = 'LADDER PROGRESS: LEGALLY INSUFFICIENT';
+  climbStatus.textContent = 'LADDER PROGRESS: HATCH OPEN';
   climbScreen.classList.add('visible');
   audio.interlude('climb');
 }
@@ -1065,8 +1239,8 @@ function updateClimbPresentation() {
     playerJoints.torso.rotation.z = step * 0.035;
   }
   climbStatus.textContent = p > 0.82
-    ? 'LADDER PROGRESS: HEROIC ENOUGH'
-    : p > 0.45 ? 'LADDER PROGRESS: AUDIT PENDING' : 'LADDER PROGRESS: LEGALLY INSUFFICIENT';
+    ? 'LADDER PROGRESS: CREW READY TO SEAL'
+    : p > 0.45 ? 'LADDER PROGRESS: KEEP CLIMBING' : 'LADDER PROGRESS: HATCH OPEN';
 }
 
 function finishClimb() {
@@ -1171,10 +1345,10 @@ function beginDocking() {
   dockingPort.visible = true;
   stick.classList.remove('visible');
   tutorial.classList.remove('visible');
-  actLabel.textContent = 'AUTO-DOCKING · PLEASE LOWER EXPECTATIONS';
+  actLabel.textContent = 'STATION DOCKING · EARTH LINK WEAKENING';
   hud.classList.add('on-dark');
-  dockingTitle.innerHTML = 'ALIGNING<br>PROBABLY';
-  dockingCopy.textContent = 'Please remain calm while two expensive objects approach each other.';
+  dockingTitle.innerHTML = 'DOCKING<br>UNDER FIRE';
+  dockingCopy.textContent = 'Station power is failing. Hold course.';
   dockingScreen.classList.add('visible');
   audio.interlude('dock');
 }
@@ -1227,7 +1401,7 @@ function beginSwitch() {
   player.position.set(1.6, 0.2, stationTerminal.position.z - 1.6);
   player.rotation.y = -0.1;
   switchScreen.classList.add('visible');
-  audio.complete();
+  audio.switchReady();
 }
 
 function beginFinale() {
@@ -1274,6 +1448,8 @@ function updateResultCounters(dt) {
   resultsDodged.textContent = Math.round(state.obstaclesDodged * eased).toLocaleString('en-US');
   resultsTime.textContent = formatMissionTime(state.missionTimeFinal * eased);
   resultsHits.textContent = Math.round(state.hits * eased).toLocaleString('en-US');
+  resultsOverrides.textContent = ((state.overrides.city === 'done' ? 1 : 0) +
+    (state.overrides.station === 'done' ? 1 : 0)) + ' / 2 MANUAL OVERRIDES SECURED';
 }
 
 function revealResults() {
@@ -1285,6 +1461,8 @@ function revealResults() {
     obstaclesDodged: state.obstaclesDodged,
     timeSeconds: state.missionTimeFinal,
     baselineSeconds: expectedMissionSeconds(),
+    overridesSecured: (state.overrides.city === 'done' ? 1 : 0) +
+      (state.overrides.station === 'done' ? 1 : 0),
   });
   resultsCard.dataset.grade = state.rating.grade;
   resultsGrade.textContent = state.rating.grade;
@@ -1345,7 +1523,14 @@ function frame(now) {
       if (state.introDelay > 0) {
         updateIntroTransition(rawDt);
       } else {
+        const previousElapsed = state.elapsed;
         state.elapsed += rawDt;
+        if (!TEST_MODE) {
+          const expectedActTime = state.act === 'city'
+            ? Math.max(ACT_DURATION, 318 / ACTS.city.speed) : ACT_DURATION;
+          state.overtime += Math.max(0, state.elapsed - expectedActTime) -
+            Math.max(0, previousElapsed - expectedActTime);
+        }
         state.totalElapsed += rawDt;
         state.hitCooldown = Math.max(0, state.hitCooldown - rawDt);
         updateActor(rawDt);
@@ -1406,8 +1591,8 @@ function frame(now) {
       ship.position.y = THREE.MathUtils.lerp(0.4, 3.35, THREE.MathUtils.smoothstep(p, 0, 1));
       if (p > 0.72 && !state.dockSoundPlayed) {
         state.dockSoundPlayed = true;
-        dockingTitle.innerHTML = 'CONNECTION<br>SECURE';
-        dockingCopy.textContent = '(probably)';
+        dockingTitle.innerHTML = 'AIRLOCK<br>SECURE';
+        dockingCopy.textContent = 'One corridor remains between you and the cut-off.';
         audio.dockClunk();
       }
       updateCamera(rawDt);
@@ -1473,6 +1658,8 @@ function frame(now) {
     humanityPercent: state.humanity,
     survivors: state.survivors,
     hits: state.hits,
+    overrides: { ...state.overrides },
+    lockOn: { ...state.lockOn },
     obstaclesDodged: state.obstaclesDodged,
     missionTime: state.mode === 'finale' || state.mode === 'complete' ? state.missionTimeFinal : state.missionElapsed,
     rating: state.rating?.grade || null,
@@ -1558,7 +1745,7 @@ loadAssets().then(() => {
     showComic(comicIndex + 1);
     comicTurns += 1;
     if (comicTurns === comicPanels.length) revealIntro();
-  }, 6300);
+  }, 2300);
   window.__READY__ = true;
 }).catch((error) => {
   console.error(error);
