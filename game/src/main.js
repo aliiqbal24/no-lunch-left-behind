@@ -86,6 +86,11 @@ const BOARD_DURATION = TEST_MODE ? 0.65 : 1.35;
 const PASSAGE_DURATION = TEST_MODE ? 0.65 : 1.35;
 const LIFTOFF_DURATION = TEST_MODE ? 1.8 : 3;
 const SWITCH_APPROACH_DURATION = TEST_MODE ? 0.55 : 1.15;
+const ROCKET_SCALE = 4;
+const LAUNCH_COMPLEX_SCALE = 4;
+const ROCKET_BASE_Y = 0.55;
+const ROCKET_HATCH_Y = ROCKET_BASE_Y + 5.28 * ROCKET_SCALE;
+const ROCKET_CLIMB_HEIGHT = 4.8 * ROCKET_SCALE;
 // The chase camera looks toward +Z, so screen-left is world +X.
 const LANES = [2.2, 0, -2.2];
 const OVERRIDE_EVENTS = {
@@ -502,7 +507,8 @@ function buildCity(road, building, billboard, rocket, launchFx, hub, wayfinder, 
   }
   rocketGroup = new THREE.Group();
   rocketBody = bakePreserving(rocket, new Set(['boardingDoorLeft', 'boardingDoorRight', 'boardingOccluder']));
-  rocketBody.position.y = 0.55;
+  rocketBody.scale.setScalar(ROCKET_SCALE);
+  rocketBody.position.y = ROCKET_BASE_Y;
   rocketBody.name = 'cityRocket';
   const sourceFlames = launchFx.getObjectByName('launchFlames');
   const sourceSmoke = launchFx.getObjectByName('launchSmoke');
@@ -512,11 +518,16 @@ function buildCity(road, building, billboard, rocket, launchFx, hub, wayfinder, 
   launchFlames.name = 'launchFlames';
   launchSmoke = bakePreserving(sourceSmoke, new Set(['launchSmokePuff', 'launchShockwave']));
   launchSmoke.name = 'launchSmoke';
+  launchSmoke.scale.setScalar(ROCKET_SCALE);
   launchFlames.visible = false;
   launchSmoke.visible = false;
   launchEngineLight = launchFlames.getObjectByName('launchEngineLight');
   launchShockwave = launchSmoke.getObjectByName('launchShockwave');
   rocketBody.add(launchFlames);
+  hub.scale.setScalar(LAUNCH_COMPLEX_SCALE);
+  // Keep the enlarged pad deck aligned to the runner road instead of lifting
+  // the player four metres into its foundation.
+  hub.position.y = -3.3;
   rocketGroup.add(hub, rocketBody, launchSmoke);
   rocketGroup.position.set(0, 0, 330);
   cityRoot.add(rocketGroup);
@@ -600,7 +611,8 @@ function buildStation(corridor, masterSwitch, earth, endWindow, crisis) {
 
 function buildClimb(ladder) {
   climbLadder = ladder;
-  climbLadder.position.set(0, 0, -1.9);
+  climbLadder.scale.setScalar(ROCKET_SCALE);
+  climbLadder.position.set(0, 0, -1.9 * ROCKET_SCALE);
   rocketGroup.add(climbLadder);
 }
 
@@ -865,7 +877,7 @@ function resetWorld(name, preserveCamera = false) {
   stationChunks.forEach((chunk, index) => { chunk.position.z = index * 40 + 12; chunk.visible = true; });
   rocketGroup.position.set(0, 0, 330);
   rocketGroup.visible = name === 'city';
-  rocketBody.position.set(0, 0.55, 0);
+  rocketBody.position.set(0, ROCKET_BASE_Y, 0);
   climbLadder.visible = true;
   launchFlames.visible = false;
   launchSmoke.visible = false;
@@ -1383,9 +1395,9 @@ function updateCamera(dt) {
     camera.position.lerp(desired, 1 - Math.exp(-dt * 6));
     pointCamera(new THREE.Vector3(actor.position.x * 0.12, state.act === 'space' ? 1.5 + state.jumpY * 0.15 : 1.1 + state.jumpY * 0.18, 9.5));
   } else if (state.mode === 'climb') {
-    const y = 3.4 + state.climbProgress * 4.6;
-    camera.position.lerp(new THREE.Vector3(4.8, y, climbAnchorZ - 7), 1 - Math.exp(-dt * 4));
-    cameraAim.lerp(new THREE.Vector3(0, 2.2 + state.climbProgress * 5.1, climbAnchorZ), 1 - Math.exp(-dt * 5));
+    const y = 7.2 + state.climbProgress * 16.5;
+    camera.position.lerp(new THREE.Vector3(14.5, y, climbAnchorZ - 21), 1 - Math.exp(-dt * 4));
+    cameraAim.lerp(new THREE.Vector3(0, 3.4 + state.climbProgress * 18.8, climbAnchorZ), 1 - Math.exp(-dt * 5));
     camera.lookAt(cameraAim);
   } else if (state.mode === 'docking') {
     const p = Math.min(1, state.interludeElapsed / DOCK_DURATION);
@@ -1414,13 +1426,13 @@ function beginBoarding() {
   state.mode = 'boarding';
   state.interludeElapsed = 0;
   state.boardFromX = player.position.x;
-  climbAnchorZ = rocketGroup.position.z + climbLadder.position.z - 0.52;
+  climbAnchorZ = rocketGroup.position.z + climbLadder.position.z - 0.52 * ROCKET_SCALE;
   stick.classList.remove('visible');
   tutorial.classList.remove('visible');
   actLabel.textContent = 'ROCKET LADDER · BOARDING';
   startShot(BOARD_DURATION,
-    new THREE.Vector3(4.6, 3.9, climbAnchorZ - 6.8),
-    new THREE.Vector3(0, 2.35, climbAnchorZ + 0.3),
+    new THREE.Vector3(15.5, 10.5, climbAnchorZ - 24),
+    new THREE.Vector3(0, 8.5, climbAnchorZ + 1.2),
     beginClimb);
   syncDevPause();
 }
@@ -1452,7 +1464,7 @@ function registerClimbTap() {
 function updateClimbPresentation() {
   const p = state.climbProgress;
   climbFill.style.width = `${Math.round(p * 100)}%`;
-  player.position.y = 0.2 + p * 4.8;
+  player.position.y = 0.2 + p * ROCKET_CLIMB_HEIGHT;
   player.position.x = Math.sin(p * 12) * 0.045;
   player.position.z = climbAnchorZ;
   if (playerJoints) {
@@ -1477,8 +1489,8 @@ function finishClimb() {
   state.mode = 'launch';
   state.interludeElapsed = 0;
   startShot(PASSAGE_DURATION,
-    new THREE.Vector3(0, 5.28, rocketGroup.position.z - 0.64),
-    new THREE.Vector3(0, 5.28, rocketGroup.position.z + 0.17),
+    new THREE.Vector3(0, ROCKET_HATCH_Y, rocketGroup.position.z - 0.64 * ROCKET_SCALE),
+    new THREE.Vector3(0, ROCKET_HATCH_Y, rocketGroup.position.z + 0.17 * ROCKET_SCALE),
     beginLiftoff);
   syncDevPause();
 }
@@ -1499,8 +1511,8 @@ function beginLiftoff() {
   launchFlames.visible = true;
   launchSmoke.visible = true;
   hud.classList.remove('visible');
-  camera.position.set(0, 7.3, rocketGroup.position.z - 18.5);
-  pointCamera(new THREE.Vector3(0, 5.5, rocketGroup.position.z));
+  camera.position.set(0, 24, rocketGroup.position.z - 75);
+  pointCamera(new THREE.Vector3(0, 25, rocketGroup.position.z));
   audio.launch();
   syncDevPause();
 }
@@ -1511,7 +1523,7 @@ function updateLiftoff(dt) {
   const thrust = THREE.MathUtils.smoothstep(p, 0, 0.18);
   const travel = Math.max(0, (p - 0.18) / 0.82);
   const rise = 78 * travel * travel;
-  rocketBody.position.y = 0.55 + rise;
+  rocketBody.position.y = ROCKET_BASE_Y + rise;
   launchFlames.scale.set(0.65 + thrust * 0.35,
     0.35 + thrust * (1.1 + travel * 0.85) + Math.sin(state.visualClock * 39) * 0.07 * thrust,
     0.65 + thrust * 0.35);
@@ -1529,15 +1541,15 @@ function updateLiftoff(dt) {
   launchSmoke.visible = p < 0.95;
   const shake = REDUCED_MOTION ? 0 : 0.17 * thrust * (1 - THREE.MathUtils.smoothstep(p, 0.3, 0.82));
   camera.position.set(Math.sin(state.visualClock * 48) * shake,
-    7.3 + rise * 0.35 + Math.sin(state.visualClock * 63) * shake * 0.45,
-    rocketGroup.position.z - 18.5 - p * 4);
-  pointCamera(new THREE.Vector3(0, 5.5 + rise * 0.9, rocketGroup.position.z));
+    24 + rise * 0.35 + Math.sin(state.visualClock * 63) * shake * 0.45,
+    rocketGroup.position.z - 75 - p * 10);
+  pointCamera(new THREE.Vector3(0, 25 + rise * 0.9, rocketGroup.position.z));
   if (p >= 1) beginLaunchExit();
 }
 
 let passageShield = null;
 
-function coverPassage(source) {
+function coverPassage(source, scale = 1) {
   if (passageShield) camera.remove(passageShield);
   passageShield = source.clone(false);
   passageShield.material = source.material.clone();
@@ -1545,7 +1557,7 @@ function coverPassage(source) {
   passageShield.material.depthWrite = false;
   passageShield.position.set(0, 0, -0.32);
   passageShield.rotation.set(0, 0, 0);
-  passageShield.scale.setScalar(2.5);
+  passageShield.scale.setScalar(2.5 * scale);
   passageShield.renderOrder = 1000;
   camera.add(passageShield);
 }
@@ -1556,7 +1568,7 @@ function uncoverPassage() {
 }
 
 function beginLaunchExit() {
-  coverPassage(rocketGroup.getObjectByName('boardingOccluder'));
+  coverPassage(rocketGroup.getObjectByName('boardingOccluder'), ROCKET_SCALE);
   startAct('space', false, true);
   state.mode = 'launchExit';
   startShot(PASSAGE_DURATION,
@@ -1800,7 +1812,7 @@ function frame(now) {
       const right = rocketGroup.getObjectByName('boardingDoorRight');
       if (left) left.position.x = -0.335 - 0.82 * open;
       if (right) right.position.x = 0.335 + 0.82 * open;
-      player.position.z = climbAnchorZ + 1.45 * THREE.MathUtils.smoothstep(p, 0.35, 1);
+      player.position.z = climbAnchorZ + 1.45 * ROCKET_SCALE * THREE.MathUtils.smoothstep(p, 0.35, 1);
       updateShot(rawDt);
     } else if (state.mode === 'liftoff') {
       updateLiftoff(rawDt);

@@ -4,7 +4,7 @@ Live build: https://no-lunch-left-behind.vercel.app
 
 ## Scene 1 final visual pass (2026-09-24)
 
-City Run now uses the approved Atlas-directed **code red AI apocalypse** language: monumental civic and launch infrastructure, occupied transit rails, machine checkpoints, evacuation activity, layered road hardware, surveillance scan light, smoke shelves, orbital debris, a detailed hero, and a fully staged last-rocket launch. The Atlas generations were visual references; the shipped assets remain original editable Three.js recipe code.
+City Run now uses the approved Atlas-directed **code red AI apocalypse** language: monumental civic and launch infrastructure, occupied transit rails, machine checkpoints, evacuation activity, layered road hardware, surveillance scan light, smoke shelves, orbital debris, a detailed hero, and a fully staged last-rocket launch. The rocket and launch complex are shown at four times their authored scale, with the boarding and liftoff cinematics retuned around the new megastructure proportions. The Atlas generations were visual references; the shipped assets remain original editable Three.js recipe code.
 
 - [Final phone gameplay frame](scene1-final-phone.png)
 - [Boarding-to-Space route proof](scene1-route-proof.png)

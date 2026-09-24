@@ -76,6 +76,7 @@ Record decisions while they are fresh. This is both a guard against scope drift 
 - Rebuilt the full Scene 1 family: hero, four hazards, road, civic megastructure, ten launch-city districts, AI checkpoints and transit, sky, billboard, wayfinder, manual override, ladder, rocket, launch hub, and exhaust/smoke.
 - The visual target is troubled code-red AI occupation rather than generic destruction: civic systems are visibly commandeered, evacuation details remain human-scale, and the last rocket reads as a desperate heroic objective.
 - Runtime decision: retain authored detail but bake static district geometry and internal animated assemblies. Hide completed route chunks only after the hatch seals so checkpoint structures cannot obscure the liftoff composition.
+- Scale decision: present the rocket and complete launch complex at 4× authored scale. Retune the ladder path, hatch alignment, boarding shot, transition shield, and exterior ascent camera rather than scaling the player, preserving the intended human-versus-megastructure contrast.
 - Evidence: all sixteen Scene 1 recipe modules pass the official multi-view verifier; the throttled phone jam gate passes at 5.1 seconds ready, 1.7 MB, 771 draws, 290,068 triangles, zero errors and 404s. The complete accelerated Scene 1 route reaches Space Flight without console or request failures.
 - Deployment remains unapproved and was not changed.
 
