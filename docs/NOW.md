@@ -1,6 +1,6 @@
 # Now — integration-owned task board
 
-Updated: 2026-09-23. Only the integration session edits this file. Check Git for the current SHA; this board is a coordination snapshot, not a substitute for `git status`.
+Updated: 2026-09-24. Only the integration session edits this file. Check Git for the current SHA; this board is a coordination snapshot, not a substitute for `git status`.
 
 ## Current state
 
@@ -15,9 +15,10 @@ Updated: 2026-09-23. Only the integration session edits this file. Check Git for
 - The apocalypse experience pass is integrated from `362e24a` and `18e70fa`: the City now passes worker evacuation, factories, fuel tank farms, transport rails, and launch pads, with moving crews, trains, cranes, alarms, and vents. Two lane-specific physical cut-offs can be triggered by tap or E; a telegraphed AI lane strike appears once in each normal act. Humanity falls continuously toward 60% without intervention; both cut-offs protect ten points, for a 70% collision-free ending. The intro, interludes, sound, and finale copy now carry that urgency.
 - The complete-content pass is integrated locally on `main`: first-run hazard hints and fairer AI strike timing, longer cut-off windows with an immediate five-point rescue, a right-lane orbital gate in Space Flight, larger Earth and corridor views, gold/red jump/slide satellite cues, dock approach beacons, outcome-specific radio calls, persistent mute, and less noisy accessibility semantics. The existing three-act route and controls remain. Five changed assets passed the recipe verifier, three unit suites pass, the ship check passes, and the local phone jam harness passes at 4.6 s ready, 1.7 MB, 524 draws, 38,818 triangles, zero errors and 404s. Browser checks covered the full accelerated route, normal station cut-off, safe and hit orbital-gate branches, the 256-person ending, phone layouts, and mute through replay. This is not a public exact-commit gate.
 - Local verification on this pass: both-cut-off and missed-cut-off full routes reached 70%/S and 60%/B with no application errors; a real emulated touch swipe escaped the normal-speed AI strike; desktop E, pause, mute, and reduced motion worked. Phone, landscape phone, tablet, and desktop layouts had no document overflow. The two new 404 recipe asset modules passed the four-view verifier. The local phone jam harness passed at 4.5 s ready, 1.7 MB transferred, 521 peak draws, 38,554 peak triangles, zero errors and 404s. This is local evidence, not the exact-commit public release gate.
+- Scene 1 final visual pass is complete locally. Atlas references established the monumental code-red AI-apocalypse language; sixteen City Run modules were rebuilt as detailed editable Three.js recipes and pass the official asset verifier 16/16. Static and internal assembly baking keeps the detail within the phone gate. The final local phone jam run passes at 5.1 s ready, 1.7 MB, 771 peak draws, 290,068 peak triangles, zero errors and 404s. An accelerated phone route observed City, boarding, climb, liftoff, launch exit, and Space Flight with an 810-draw / 304,580-triangle peak and no console or request failures. Review evidence is under `review/scene1-*`.
 - Last confirmed public Vercel game-code commit: `48fdae9`. Production is deliberately behind local development.
 - Vercel Git connection: none, confirmed in project settings on 2026-09-22. GitHub pushes are source-history updates, not deployments.
-- Atlas: pre-Atlas baseline; no credits spent. Scene refinement requires explicit owner approval.
+- Atlas: Scene 1 visual development approved and completed; 49 image-generation credits recorded. Atlas images are references only and are not shipped assets.
 - Release policy: local review first; do not deploy or submit until the owner says ready.
 
 ## Active assignments
@@ -38,4 +39,4 @@ Updated: 2026-09-23. Only the integration session edits this file. Check Git for
 
 ## Next integration step
 
-Review the complete-content source commit locally. Atlas refinement remains a separate creative pass requiring owner approval. Deployment, jam fork/entry JSON, and the exact-commit public gate remain release tasks requiring owner approval.
+Review the completed Scene 1 visual pass locally, then continue the same Atlas-directed process with Scene 2 only after owner review. Deployment, jam fork/entry JSON, and the exact-commit public gate remain release tasks requiring owner approval.

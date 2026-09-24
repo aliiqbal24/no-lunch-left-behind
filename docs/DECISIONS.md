@@ -69,6 +69,16 @@ Record decisions while they are fresh. This is both a guard against scope drift 
 - Local evidence: four changed assets passed the recipe verifier; unit suites and ship check pass; the phone jam harness passed at 4.6 s ready, 1.7 MB, 513 draws, 38,770 triangles, zero errors and 404s. Browser routes reached the cut-off, both orbital-gate outcomes, the master switch, and the 256-person ending.
 - Atlas art, Vercel deployment, the exact-commit public gate, and jam submission remain separate owner-approved release work.
 
+## 2026-09-24 — Scene 1 Atlas-directed production pass
+
+- Owner direction: spend Atlas credits and make City Run dramatically more complex, detailed, beautiful, massive, and emotionally apocalyptic.
+- Atlas was used for three visual-development generations (49 image credits recorded), not for packaged 3D files. This preserves the jam requirement that every shipped 3D object remain editable Three.js recipe code.
+- Rebuilt the full Scene 1 family: hero, four hazards, road, civic megastructure, ten launch-city districts, AI checkpoints and transit, sky, billboard, wayfinder, manual override, ladder, rocket, launch hub, and exhaust/smoke.
+- The visual target is troubled code-red AI occupation rather than generic destruction: civic systems are visibly commandeered, evacuation details remain human-scale, and the last rocket reads as a desperate heroic objective.
+- Runtime decision: retain authored detail but bake static district geometry and internal animated assemblies. Hide completed route chunks only after the hatch seals so checkpoint structures cannot obscure the liftoff composition.
+- Evidence: all sixteen Scene 1 recipe modules pass the official multi-view verifier; the throttled phone jam gate passes at 5.1 seconds ready, 1.7 MB, 771 draws, 290,068 triangles, zero errors and 404s. The complete accelerated Scene 1 route reaches Space Flight without console or request failures.
+- Deployment remains unapproved and was not changed.
+
 ## Decision template
 
 ### YYYY-MM-DD — Decision

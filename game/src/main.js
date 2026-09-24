@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ASSET } from '../lib/assetlib.js';
+import { ASSET, bakeStatic } from '../lib/assetlib.js';
 import { createRig } from '../lib/rig.js';
 import { SwipeInput } from './input.js';
 import { AudioEngine } from './audio.js';
@@ -267,6 +267,46 @@ function makeBillboardTexture() {
   return texture;
 }
 
+function bakePreserving(root, preservedNames) {
+  root.updateMatrixWorld(true);
+  const preserved = [];
+  root.traverse((part) => {
+    if (!preservedNames.has(part.name)) return;
+    let parent = part.parent;
+    while (parent && parent !== root) {
+      if (preservedNames.has(parent.name)) return;
+      parent = parent.parent;
+    }
+    preserved.push(part);
+  });
+  const inverse = root.matrixWorld.clone().invert();
+  const optimized = [];
+  for (const part of preserved) {
+    const localMatrix = inverse.clone().multiply(part.matrixWorld);
+    part.removeFromParent();
+    const position = new THREE.Vector3();
+    const quaternion = new THREE.Quaternion();
+    const scale = new THREE.Vector3();
+    localMatrix.decompose(position, quaternion, scale);
+    if (part.children.length) {
+      part.position.set(0, 0, 0); part.quaternion.identity(); part.scale.set(1, 1, 1);
+      const bakedPart = bakeStatic(part);
+      bakedPart.name = part.name;
+      bakedPart.userData = { ...part.userData };
+      bakedPart.position.copy(position); bakedPart.quaternion.copy(quaternion); bakedPart.scale.copy(scale);
+      optimized.push(bakedPart);
+    } else {
+      part.position.copy(position); part.quaternion.copy(quaternion); part.scale.copy(scale);
+      optimized.push(part);
+    }
+  }
+  const result = new THREE.Group();
+  result.name = root.name;
+  result.userData = { ...root.userData };
+  result.add(bakeStatic(root), ...optimized);
+  return result;
+}
+
 async function loadAssets() {
   setLoad(8, 'authorising unscheduled heroism…');
   const [playerAsset, shipAsset, boxy, spider, roller] = await Promise.all([
@@ -367,6 +407,11 @@ async function loadAssets() {
 function buildCity(road, building, billboard, rocket, launchFx, hub, wayfinder, citySky) {
   const signTexture = makeBillboardTexture();
   const districtAssets = [...createLaunchCityDistricts(THREE).children];
+  // Workers and alarm lamps are deliberately baked into each city chunk. Their
+  // authored poses and emissive lenses survive, while batching them keeps the
+  // production-detail pass inside the jam's phone draw-call budget.
+  const movingNames = new Set(['evacTrain', 'craneArm', 'ventFlare', 'railSignal',
+    'commandeeredTransit', 'aiSentinel', 'scanBeam']);
   citySky.position.set(0, 18, 170);
   citySky.traverse((object) => { if (object.isMesh) { object.castShadow = false; object.receiveShadow = false; } });
   cityRoot.add(citySky);
@@ -375,11 +420,50 @@ function buildCity(road, building, billboard, rocket, launchFx, hub, wayfinder, 
     const chunk = new THREE.Group();
     chunk.position.z = i * 40 + 12;
     chunk.add(road.clone(true));
-    const detail = districtAssets[i];
+    const sourceDetail = districtAssets[i];
+    sourceDetail.updateMatrixWorld(true);
+    const moving = [];
+    sourceDetail.traverse((part) => {
+      if (!movingNames.has(part.name)) return;
+      let parent = part.parent;
+      while (parent && parent !== sourceDetail) {
+        if (movingNames.has(parent.name)) return;
+        parent = parent.parent;
+      }
+      moving.push(part);
+    });
+    const sourceInverse = sourceDetail.matrixWorld.clone().invert();
+    const optimizedMoving = [];
+    for (const part of moving) {
+      const localMatrix = sourceInverse.clone().multiply(part.matrixWorld);
+      part.removeFromParent();
+      const position = new THREE.Vector3();
+      const quaternion = new THREE.Quaternion();
+      const scale = new THREE.Vector3();
+      localMatrix.decompose(position, quaternion, scale);
+      if (part.isGroup) {
+        part.position.set(0, 0, 0); part.quaternion.identity(); part.scale.set(1, 1, 1);
+        const bakedPart = bakeStatic(part);
+        bakedPart.name = part.name;
+        bakedPart.userData = { ...part.userData };
+        bakedPart.position.copy(position); bakedPart.quaternion.copy(quaternion); bakedPart.scale.copy(scale);
+        optimizedMoving.push(bakedPart);
+      } else {
+        part.position.copy(position); part.quaternion.copy(quaternion); part.scale.copy(scale);
+        optimizedMoving.push(part);
+      }
+    }
+    const detail = new THREE.Group();
+    detail.name = sourceDetail.name;
+    detail.userData = { ...sourceDetail.userData };
+    detail.add(bakeStatic(sourceDetail), ...optimizedMoving);
     chunk.add(detail);
     detail.traverse((part) => {
-      if (['evacWorker', 'evacTrain', 'craneArm', 'ventFlare', 'alarmLamp', 'railSignal'].includes(part.name)) {
+      if (['evacWorker', 'evacTrain', 'craneArm', 'ventFlare', 'alarmLamp', 'railSignal',
+        'commandeeredTransit', 'aiSentinel', 'scanBeam'].includes(part.name)) {
         part.userData.homeZ = part.position.z;
+        part.userData.homeY = part.position.y;
+        part.userData.phase = part.position.x * 0.7 + part.position.z * 0.11;
         if (part.name === 'evacTrain') part.userData.progress = 6;
         cityAnimated.push(part);
       }
@@ -417,13 +501,17 @@ function buildCity(road, building, billboard, rocket, launchFx, hub, wayfinder, 
     cityChunks.push(chunk);
   }
   rocketGroup = new THREE.Group();
-  rocketBody = rocket.clone(true);
+  rocketBody = bakePreserving(rocket, new Set(['boardingDoorLeft', 'boardingDoorRight', 'boardingOccluder']));
   rocketBody.position.y = 0.55;
   rocketBody.name = 'cityRocket';
-  launchFlames = launchFx.getObjectByName('launchFlames');
-  launchSmoke = launchFx.getObjectByName('launchSmoke');
-  launchFlames.removeFromParent();
-  launchSmoke.removeFromParent();
+  const sourceFlames = launchFx.getObjectByName('launchFlames');
+  const sourceSmoke = launchFx.getObjectByName('launchSmoke');
+  sourceFlames.removeFromParent();
+  sourceSmoke.removeFromParent();
+  launchFlames = bakeStatic(sourceFlames);
+  launchFlames.name = 'launchFlames';
+  launchSmoke = bakePreserving(sourceSmoke, new Set(['launchSmokePuff', 'launchShockwave']));
+  launchSmoke.name = 'launchSmoke';
   launchFlames.visible = false;
   launchSmoke.visible = false;
   launchEngineLight = launchFlames.getObjectByName('launchEngineLight');
@@ -770,7 +858,10 @@ function clearObstacles() {
 }
 
 function resetWorld(name, preserveCamera = false) {
-  cityChunks.forEach((chunk, index) => { chunk.position.z = index * 40 + 12; });
+  cityChunks.forEach((chunk, index) => {
+    chunk.position.z = index * 40 + 12;
+    chunk.visible = true;
+  });
   stationChunks.forEach((chunk, index) => { chunk.position.z = index * 40 + 12; chunk.visible = true; });
   rocketGroup.position.set(0, 0, 330);
   rocketGroup.visible = name === 'city';
@@ -1146,6 +1237,17 @@ function updateCityLife(dt) {
     if (part.name === 'craneArm') part.rotation.y = REDUCED_MOTION ? 0 : Math.sin(t * 0.9) * 0.16;
     if (part.name === 'ventFlare') part.scale.setScalar(REDUCED_MOTION ? 1 : 0.72 + Math.sin(t * 11 + part.position.z) * 0.2);
     if (part.name === 'alarmLamp') part.visible = REDUCED_MOTION || Math.sin(t * 8) > 0;
+    if (part.name === 'commandeeredTransit' && !REDUCED_MOTION) {
+      part.position.z = part.userData.homeZ + Math.sin(t * 0.72 + part.userData.phase) * 7.5;
+    }
+    if (part.name === 'aiSentinel' && !REDUCED_MOTION) {
+      part.position.y = part.userData.homeY + Math.sin(t * 4.2 + part.userData.phase) * 0.08;
+      part.rotation.y += dt * 0.22;
+    }
+    if (part.name === 'scanBeam') {
+      part.rotation.y = REDUCED_MOTION ? 0 : Math.sin(t * 0.85 + part.userData.phase) * 0.46;
+      part.material.opacity = REDUCED_MOTION ? 0.28 : 0.24 + (Math.sin(t * 6 + part.userData.phase) * 0.5 + 0.5) * 0.18;
+    }
   }
 }
 
@@ -1384,6 +1486,10 @@ function finishClimb() {
 function beginLiftoff() {
   state.mode = 'liftoff';
   state.interludeElapsed = 0;
+  // The city route has finished its job once the hatch seals. Remove its
+  // foreground gantries and wayfinders so the launch complex and rising
+  // rocket own the final City Run composition.
+  cityChunks.forEach((chunk) => { chunk.visible = false; });
   player.visible = false;
   climbLadder.visible = false;
   const left = rocketGroup.getObjectByName('boardingDoorLeft');

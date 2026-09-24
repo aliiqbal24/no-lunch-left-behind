@@ -2,6 +2,19 @@
 
 Live build: https://no-lunch-left-behind.vercel.app
 
+## Scene 1 final visual pass (2026-09-24)
+
+City Run now uses the approved Atlas-directed **code red AI apocalypse** language: monumental civic and launch infrastructure, occupied transit rails, machine checkpoints, evacuation activity, layered road hardware, surveillance scan light, smoke shelves, orbital debris, a detailed hero, and a fully staged last-rocket launch. The Atlas generations were visual references; the shipped assets remain original editable Three.js recipe code.
+
+- [Final phone gameplay frame](scene1-final-phone.png)
+- [Boarding-to-Space route proof](scene1-route-proof.png)
+- [Final liftoff frame](scene1-final-liftoff.png)
+- [Sixteen-asset verifier sheet](scene1-final-assets.png) and [machine report](scene1-final-assets.json): 16/16 clean
+- [Local phone jam verdict](scene1-final-local-verdict.json): PASS, 5.1 s ready, 1.7 MB, 771 peak draws, 290,068 peak triangles, no errors or 404s
+- Atlas references: [hero composition](atlas/city-run-hero-reference.png) and [code-red escalation](atlas/city-run-code-red-reference.png)
+
+The accelerated phone route reached City, boarding, climb, liftoff, launch exit, and Space Flight with no console or request failures. Its measured peak was 810 draws and 304,580 triangles. This is local development evidence; the public build above remains older until release approval.
+
 ## Local complete-content pass (2026-09-23)
 
 The local game now teaches hazards before its first AI strike, gives both physical cut-offs a wider and more visible rescue window, and stages a right-lane orbital-net escape during Space Flight. Gold low satellites and red high satellites cue the jump and slide; beacons frame the approaching dock. Earth anchors the flight and appears through corridor windows; the final radio call reflects how many people survived. Mute persists when replay returns to the start page.
@@ -47,7 +60,7 @@ The table reports the production deployment at commit `48fdae9`. The harness rep
 
 - The clip uses the built-in accelerated QA mode so all acts fit in 23 seconds. Normal play uses the intended 25-second City, Space, and Station acts, a 5-second ladder, and a 3-second docking beat.
 - The prior City-only checkpoint files remain in this folder as development evidence.
-- Atlas credits are untouched. This is the baseline to play before choosing which scene deserves an Atlas refinement pass.
+- The files in this older section are the pre-Atlas baseline. The new Scene 1 evidence is listed above.
 - For development review, open the live URL with `?dev=1` to show the small pause button during runs and interludes. `P` also toggles pause on a keyboard.
 
 ## Local rocket hub iteration
