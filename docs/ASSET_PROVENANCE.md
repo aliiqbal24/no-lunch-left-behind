@@ -21,7 +21,7 @@ No external media files, stock assets, downloaded meshes, textures, or runtime C
 - The finale shows the original procedural Earth module through the station hub's code-built hemispherical viewport.
 - Billboard text is generated at runtime with Canvas 2D.
 - Chase streaks are original Canvas 2D lines at the screen edges; the denser road and corridor markers are original Three.js geometry in their asset modules.
-- Music, sirens, machinery, AI lock and orbital-net tones, impacts, overrides, gestures, interlude cues, rocket liftoff, docking, the master-switch cue, and the results-grade cue are synthesized at runtime with the Web Audio API.
+- The complete score and sound design are original and synthesized at runtime with the Web Audio API; no stock or third-party audio files ship. Three distinct generative scores combine scene-specific tempo, bass movement, arpeggios, evolving chords, industrial percussion, stereo placement, filtering, and procedural reverb. Continuous city sirens and machinery, spacecraft engine pressure, station ventilation/electrical beds, movement feedback, AI lock and orbital-net warnings, impacts, lasers, overrides, climb and docking cues, rocket liftoff, the master-switch power-down, and grade-specific results cues are built from oscillators and generated noise through separate music, ambience, and effects buses.
 - The final radio call uses the device's built-in Web Speech voice as a temporary pre-Atlas treatment, with complete subtitles for each survival outcome on screen.
 
 ## Atlas visual-development record
