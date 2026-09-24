@@ -1,3 +1,26 @@
+export function joystickVector(dx, dy, radius = 72, deadzone = 7) {
+  const distance = Math.hypot(dx, dy);
+  if (distance <= deadzone) return { x: 0, y: 0 };
+
+  const directionX = dx / distance;
+  const directionY = dy / distance;
+  const usableRadius = Math.max(1, radius - deadzone);
+  const strength = Math.min(1, (distance - deadzone) / usableRadius);
+  return {
+    x: directionX * strength,
+    // Screen Y grows downward; flight Y grows upward.
+    y: -directionY * strength,
+  };
+}
+
+export function screenFlightToWorld(input) {
+  return {
+    // The flight camera looks toward +Z, so screen-right is world -X.
+    x: -input.x,
+    y: input.y,
+  };
+}
+
 export class SwipeInput {
   constructor(element, onGesture, onAnalog = () => {}) {
     this.element = element;
@@ -6,14 +29,22 @@ export class SwipeInput {
     this.active = null;
     this.threshold = 28;
     this.radius = 72;
+    this.deadzone = 7;
     this.keys = new Set();
     this.bind();
   }
 
   bind() {
     this.element.addEventListener('pointerdown', (event) => {
-      if (!event.isPrimary) return;
-      this.active = { id: event.pointerId, x: event.clientX, y: event.clientY, sent: false };
+      if (!event.isPrimary || this.active) return;
+      this.active = {
+        id: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        originX: event.clientX,
+        originY: event.clientY,
+        sent: false,
+      };
       this.element.setPointerCapture?.(event.pointerId);
       this.onAnalog({ x: 0, y: 0, active: true, source: 'touch', originX: event.clientX, originY: event.clientY });
       event.preventDefault();
@@ -27,14 +58,15 @@ export class SwipeInput {
     this.element.addEventListener('pointerup', (event) => {
       if (!this.active || event.pointerId !== this.active.id) return;
       this.finish(event.clientX, event.clientY);
-      if (!this.active.sent && Math.hypot(event.clientX - this.active.x, event.clientY - this.active.y) < this.threshold) {
+      if (!this.active.sent && Math.hypot(event.clientX - this.active.startX, event.clientY - this.active.startY) < this.threshold) {
         this.onGesture('tap', 'touch');
       }
       this.active = null;
       this.onAnalog({ x: 0, y: 0, active: false, source: 'touch' });
       event.preventDefault();
     });
-    this.element.addEventListener('pointercancel', () => {
+    this.element.addEventListener('pointercancel', (event) => {
+      if (!this.active || event.pointerId !== this.active.id) return;
       this.active = null;
       this.onAnalog({ x: 0, y: 0, active: false, source: 'touch' });
     });
@@ -66,17 +98,28 @@ export class SwipeInput {
   }
 
   updateAnalog(x, y) {
-    const dx = x - this.active.x;
-    const dy = y - this.active.y;
-    const length = Math.max(1, Math.hypot(dx, dy));
-    const strength = Math.min(1, length / this.radius);
+    let dx = x - this.active.originX;
+    let dy = y - this.active.originY;
+    const distance = Math.hypot(dx, dy);
+
+    // Like Roblox's dynamic thumbstick, the base begins wherever the player
+    // touches and follows only when the thumb moves beyond the control radius.
+    if (distance > this.radius) {
+      const overflow = distance - this.radius;
+      this.active.originX += dx / distance * overflow;
+      this.active.originY += dy / distance * overflow;
+      dx = x - this.active.originX;
+      dy = y - this.active.originY;
+    }
+
+    const vector = joystickVector(dx, dy, this.radius, this.deadzone);
     this.onAnalog({
-      x: dx / length * strength,
-      y: -dy / length * strength,
+      x: vector.x,
+      y: vector.y,
       active: true,
       source: 'touch',
-      originX: this.active.x,
-      originY: this.active.y,
+      originX: this.active.originX,
+      originY: this.active.originY,
     });
   }
 
@@ -96,8 +139,8 @@ export class SwipeInput {
 
   finish(x, y) {
     if (this.active.sent) return;
-    const dx = x - this.active.x;
-    const dy = y - this.active.y;
+    const dx = x - this.active.startX;
+    const dy = y - this.active.startY;
     const ax = Math.abs(dx);
     const ay = Math.abs(dy);
     if (Math.max(ax, ay) < this.threshold) return;

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { ASSET, bakeStatic } from '../lib/assetlib.js';
 import { createRig } from '../lib/rig.js';
-import { SwipeInput } from './input.js';
+import { screenFlightToWorld, SwipeInput } from './input.js';
 import { AudioEngine } from './audio.js';
 import { createChaseVisuals } from './chase_visuals.js';
 import { calculateRating } from './results.js';
@@ -797,8 +797,8 @@ function onFlightAnalog(input) {
   if (input.active && input.source === 'touch') {
     flightJoystick.style.left = `${input.originX}px`;
     flightJoystick.style.top = `${input.originY}px`;
-    flightJoystick.style.setProperty('--joy-dx', `${input.x * 30}px`);
-    flightJoystick.style.setProperty('--joy-dy', `${-input.y * 30}px`);
+    flightJoystick.style.setProperty('--joy-dx', `${input.x * 34}px`);
+    flightJoystick.style.setProperty('--joy-dy', `${-input.y * 34}px`);
     flightJoystick.classList.add('active');
   } else {
     flightJoystick.classList.remove('active');
@@ -928,7 +928,7 @@ function startAct(name, fromIntro = false, fromTransition = false) {
   tutorial.classList.toggle('visible', name === 'city' && !fromIntro && !fromTransition);
   tutorialText.textContent = name === 'city'
     ? (KEYBOARD_HINTS ? 'LEFT / RIGHT OR A / D TO CHANGE LANES' : 'SWIPE TO CHANGE LANES')
-    : name === 'space' ? (KEYBOARD_HINTS ? 'WASD / ARROWS · FLY FREELY · EVADE RED FIRE' : 'DRAG ANY DIRECTION · RELEASE TO COAST') :
+    : name === 'space' ? (KEYBOARD_HINTS ? 'WASD / ARROWS · FLY FREELY · EVADE RED FIRE' : 'TOUCH ANYWHERE · DRAG TO FLY · RELEASE TO COAST') :
       (KEYBOARD_HINTS ? 'SAME KEYS · REACH THE SWITCH' : 'SAME SWIPES · REACH THE SWITCH');
   if (name === 'space' && !fromTransition) {
     tutorial.classList.add('visible');
@@ -1168,8 +1168,9 @@ function updateActor(dt) {
   const actor = activeActor();
   if (state.act === 'space') {
     const input = state.flightInput;
-    const desiredX = input.x * 7.8;
-    const desiredY = input.y * 7.0;
+    const worldInput = screenFlightToWorld(input);
+    const desiredX = worldInput.x * 7.8;
+    const desiredY = worldInput.y * 7.0;
     const response = input.active ? 7.5 : 3.2;
     state.flightVelocity.x = THREE.MathUtils.damp(state.flightVelocity.x, desiredX, response, dt);
     state.flightVelocity.y = THREE.MathUtils.damp(state.flightVelocity.y, desiredY, response, dt);
