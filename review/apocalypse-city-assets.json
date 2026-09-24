@@ -1,0 +1,78 @@
+[
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 318,
+  "tris": 5392,
+  "materials": 10,
+  "size": [
+   29.6,
+   11,
+   40
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.1311,
+    "edgeDensity": 0.3104
+   },
+   "right": {
+    "coverage": 0.1803,
+    "edgeDensity": 0.2556
+   },
+   "back": {
+    "coverage": 0.1256,
+    "edgeDensity": 0.3375
+   },
+   "left": {
+    "coverage": 0.1792,
+    "edgeDensity": 0.2673
+   }
+  },
+  "error": null,
+  "name": "launch_city_districts",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 5,
+  "tris": 252,
+  "materials": 3,
+  "size": [
+   1.96,
+   2.47,
+   1.96
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.1934,
+    "edgeDensity": 0.0414
+   },
+   "right": {
+    "coverage": 0.1546,
+    "edgeDensity": 0.0483
+   },
+   "back": {
+    "coverage": 0.1983,
+    "edgeDensity": 0.0794
+   },
+   "left": {
+    "coverage": 0.1546,
+    "edgeDensity": 0.0682
+   }
+  },
+  "error": null,
+  "name": "manual_override",
+  "problems": []
+ }
+]
