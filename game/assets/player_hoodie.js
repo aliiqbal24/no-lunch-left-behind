@@ -83,15 +83,28 @@ export default function (THREE) {
   face.position.set(0, 0, 0.185);
   face.scale.set(1, 1.05, 0.6);
   head.add(face);
+  const eyebrows = [];
   for (const x of [-0.085, 0.085]) {
     const eye = new THREE.Mesh(new THREE.SphereGeometry(0.027, 8, 6), dark);
     eye.position.set(x, 0.035, 0.338);
     head.add(eye);
+    const eyebrow = new THREE.Mesh(new THREE.CapsuleGeometry(0.012, 0.07, 3, 7), dark);
+    eyebrow.rotation.z = Math.PI / 2;
+    eyebrow.position.set(x, 0.105, 0.346);
+    head.add(eyebrow);
+    eyebrows.push(eyebrow);
   }
   const nose = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 6), skin);
   nose.position.set(0, -0.01, 0.347); head.add(nose);
   const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.012, 0.015), dark);
   mouth.position.set(0, -0.085, 0.34); head.add(mouth);
+  const sadMouth = new THREE.Mesh(new THREE.TorusGeometry(0.058, 0.009, 5, 12, Math.PI), dark);
+  sadMouth.position.set(0, -0.112, 0.352); sadMouth.visible = false; head.add(sadMouth);
+  const angryMouth = new THREE.Mesh(new THREE.CapsuleGeometry(0.035, 0.06, 4, 10), dark);
+  angryMouth.rotation.z = Math.PI / 2;
+  angryMouth.position.set(0, -0.09, 0.356); angryMouth.visible = false; head.add(angryMouth);
+  const tear = new THREE.Mesh(new THREE.SphereGeometry(0.013, 7, 5), tealLight);
+  tear.position.set(-0.09, -0.012, 0.35); tear.visible = false; head.add(tear);
   const comm = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.05, 10), orange);
   comm.position.set(0.31, 0, 0.1); comm.rotation.z = Math.PI / 2; head.add(comm);
   const commLight = new THREE.Mesh(new THREE.SphereGeometry(0.03, 7, 5), tealLight);
@@ -155,6 +168,7 @@ export default function (THREE) {
   const bounds = new THREE.Box3().setFromObject(g);
   const centre = bounds.getCenter(new THREE.Vector3());
   g.children.forEach((child) => { child.position.x -= centre.x; child.position.z -= centre.z; });
-  g.userData.joints = { hips, torso, head, leftArm, rightArm, leftLeg, rightLeg };
+  g.userData.joints = { hips, torso, head, leftArm, rightArm, leftLeg, rightLeg,
+    leftBrow: eyebrows[0], rightBrow: eyebrows[1], neutralMouth: mouth, sadMouth, angryMouth, tear };
   return g;
 }

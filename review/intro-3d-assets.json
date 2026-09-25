@@ -1,0 +1,120 @@
+[
+ {
+  "ok": true,
+  "mounts": [
+   "back",
+   "left",
+   "right"
+  ],
+  "meshes": 257,
+  "tris": 5372,
+  "materials": 12,
+  "size": [
+   7.48,
+   4.52,
+   6.6
+  ],
+  "groundOffset": 0,
+  "centreOffset": [
+   0,
+   -0.05
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.4026,
+    "edgeDensity": 0.1866
+   },
+   "right": {
+    "coverage": 0.3846,
+    "edgeDensity": 0.0648
+   },
+   "back": {
+    "coverage": 0.4056,
+    "edgeDensity": 0.0429
+   },
+   "left": {
+    "coverage": 0.3858,
+    "edgeDensity": 0.0325
+   }
+  },
+  "error": null,
+  "name": "intro_breakroom",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 65,
+  "tris": 4482,
+  "materials": 10,
+  "size": [
+   1.445,
+   2.169,
+   1.191
+  ],
+  "groundOffset": 0.015,
+  "centreOffset": [
+   -0.07,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.212,
+    "edgeDensity": 0.192
+   },
+   "right": {
+    "coverage": 0.165,
+    "edgeDensity": 0.1596
+   },
+   "back": {
+    "coverage": 0.205,
+    "edgeDensity": 0.0753
+   },
+   "left": {
+    "coverage": 0.1719,
+    "edgeDensity": 0.1482
+   }
+  },
+  "error": null,
+  "name": "intro_coworker",
+  "problems": []
+ },
+ {
+  "ok": true,
+  "mounts": null,
+  "meshes": 67,
+  "tris": 7508,
+  "materials": 8,
+  "size": [
+   1.082,
+   2.023,
+   1.037
+  ],
+  "groundOffset": -0.005,
+  "centreOffset": [
+   0,
+   0
+  ],
+  "sides": {
+   "front": {
+    "coverage": 0.2059,
+    "edgeDensity": 0.2257
+   },
+   "right": {
+    "coverage": 0.1787,
+    "edgeDensity": 0.1535
+   },
+   "back": {
+    "coverage": 0.1867,
+    "edgeDensity": 0.1298
+   },
+   "left": {
+    "coverage": 0.1929,
+    "edgeDensity": 0.1507
+   }
+  },
+  "error": null,
+  "name": "player_hoodie",
+  "problems": []
+ }
+]

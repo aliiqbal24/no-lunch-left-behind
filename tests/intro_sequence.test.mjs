@@ -2,24 +2,27 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   PROLOGUE_DURATION,
-  PROLOGUE_FRAMES,
+  PROLOGUE_BEATS,
   PROLOGUE_STORAGE_KEY,
-  frameIndexAt,
+  beatIndexAt,
   hasSeenPrologue,
   markPrologueSeen,
 } from '../game/src/intro_sequence.js';
 
-test('the emergency transmission is gate-safe and exactly sixteen seconds', () => {
-  assert.equal(PROLOGUE_DURATION, 16_000);
-  assert.equal(PROLOGUE_FRAMES.length, 6);
-  assert.ok(PROLOGUE_DURATION < 20_000);
+test('the breakroom scene tells its complete story on a single clock', () => {
+  assert.equal(PROLOGUE_DURATION, 20_500);
+  assert.equal(PROLOGUE_BEATS.length, 8);
+  assert.ok(PROLOGUE_BEATS.at(-1).at < PROLOGUE_DURATION);
+  assert.match(PROLOGUE_BEATS[3].line, /steal my lunch/);
+  assert.match(PROLOGUE_BEATS[6].line, /destroy everyone/);
+  assert.match(PROLOGUE_BEATS[7].line, /Station 404/);
 });
 
-test('frameIndexAt follows every shot boundary and clamps the ending', () => {
-  const starts = [0, 2400, 4900, 7400, 10_300, 13_100];
-  starts.forEach((start, index) => assert.equal(frameIndexAt(start), index));
-  assert.equal(frameIndexAt(-20), 0);
-  assert.equal(frameIndexAt(99_000), 5);
+test('beatIndexAt follows every cue boundary and clamps the ending', () => {
+  PROLOGUE_BEATS.forEach(({ at }, index) => assert.equal(beatIndexAt(at), index));
+  assert.equal(beatIndexAt(-20), 0);
+  assert.equal(beatIndexAt(99_000), PROLOGUE_BEATS.length - 1);
+  assert.equal(beatIndexAt(Number.NaN), 0);
 });
 
 test('first-run persistence tolerates unavailable storage', () => {

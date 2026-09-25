@@ -4,10 +4,11 @@ import { createRig } from '../lib/rig.js';
 import { screenFlightToWorld, SwipeInput } from './input.js';
 import { AudioEngine } from './audio.js';
 import { createChaseVisuals } from './chase_visuals.js';
+import { poseBreakroom } from './intro_scene.js';
 import {
   PROLOGUE_DURATION,
-  PROLOGUE_FRAMES,
-  frameIndexAt,
+  PROLOGUE_BEATS,
+  beatIndexAt,
   hasSeenPrologue,
   markPrologueSeen,
 } from './intro_sequence.js';
@@ -25,9 +26,12 @@ const startScreen = $('#start');
 const startButton = $('#startb');
 const missionReady = $('#missionReady');
 const replayTransmission = $('#replayTransmission');
-const transmissionTime = $('#transmissionTime');
-const transmissionFrames = [...document.querySelectorAll('.transmission-frame')];
-const transmissionProgress = [...document.querySelectorAll('#transmissionProgress i')];
+const introTime = $('#introTime');
+const introBubble = $('#introBubble');
+const introSpeaker = $('#introSpeaker');
+const introLine = $('#introLine');
+const introStatus = $('#introStatus');
+const introSound = $('#introSound');
 const hud = $('#hud');
 const stick = $('#stick');
 const flightJoystick = $('#flightJoystick');
@@ -190,7 +194,8 @@ const stationRoot = new THREE.Group();
 const actorRoot = new THREE.Group();
 const obstacleRoot = new THREE.Group();
 const robotRoot = new THREE.Group();
-scene.add(cityRoot, spaceRoot, stationRoot, actorRoot, obstacleRoot, robotRoot);
+const introRoot = new THREE.Group();
+scene.add(cityRoot, spaceRoot, stationRoot, actorRoot, obstacleRoot, robotRoot, introRoot);
 
 const rig = createRig(THREE, renderer, scene, {
   tier: 'phone', hour: 17.1, azimuth: 238, exposure: 1.04,
@@ -222,11 +227,14 @@ const state = {
   flightInput: { x: 0, y: 0, active: false }, flightVelocity: { x: 0, y: 0 },
   interceptor: { shotIndex: 0, warning: false }, dockFromY: 0.4,
   finaleOutcome: null,
+  introElapsed: 0, introBeatIndex: -1,
 };
 
 let chaseVisuals = null;
 let player;
 let playerJoints;
+let introRoom;
+let introCoworker;
 let ship;
 let cityChunks = [];
 let cityAnimated = [];
@@ -265,8 +273,6 @@ let fpsSamples = [];
 let patternIndex = 0;
 let spawnClock = 0;
 let tutorialStage = 0;
-let prologueToken = 0;
-let prologuePlaying = false;
 const introActorFrom = new THREE.Vector3();
 let introActorRotation = 0;
 let introHeadRotation = 0;
@@ -336,12 +342,14 @@ function bakePreserving(root, preservedNames) {
 
 async function loadAssets() {
   setLoad(8, 'authorising unscheduled heroism…');
-  const [playerAsset, shipAsset, boxy, spider, roller] = await Promise.all([
+  const [playerAsset, shipAsset, boxy, spider, roller, roomAsset, coworkerAsset] = await Promise.all([
     ASSET(assetUrl('player_hoodie'), { keepHierarchy: true }),
     ASSET(assetUrl('player_ship'), { keepHierarchy: true }),
     ASSET(assetUrl('robot_boxy')),
     ASSET(assetUrl('robot_spider')),
     ASSET(assetUrl('robot_roller')),
+    ASSET(assetUrl('intro_breakroom'), { keepHierarchy: true }),
+    ASSET(assetUrl('intro_coworker'), { keepHierarchy: true }),
   ]);
 
   setLoad(26, 'weaponising household appliances…');
@@ -391,6 +399,14 @@ async function loadAssets() {
   player.position.set(0, 0.2, 0);
   playerJoints = player.userData.joints;
   actorRoot.add(player);
+
+  introRoom = roomAsset;
+  introRoom.position.set(-15.5, 0, 3);
+  introRoot.add(introRoom);
+  introCoworker = coworkerAsset;
+  introCoworker.position.set(-14.05, 0.24, 1.1);
+  introRoot.add(introCoworker);
+  introRoot.visible = false;
 
   ship = shipAsset;
   ship.scale.setScalar(0.88);
@@ -736,84 +752,93 @@ function showBanner(kicker, title, order) {
   sceneBanner.classList.add('show');
 }
 
-function activateTransmissionFrame(index) {
-  transmissionFrames.forEach((frame, frameIndex) => {
-    frame.classList.toggle('active', frameIndex === index);
-    frame.classList.toggle('previous', frameIndex === index - 1);
-    frame.setAttribute('aria-hidden', frameIndex === index ? 'false' : 'true');
-  });
-  transmissionProgress.forEach((segment, segmentIndex) => segment.classList.toggle('done', segmentIndex <= index));
-}
-
-function updateTransmissionClock(elapsedMs) {
-  const totalSeconds = Math.min(PROLOGUE_DURATION, Math.max(0, elapsedMs)) / 1000;
-  const seconds = Math.floor(totalSeconds);
-  const frames = Math.floor((totalSeconds - seconds) * 24);
-  transmissionTime.textContent = `00:00:${String(seconds).padStart(2, '0')}:${String(frames).padStart(2, '0')}`;
-}
-
-function waitForTransmissionImage(index) {
-  const image = transmissionFrames[index]?.querySelector('img');
-  if (!image || (image.complete && image.naturalWidth > 0)) return Promise.resolve();
-  const decoded = typeof image.decode === 'function' ? image.decode().catch(() => {}) : new Promise((resolve) => {
-    image.addEventListener('load', resolve, { once: true });
-    image.addEventListener('error', resolve, { once: true });
-  });
-  return Promise.race([decoded, new Promise((resolve) => window.setTimeout(resolve, 1500))]);
-}
-
 function concealMissionReady() {
   missionReady.classList.remove('revealed');
   startScreen.classList.remove('mission-armed');
   missionReady.hidden = true;
   missionReady.inert = true;
   missionReady.setAttribute('aria-hidden', 'true');
+  startButton.textContent = 'PLAY NOW ↗';
 }
 
 function revealMissionReady() {
-  activateTransmissionFrame(PROLOGUE_FRAMES.length - 1);
-  updateTransmissionClock(PROLOGUE_DURATION);
   missionReady.hidden = false;
   missionReady.inert = false;
   missionReady.setAttribute('aria-hidden', 'false');
   startScreen.classList.add('mission-armed');
   missionReady.classList.add('revealed');
+  startButton.textContent = 'RUN TO THE ROCKET';
 }
 
-async function playPrologue({ remember = true } = {}) {
-  const token = ++prologueToken;
-  prologuePlaying = true;
+function showIntroBeat(index) {
+  const beat = PROLOGUE_BEATS[index];
+  introBubble.hidden = !beat.line;
+  introBubble.classList.toggle('robot', beat.speaker === 'COWORKER');
+  introBubble.classList.toggle('code-red', beat.id === 'evacuate');
+  introSpeaker.textContent = beat.speaker;
+  introLine.textContent = beat.line;
+  introStatus.textContent = beat.id === 'red' || beat.id === 'evacuate'
+    ? 'CODE RED · AI SAFETY GRID COMPROMISED' : 'INCIDENT ZERO · THE LAST NORMAL LUNCH BREAK';
+  startScreen.classList.toggle('code-red', index >= 6);
+  audio.introCue(beat.cue);
+}
+
+function startPrologue() {
+  state.mode = 'intro';
+  state.introElapsed = 0;
+  state.introBeatIndex = -1;
   concealMissionReady();
-  transmissionFrames.forEach((frame) => { frame.querySelector('img').loading = 'eager'; });
-  activateTransmissionFrame(0);
-  updateTransmissionClock(0);
-  await waitForTransmissionImage(0);
-  if (token !== prologueToken) return;
-  loading.classList.remove('visible');
+  introRoot.visible = true;
+  cityRoot.visible = false;
+  obstacleRoot.visible = false;
+  player.visible = true;
+  ship.visible = false;
+  document.body.classList.add('intro-playing');
   startScreen.classList.add('visible');
-  const started = performance.now();
-  let activeFrame = 0;
-  await new Promise((resolve) => {
-    const tick = (now) => {
-      if (token !== prologueToken) return resolve();
-      const elapsed = Math.min(PROLOGUE_DURATION, now - started);
-      const nextFrame = frameIndexAt(elapsed);
-      if (nextFrame !== activeFrame) {
-        activeFrame = nextFrame;
-        activateTransmissionFrame(activeFrame);
-      }
-      updateTransmissionClock(elapsed);
-      if (elapsed >= PROLOGUE_DURATION) return resolve();
-      requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  });
-  if (token !== prologueToken) return;
-  if (remember) {
-    try { markPrologueSeen(window.localStorage); }
-    catch { /* Storage is optional; the cinematic still completed. */ }
+  introBubble.hidden = true;
+  introTime.textContent = '00:00';
+  introSound.textContent = audio.ctx && audio.enabled ? '♪ SOUND ON' : '♪ ENABLE SOUND';
+  poseBreakroom({ THREE, timeMs: 0, room: introRoom, coworker: introCoworker,
+    player, playerJoints, camera, aim: cameraAim, reducedMotion: REDUCED_MOTION });
+  showIntroBeat(0);
+  state.introBeatIndex = 0;
+  if (audio.ctx) void audio.startIntro();
+}
+
+function finishPrologue() {
+  if (state.mode !== 'intro') return;
+  try { markPrologueSeen(window.localStorage); }
+  catch { /* The game remains playable without storage. */ }
+  state.mode = 'ready';
+  introRoot.visible = false;
+  cityRoot.visible = true;
+  obstacleRoot.visible = true;
+  player.visible = true;
+  startScreen.classList.remove('code-red');
+  playerJoints.neutralMouth.visible = true;
+  playerJoints.sadMouth.visible = false;
+  playerJoints.angryMouth.visible = false;
+  playerJoints.tear.visible = false;
+  playerJoints.leftBrow.rotation.z = 0;
+  playerJoints.rightBrow.rotation.z = 0;
+  playerJoints.head.rotation.z = 0;
+  playerJoints.leftLeg.rotation.x = 0;
+  playerJoints.rightLeg.rotation.x = 0;
+  updateIntroCity();
+  revealMissionReady();
+}
+
+function updatePrologue(dt) {
+  state.introElapsed = Math.min(PROLOGUE_DURATION, state.introElapsed + dt * 1000);
+  const index = beatIndexAt(state.introElapsed);
+  if (index !== state.introBeatIndex) {
+    showIntroBeat(index);
+    state.introBeatIndex = index;
   }
-  prologuePlaying = false;
+  introTime.textContent = `00:${String(Math.floor(state.introElapsed / 1000)).padStart(2, '0')}`;
+  poseBreakroom({ THREE, timeMs: state.introElapsed, room: introRoom, coworker: introCoworker,
+    player, playerJoints, camera, aim: cameraAim, reducedMotion: REDUCED_MOTION });
+  if (state.introElapsed >= PROLOGUE_DURATION) finishPrologue();
 }
 
 function showHazardHint() {
@@ -932,12 +957,12 @@ function resetRun() {
 }
 
 function startGame() {
-  if (state.mode !== 'ready' || prologuePlaying || startScreen.classList.contains('exiting')) return;
+  if (state.mode === 'intro') finishPrologue();
+  if (state.mode !== 'ready' || startScreen.classList.contains('exiting')) return;
   state.shot = null;
   state.passage = '';
   state.finaleElapsed = 0;
   state.finalePanStarted = false;
-  prologueToken += 1;
   document.body.classList.remove('intro-playing');
   const firstAct = ['city', 'space', 'station'].includes(START_SCENE) ? START_SCENE : 'city';
   const fromIntro = firstAct === 'city' && !REDUCED_MOTION;
@@ -2051,7 +2076,9 @@ function frame(now) {
   if (!document.hidden && !state.paused) {
     state.visualClock += rawDt;
     if (MISSION_MODES.has(state.mode)) state.missionElapsed += rawDt;
-    if (state.mode === 'ready') {
+    if (state.mode === 'intro') {
+      updatePrologue(rawDt);
+    } else if (state.mode === 'ready') {
       updateIntroCity();
     } else if (state.mode === 'playing') {
       if (state.introDelay > 0) {
@@ -2224,11 +2251,18 @@ function resize() {
 
 window.addEventListener('resize', resize);
 startButton.addEventListener('click', startGame);
-replayTransmission.addEventListener('click', async () => {
-  if (prologuePlaying || state.mode !== 'ready') return;
-  document.body.classList.add('intro-playing');
-  await playPrologue({ remember: false });
-  if (state.mode === 'ready') revealMissionReady();
+replayTransmission.addEventListener('click', () => {
+  if (state.mode !== 'ready') return;
+  startPrologue();
+});
+introSound.addEventListener('click', async () => {
+  if (!audio.enabled) {
+    audio.toggle();
+    muteButton.textContent = 'SOUND ON';
+  }
+  await audio.startIntro();
+  introSound.textContent = '♪ SOUND ON';
+  if (state.introElapsed >= PROLOGUE_BEATS[6].at) audio.introCue('threat');
 });
 climbTap.addEventListener('click', registerClimbTap);
 climbScreen.addEventListener('pointerdown', (event) => {
@@ -2271,26 +2305,18 @@ window.__GAME__ = { pos: [0, 0], fps: 0, speed: 0, score: 0, over: false, draws:
 let returningPlayer = Boolean(START_SCENE);
 try { returningPlayer ||= hasSeenPrologue(window.localStorage); }
 catch { /* Some embedded browsers deny storage; treat them as a first visit. */ }
-const prologuePromise = returningPlayer ? Promise.resolve() : playPrologue();
-let readyFramePromise = Promise.resolve();
-if (returningPlayer) {
-  const finalFrameIndex = PROLOGUE_FRAMES.length - 1;
-  transmissionFrames[finalFrameIndex].querySelector('img').loading = 'eager';
-  activateTransmissionFrame(finalFrameIndex);
-  readyFramePromise = waitForTransmissionImage(finalFrameIndex);
-}
-
-const assetsPromise = loadAssets().then(() => {
+loadAssets().then(() => {
   resetWorld('city');
   player.visible = true;
-  updateIntroCity();
-});
-
-Promise.all([assetsPromise, prologuePromise, readyFramePromise]).then(() => {
-  state.mode = 'ready';
   loading.classList.remove('visible');
   startScreen.classList.add('visible');
-  revealMissionReady();
+  if (returningPlayer) {
+    state.mode = 'ready';
+    updateIntroCity();
+    revealMissionReady();
+  } else {
+    startPrologue();
+  }
   window.__READY__ = true;
 }).catch((error) => {
   console.error(error);

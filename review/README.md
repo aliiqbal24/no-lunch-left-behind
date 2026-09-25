@@ -1,6 +1,17 @@
-# Full pre-Atlas game — review packet
+# Game visual review packet
 
 Live build: https://no-lunch-left-behind.vercel.app
+
+## 3D breakroom opening (2026-09-25, local build)
+
+The former still-image transmission is replaced with a live, editable Three.js scene inside a City facade: hinged empty fridge, warm office set, expressive hoodie hero, suited robot coworker with a movable coffee cup, red-eye turn, and code-red alarm state. Speech bubbles and procedural sound cues carry the scene into the existing playable City Run. The first-run opening can be skipped immediately, returning players may replay it, and no runtime raster assets are required.
+
+- [Three-asset verifier sheet](intro-3d-assets.png) and [machine report](intro-3d-assets.json): breakroom, coworker, and updated hero 3/3 clean; the breakroom's three exterior mounted faces are explicitly declared flat
+- [First-run phone frame](intro-3d-phone.png) and [local phone jam verdict](intro-3d-local-verdict.json): PASS, 5.1 s ready, 1.8 MB, 775 peak draws, 291,200 peak triangles, no errors or 404s
+- Atlas references: [warm set](atlas/breakroom-warm-set.jpg) and [character acting](atlas/breakroom-acting.jpg). A third code-red prop and lighting sheet remains in the Atlas project.
+- The old transmission review sheet remains in this directory only as historical evidence; its twelve WebPs were removed from the shipped game folder.
+
+This is a local development build, not the older live deployment above.
 
 ## Scene 3 final station visual pass (2026-09-24)
 

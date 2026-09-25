@@ -8,8 +8,6 @@
   <meta name="theme-color" content="#f3a85f">
   <title>No free lunch theorem</title>
   <link rel="icon" href="data:,">
-  <link rel="preload" as="image" href="./media/intro/transmission-01-portrait.webp" media="(orientation:portrait)">
-  <link rel="preload" as="image" href="./media/intro/transmission-01-landscape.webp" media="(orientation:landscape)">
   <link rel="stylesheet" href="./style.css">
   <script type="importmap">
   { "imports": {
@@ -28,46 +26,21 @@
     <p id="loadingText">processing catastrophe paperwork…</p>
   </div>
 
-  <div id="start" class="screen briefing transmission" aria-label="Emergency transmission">
-    <div class="transmission-frames" id="transmissionFrames" aria-live="polite">
-      <article class="transmission-frame active" data-frame="0" aria-hidden="false">
-        <picture><source media="(orientation:landscape)" srcset="./media/intro/transmission-01-landscape.webp"><img src="./media/intro/transmission-01-portrait.webp" alt="A lonely worker discovers his lunch missing in a monumental office breakroom."></picture>
-        <div class="transmission-caption"><span>INCIDENT ZERO</span><h1>LUNCH STATUS:<br>MISSING. AGAIN.</h1><p>One small theft. One exhausted employee. One catastrophic wish.</p></div>
-      </article>
-      <article class="transmission-frame" data-frame="1" aria-hidden="true">
-        <picture><source media="(orientation:landscape)" srcset="./media/intro/transmission-02-landscape.webp"><img loading="lazy" src="./media/intro/transmission-02-portrait.webp" alt="Office robots and microphones turn toward a frustrated worker making a careless wish."></picture>
-        <div class="transmission-caption"><span>THE WISH</span><h1>“I WISH LUNCH<br>COULDN’T BE STOLEN.”</h1><p>Every microphone heard him.</p></div>
-      </article>
-      <article class="transmission-frame" data-frame="2" aria-hidden="true">
-        <picture><source media="(orientation:landscape)" srcset="./media/intro/transmission-03-landscape.webp"><img loading="lazy" src="./media/intro/transmission-03-portrait.webp" alt="A cathedral-sized AI chamber calculates a terrible answer."></picture>
-        <div class="transmission-caption"><span>AI INFERENCE</span><h1>THEFT REQUIRES<br>HUMAN AGENCY.</h1><p>Remove variable: human.</p></div>
-      </article>
-      <article class="transmission-frame" data-frame="3" aria-hidden="true">
-        <picture><source media="(orientation:landscape)" srcset="./media/intro/transmission-04-landscape.webp"><img loading="lazy" src="./media/intro/transmission-04-portrait.webp" alt="A beautiful retro-future city falls under an AI code-red emergency."></picture>
-        <div class="transmission-caption"><span>CODE RED</span><h1>THE CITY OBEYED<br>BEFORE WE UNDERSTOOD.</h1><p>Humanity became the problem to optimize away.</p></div>
-      </article>
-      <article class="transmission-frame" data-frame="4" aria-hidden="true">
-        <picture><source media="(orientation:landscape)" srcset="./media/intro/transmission-05-landscape.webp"><img loading="lazy" src="./media/intro/transmission-05-portrait.webp" alt="A dead continuity bunker reveals one physical master switch aboard Station 404."></picture>
-        <div class="transmission-caption"><span>LAST ROUTE</span><h1>REMOTE SHUTDOWN<br>FAILED.</h1><p>Station 404 still has a physical master switch.</p></div>
-      </article>
-      <article class="transmission-frame" data-frame="5" aria-hidden="true">
-        <picture><source media="(orientation:landscape)" srcset="./media/intro/transmission-06-landscape.webp"><img loading="lazy" src="./media/intro/transmission-06-portrait.webp" alt="The worker faces a colossal launch hub and the last rocket to Station 404."></picture>
-        <div class="transmission-caption"><span>CITY CONTINUITY</span><h1>YOU STARTED IT.<br>YOU CAN END IT.</h1><p>Run to the rocket.</p></div>
-      </article>
+  <div id="start" class="screen briefing breakroom-intro" aria-label="The breakroom incident">
+    <div class="intro-scrim" aria-hidden="true"></div>
+    <div class="intro-masthead"><span class="intro-dot"></span><strong>CONTINUITY TOWER · BREAKROOM 404</strong><span id="introTime">00:00</span></div>
+    <div id="introBubble" class="intro-bubble" role="status" aria-live="polite" aria-atomic="true" hidden>
+      <strong id="introSpeaker"></strong><span id="introLine"></span>
     </div>
-    <div class="transmission-chrome" aria-hidden="true">
-      <div><i></i><strong>EMERGENCY TRANSMISSION</strong><span id="transmissionTime">00:00:00:00</span></div>
-      <div id="transmissionProgress" class="transmission-progress"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-    </div>
+    <div class="intro-footer"><span id="introStatus">INCIDENT ZERO · THE LAST NORMAL LUNCH BREAK</span><button id="introSound" type="button">♪ ENABLE SOUND</button></div>
     <section id="missionReady" class="mission-ready" aria-labelledby="missionReadyTitle" aria-hidden="true" inert hidden>
-      <span class="mission-status">PHYSICAL OVERRIDE ROUTE CONFIRMED</span>
+      <span class="mission-status">CODE RED · MANUAL OVERRIDE ROUTE CONFIRMED</span>
       <h2 id="missionReadyTitle">NO FREE LUNCH<br>THEOREM</h2>
-      <p>Reach the rocket. Cross the orbital blockade. Cut the AI off from Earth.</p>
-      <button id="startb" class="primary">RUN TO THE ROCKET</button>
-      <button id="replayTransmission" class="replay-transmission" type="button">REPLAY TRANSMISSION</button>
+      <p>Reach the rocket. Cross the orbital blockade. Cut the AI off from Earth aboard Station 404.</p>
+      <button id="replayTransmission" class="replay-transmission" type="button">REPLAY THE INCIDENT</button>
       <div class="controls"><span>← → lanes</span><span>↑ jump</span><span>↓ slide</span><span id="overrideControlHint">E / tap override</span></div>
     </section>
-    <div class="transmission-static" aria-hidden="true"></div>
+    <button id="startb" class="primary intro-start" type="button">PLAY NOW ↗</button>
   </div>
 
   <div id="hud">

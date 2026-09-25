@@ -80,6 +80,39 @@ export class AudioEngine {
     if (!this.timer) this.timer = window.setInterval(() => this.schedule(), 45);
   }
 
+  async startIntro() {
+    this.act = 'intro';
+    await this.start();
+    this.tone(165, 0.12, 'sine', 0.016, 0, 0, { cutoff: 650, reverb: 0.3 });
+  }
+
+  introCue(kind) {
+    if (!this.ctx || !this.enabled) return;
+    if (kind === 'fridge') {
+      this.noise(0.28, 0.022, 0, { cutoff: 700, reverb: 0.14, pan: -0.55 });
+      this.tone(196, 0.25, 'sine', 0.024, 0.04, 80, { cutoff: 750, pan: -0.5 });
+    } else if (kind === 'empty') {
+      [392, 311, 233].forEach((note, i) => this.tone(note, 0.18, 'triangle', 0.022, i * 0.13, -25, { cutoff: 1300, reverb: 0.22 }));
+    } else if (kind === 'wish') {
+      this.noise(0.19, 0.035, 0, { cutoff: 1200, reverb: 0.17 });
+      this.tone(147, 0.4, 'sawtooth', 0.04, 0.02, -60, { cutoff: 600 });
+    } else if (kind === 'steps') {
+      for (let i = 0; i < 5; i++) this.noise(0.08, 0.02, i * 0.18, { cutoff: 380, pan: i * 0.18 - 0.4 });
+    } else if (kind === 'cup') {
+      this.tone(1120, 0.12, 'sine', 0.024, 0.54, -120, { cutoff: 2600, reverb: 0.27, pan: 0.5 });
+    } else if (kind === 'threat') {
+      this.act = 'introThreat';
+      [55, 54.2, 41.2].forEach((note, i) => this.tone(note, 3.4, 'sawtooth', 0.033, i * 0.08, -5,
+        { attack: 0.38, release: 1.1, cutoff: 280, reverb: 0.29, pan: i === 1 ? 0.4 : -0.3 }));
+      [220, 233, 165, 146.8].forEach((note, i) => this.tone(note, 0.55, 'triangle', 0.027, i * 0.7, -20,
+        { attack: 0.12, release: 0.3, cutoff: 1000, reverb: 0.45 }));
+    } else if (kind === 'alarm') {
+      this.noise(0.48, 0.04, 0, { cutoff: 1100, reverb: 0.2 });
+      for (let i = 0; i < 4; i++) this.tone(i % 2 ? 580 : 440, 0.31, 'square', 0.022, i * 0.48, 20,
+        { cutoff: 1200, pan: i % 2 ? 0.45 : -0.45 });
+    }
+  }
+
   impulse(seconds, decay) {
     const length = Math.max(1, Math.floor(this.ctx.sampleRate * seconds));
     const buffer = this.ctx.createBuffer(2, length, this.ctx.sampleRate);
@@ -255,7 +288,7 @@ export class AudioEngine {
 
   schedule() {
     if (!this.enabled || this.paused || document.hidden || !this.ctx || this.ctx.state !== 'running' ||
-        this.act === 'results' || this.act === 'silence') return;
+        this.act === 'results' || this.act === 'silence' || this.act === 'intro' || this.act === 'introThreat') return;
     const score = SCORE[this.act] || SCORE.city;
     const sixteenth = 60 / score.bpm / 4;
     if (this.nextNoteTime < this.ctx.currentTime - 0.5) this.nextNoteTime = this.ctx.currentTime + 0.03;

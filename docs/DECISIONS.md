@@ -109,6 +109,14 @@ Record decisions while they are fresh. This is both a guard against scope drift 
 - Evidence: 18 unit tests and syntax/diff checks pass. Fresh, returning, replay, portrait, landscape, reduced-motion, and City-start browser paths pass with no application errors. The official throttled 390×844 phone gate passes at 19.7 seconds ready, 2.9 MB compressed, 773 peak draws, 290,836 peak triangles, zero errors, and zero 404s.
 - Deployment remains unapproved and was not changed.
 
+## 2026-09-25 — Live 3D breakroom opening replaces the transmission
+
+- Owner direction: replace the flat comic/transmission with a cute, fully staged 3D scene inside a City building. Preserve the stolen-lunch cause, hero's sad-to-angry reaction, a coffee-sipping suited robot's lethal inference, red-eye/apocalypse turn, and the Station 404 physical kill-switch destination.
+- Atlas supplied three new 2K reference studies for warm set design, character acting, and code-red props/lighting (48 image credits, total recorded 370). They guide original editable Three.js recipes; no generated 3D mesh or raster cinematic ships.
+- The cutscene uses a deterministic 20.5-second timeline for the hinged fridge, facial expressions, hero exit, robot cup and eye change, alarm lighting, camera, captions, and procedural sound cues. A sound-enabling gesture unlocks audio. First-run viewers may tap Play now at any time, so `__READY__` signals when the game is loaded rather than after the story. Returning players see the City mission prompt and can replay the incident.
+- The twelve former transmission WebPs were removed from the shipped game directory. Their historic review sheet and Git history remain. The City, Space, and Station gameplay acts are unchanged.
+- Local-first policy remains: no deployment or submission change until owner approval and an exact-commit public gate.
+
 ## Decision template
 
 ### YYYY-MM-DD — Decision

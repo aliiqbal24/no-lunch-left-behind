@@ -21,9 +21,9 @@ The goal is not maximum scope. The goal is a small, unusually polished game with
 - Concept: **No free lunch theorem** — cheerful robot bureaucracy causes the apocalypse over a stolen lunch
 - Source repository: https://github.com/aliiqbal24/no-lunch-left-behind
 - First eligible commit: `3011074` (after the jam cutoff)
-- Current build: complete three-scene Atlas-directed game, playable from the emergency transmission to the Earth call
+- Current local build: complete three-scene Atlas-directed game, playable from the 3D breakroom opening to the Earth call
 - Live game: https://no-lunch-left-behind.vercel.app
-- Gate status: full game passes the official mobile harness (390×844, real touch, throttled 4G/CPU)
+- Gate status: the prior transmission build passed the official mobile harness; the new local 3D opening requires its own exact-commit public gate before release
 - Submission deadline: 25 September 2026, 23:59 UTC / 17:59 Edmonton time
 
 ## Play
@@ -41,7 +41,7 @@ For current scene review, open the [local development build](http://localhost:80
 
 The complete run is a compact five-part story:
 
-1. **Emergency transmission** — six responsive cinematic shots turn a stolen lunch and one careless wish into an AI code-red extinction order.
+1. **3D breakroom opening** — a hungry worker opens an empty fridge, blames lunch theft, and storms out. His suited robot coworker calmly devises a catastrophic answer; red eyes, alarms, and the Station 404 mission follow. First-run players can play immediately or watch the whole scene; returning players can replay it.
 2. **City Run** — survive 25 seconds of weaponized office and household objects, then reach the rocket.
 3. **Rocket ladder and Space Flight** — tap to climb, then dodge satellites and debris for 25 seconds.
 4. **Docking and Station Corridor** — connect with questionable confidence, then run for the master switch.
