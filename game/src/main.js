@@ -94,7 +94,6 @@ const resultsOverrides = $('#resultsOverrides');
 const resultReadouts = [resultsPeople, resultsDodged, resultsTime, resultsHits]
   .map(output => ({ card: output.closest('.results-stat'), output }));
 const playAgain = $('#playAgain');
-const overrideControlHint = $('#overrideControlHint');
 
 const params = new URLSearchParams(location.search);
 const TEST_MODE = params.has('test');
@@ -102,7 +101,6 @@ const DEV_MODE = params.has('dev') || TEST_MODE || ['localhost', '127.0.0.1'].in
 const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const START_SCENE = params.get('scene');
 const KEYBOARD_HINTS = !matchMedia('(pointer: coarse)').matches;
-overrideControlHint.textContent = KEYBOARD_HINTS ? 'E to cut off' : 'tap to cut off';
 const ACT_DURATION = TEST_MODE ? 3.6 : 25;
 const CLIMB_DURATION = TEST_MODE ? 1.8 : 5;
 const DOCK_DURATION = TEST_MODE ? 1.5 : 3;
