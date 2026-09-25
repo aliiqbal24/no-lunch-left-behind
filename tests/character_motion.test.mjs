@@ -41,3 +41,16 @@ test('the character controller owns run, airborne, landing and slide poses', () 
   assert.equal(joints.leftLeg.rotation.x, 0);
   assert.equal(joints.rightArm.rotation.x, 0);
 });
+
+test('ladder pose alternates the reaching hand and stepping knee', () => {
+  const motion = createCharacterMotion();
+  const joints = rig();
+  motion.climb({ joints, height: 0.17, rungSpacing: 0.34, dt: 0.5 });
+  const firstKnees = [joints.leftKnee.rotation.x, joints.rightKnee.rotation.x];
+  const firstArms = [joints.leftArm.rotation.x, joints.rightArm.rotation.x];
+  motion.climb({ joints, height: 0.51, rungSpacing: 0.34, dt: 0.5 });
+  assert.ok(firstKnees[0] !== firstKnees[1]);
+  assert.ok(firstArms[0] !== firstArms[1]);
+  assert.ok((firstKnees[0] - firstKnees[1]) *
+    (joints.leftKnee.rotation.x - joints.rightKnee.rotation.x) < 0);
+});

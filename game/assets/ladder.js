@@ -18,7 +18,9 @@ export default function (THREE) {
       clamp.position.set(x, y, 0); clamp.rotation.x = Math.PI / 2; g.add(clamp);
     }
   }
-  for (let y = 0.35; y < 8.05; y += 0.54) {
+  // The rocket is four times the authored height, while the climber stays
+  // human-sized. Quarter-spaced rungs become a reachable 54 cm apart in world.
+  for (let y = 0.35; y < 8.05; y += 0.135) {
     const rung = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 1.15, 10), y > 6.65 ? orange : steel);
     rung.rotation.z = Math.PI / 2; rung.position.y = y; g.add(rung);
     for (const x of [-0.34, 0, 0.34]) {

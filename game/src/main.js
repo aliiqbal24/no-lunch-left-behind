@@ -5,6 +5,7 @@ import { screenFlightToWorld, SwipeInput } from './input.js';
 import { AudioEngine } from './audio.js';
 import { createChaseVisuals } from './chase_visuals.js';
 import { createCharacterMotion, setCharacterOutfit } from './character_motion.js';
+import { createClimbController } from './rocket_boarding.js';
 import { poseBreakroom } from './intro_scene.js';
 import {
   PROLOGUE_DURATION,
@@ -100,7 +101,7 @@ const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const START_SCENE = params.get('scene');
 const KEYBOARD_HINTS = !matchMedia('(pointer: coarse)').matches;
 const ACT_DURATION = TEST_MODE ? 3.6 : 25;
-const CLIMB_DURATION = TEST_MODE ? 1.8 : 5;
+const CLIMB_DURATION = TEST_MODE ? 2.2 : 9;
 const DOCK_DURATION = TEST_MODE ? 1.5 : 3;
 const INTRO_TRANSITION = 0.9;
 const BOARD_DURATION = TEST_MODE ? 0.65 : 1.35;
@@ -114,6 +115,7 @@ const LAUNCH_COMPLEX_SCALE = 4;
 const ROCKET_BASE_Y = 0.55;
 const ROCKET_HATCH_Y = ROCKET_BASE_Y + 5.28 * ROCKET_SCALE;
 const ROCKET_CLIMB_HEIGHT = 4.8 * ROCKET_SCALE;
+const ROCKET_CLIMB_START_Y = 1.48;
 // The chase camera looks toward +Z, so screen-left is world +X.
 const LANES = [2.2, 0, -2.2];
 const OVERRIDE_EVENTS = {
@@ -252,7 +254,8 @@ const state = {
   hitCooldown: 0, hits: 0, humanity: START_HUMANITY,
   survivors: Math.round(WORLD_POPULATION * START_HUMANITY / 100),
   missionElapsed: 0, missionTimeFinal: 0, obstaclesDodged: 0, rating: null, resultsRevealElapsed: 0,
-  inputCount: 0, fps: 60, lookBack: 0, climbProgress: 0, climbTarget: 0,
+  inputCount: 0, fps: 60, lookBack: 0, climbProgress: 0,
+  launchFootingY: 0.2, boardFromY: 0.2, boardFromZ: 0,
   introCameraBlend: 0,
   introDelay: 0,
   interludeElapsed: 0, dockSoundPlayed: false, visualClock: 0,
@@ -269,6 +272,8 @@ const state = {
 
 let chaseVisuals = null;
 const characterMotion = createCharacterMotion();
+const climbController = createClimbController({ slowDuration: TEST_MODE ? 2.2 : 9 });
+const launchFootingRaycaster = new THREE.Raycaster();
 let player;
 let playerJoints;
 let playerOutfit = 'office';
@@ -289,6 +294,7 @@ let stationChunks = [];
 let obstacles = [];
 let prototypes = { city: {}, space: {}, station: {} };
 let rocketGroup;
+let rocketHub;
 let rocketBody;
 let launchFlames;
 let launchSmoke;
@@ -313,6 +319,7 @@ let interceptorLaserPrototype;
 let spaceProjectiles = [];
 let climbLadder;
 let climbAnchorZ = 0;
+let climbRungSpacing = 0.54;
 let lastTime = performance.now();
 let fpsSamples = [];
 let patternIndex = 0;
@@ -616,6 +623,7 @@ function buildCity(road, building, billboard, rocket, launchFx, hub, wayfinder, 
   // Keep the enlarged pad deck aligned to the runner road instead of lifting
   // the player four metres into its foundation.
   hub.position.y = -3.3;
+  rocketHub = hub;
   rocketGroup.add(hub, rocketBody, launchSmoke);
   rocketGroup.position.set(0, 0, 330);
   cityRoot.add(rocketGroup);
@@ -745,7 +753,11 @@ function setStationThreatLevel(level) {
 
 function buildClimb(ladder) {
   climbLadder = ladder;
-  climbLadder.scale.setScalar(ROCKET_SCALE);
+  // Fit the ladder's top to the hatch while keeping its rails human-width.
+  const ladderHeight = new THREE.Box3().setFromObject(ladder).getSize(new THREE.Vector3()).y;
+  const verticalScale = ROCKET_HATCH_Y / ladderHeight;
+  climbLadder.scale.set(1, verticalScale, 1);
+  climbRungSpacing = 0.135 * verticalScale;
   climbLadder.position.set(0, 0, -1.9 * ROCKET_SCALE);
   rocketGroup.add(climbLadder);
 }
@@ -1042,6 +1054,7 @@ function startAct(name, fromIntro = false, fromTransition = false) {
   state.targetLane = 0;
   state.jumpY = 0;
   state.jumpVelocity = 0;
+  state.launchFootingY = 0.2;
   state.slide = 0;
   state.hitCooldown = 0;
   state.lockOn = { phase: 'idle', lane: 0, timer: 0 };
@@ -1351,14 +1364,38 @@ function updateActor(dt) {
   }
   state.slide = Math.max(0, state.slide - dt);
 
+  let launchTargetY = 0.2;
+  let launchUnderfootY = 0.2;
+  if (state.act === 'city' && rocketGroup.position.z < 43) {
+    // Read the actual pad surfaces before the foot reaches their front edge.
+    // This includes the orange cylinder and yellow step in the approach.
+    rocketGroup.updateMatrixWorld(true);
+    launchUnderfootY = launchSurfaceY(player.position.x, player.position.z);
+    launchTargetY = Math.max(launchUnderfootY, launchSurfaceY(player.position.x, player.position.z + 4.5));
+  }
+  state.launchFootingY = THREE.MathUtils.damp(state.launchFootingY, launchTargetY,
+    launchTargetY > state.launchFootingY ? 12 : 7, dt);
+  const steppingUp = launchTargetY > launchUnderfootY + 0.18;
   const pose = characterMotion.update({ joints: playerJoints, distance: state.distance,
-    jumpY: state.jumpY, jumpVelocity: state.jumpVelocity, slide: state.slide,
+    jumpY: state.jumpY + (steppingUp ? 0.2 : 0), jumpVelocity: state.jumpVelocity,
+    slide: state.slide,
     dt, reducedMotion: REDUCED_MOTION });
-  player.position.y = 0.2 + state.jumpY - (state.slide > 0 ? 0.18 : 0) + pose.bob;
+  player.position.y = state.launchFootingY + state.jumpY - (state.slide > 0 ? 0.18 : 0) + pose.bob;
   player.scale.y = THREE.MathUtils.damp(player.scale.y, state.slide > 0 ? 0.68 : 1.02, 18, dt);
   player.scale.x = THREE.MathUtils.damp(player.scale.x, state.slide > 0 ? 1.16 : 1.02, 18, dt);
   player.rotation.z = THREE.MathUtils.damp(player.rotation.z, (targetX - player.position.x) * -0.08, 10, dt);
   actor.position.z = THREE.MathUtils.damp(actor.position.z, 0, 6, dt);
+}
+
+function launchSurfaceY(x, z) {
+  launchFootingRaycaster.set(new THREE.Vector3(x, 3.2, z), new THREE.Vector3(0, -1, 0));
+  launchFootingRaycaster.far = 3.2;
+  for (const hit of launchFootingRaycaster.intersectObject(rocketHub, true)) {
+    if (hit.point.y >= 0.2 && hit.point.y <= 2.6 && hit.face?.normal.y > 0.55) {
+      return hit.point.y;
+    }
+  }
+  return 0.2;
 }
 
 function overrideDistance(event) {
@@ -1762,9 +1799,9 @@ function updateCamera(dt) {
       state.act === 'space' ? 2.65 + (actor.position.y - 3.1) * 0.45 : 1.1 + state.jumpY * 0.18,
       state.act === 'space' ? 10.5 : 8.5));
   } else if (state.mode === 'climb') {
-    const y = 7.2 + state.climbProgress * 16.5;
-    camera.position.lerp(new THREE.Vector3(14.5, y, climbAnchorZ - 21), 1 - Math.exp(-dt * 4));
-    cameraAim.lerp(new THREE.Vector3(0, 3.4 + state.climbProgress * 18.8, climbAnchorZ), 1 - Math.exp(-dt * 5));
+    const y = player.position.y;
+    camera.position.lerp(new THREE.Vector3(5.5, y + 3.1, climbAnchorZ - 12.5), 1 - Math.exp(-dt * 4));
+    cameraAim.lerp(new THREE.Vector3(0, y + 1.0, climbAnchorZ + 0.15), 1 - Math.exp(-dt * 5));
     camera.lookAt(cameraAim);
   } else if (state.mode === 'docking') {
     const p = Math.min(1, state.interludeElapsed / DOCK_DURATION);
@@ -1792,14 +1829,18 @@ function finishPlayingAct() {
 function beginBoarding() {
   state.mode = 'boarding';
   state.interludeElapsed = 0;
+  state.slide = 0;
+  player.scale.setScalar(1.02);
   state.boardFromX = player.position.x;
-  climbAnchorZ = rocketGroup.position.z + climbLadder.position.z - 0.52 * ROCKET_SCALE;
+  state.boardFromY = player.position.y;
+  state.boardFromZ = player.position.z;
+  climbAnchorZ = rocketGroup.position.z + climbLadder.position.z - 0.52;
   stick.classList.remove('visible');
   tutorial.classList.remove('visible');
   actLabel.textContent = 'ROCKET LADDER · BOARDING';
   startShot(BOARD_DURATION,
-    new THREE.Vector3(15.5, 10.5, climbAnchorZ - 24),
-    new THREE.Vector3(0, 8.5, climbAnchorZ + 1.2),
+    new THREE.Vector3(6.5, 6.5, climbAnchorZ - 13),
+    new THREE.Vector3(0, 3.0, climbAnchorZ + 0.6),
     beginClimb);
   syncDevPause();
 }
@@ -1808,50 +1849,45 @@ function beginClimb() {
   state.mode = 'climb';
   syncDevPause();
   state.interludeElapsed = 0;
-  state.climbProgress = 0.06;
-  state.climbTarget = 0.06;
-  player.position.set(0, 0.2, climbAnchorZ);
+  climbController.reset();
+  state.climbProgress = 0;
+  player.position.set(0, ROCKET_CLIMB_START_Y, climbAnchorZ);
   player.rotation.set(0, 0, 0);
   stick.classList.remove('visible');
   tutorial.classList.remove('visible');
   actLabel.textContent = 'ROCKET LADDER · TAP TAP TAP';
-  climbFill.style.width = '6%';
-  climbStatus.textContent = 'LADDER PROGRESS: HATCH OPEN';
+  climbFill.style.width = '0%';
+  climbTap.textContent = 'TAP ANYWHERE · 0/15';
+  climbStatus.textContent = 'CLIMBING SLOWLY · TAP TO GO FASTER';
   climbScreen.classList.add('visible');
   audio.interlude('climb');
 }
 
 function registerClimbTap() {
   if (state.mode !== 'climb' || state.paused) return;
-  state.climbTarget = Math.min(1, state.climbTarget + 0.13);
+  if (!climbController.tap()) return;
   state.inputCount += 1;
+  climbTap.textContent = `TAP ANYWHERE · ${climbController.update(0).taps}/15`;
   audio.gesture('up');
 }
 
-function updateClimbPresentation() {
+function updateClimbPresentation(dt) {
   const p = state.climbProgress;
   climbFill.style.width = `${Math.round(p * 100)}%`;
-  player.position.y = 0.2 + p * ROCKET_CLIMB_HEIGHT;
-  player.position.x = Math.sin(p * 12) * 0.045;
+  player.position.y = ROCKET_CLIMB_START_Y + p * ROCKET_CLIMB_HEIGHT;
+  player.position.x = 0;
   player.position.z = climbAnchorZ;
-  if (playerJoints) {
-    const step = Math.sin(p * Math.PI * 12);
-    playerJoints.leftArm.rotation.x = -1.35 + step * 0.32;
-    playerJoints.rightArm.rotation.x = -1.35 - step * 0.32;
-    playerJoints.leftLeg.rotation.x = step * 0.38;
-    playerJoints.rightLeg.rotation.x = -step * 0.38;
-    playerJoints.torso.rotation.z = step * 0.035;
-  }
+  characterMotion.climb({ joints: playerJoints, height: p * ROCKET_CLIMB_HEIGHT,
+    rungSpacing: climbRungSpacing, dt });
   climbStatus.textContent = p > 0.82
     ? 'LADDER PROGRESS: CREW READY TO SEAL'
-    : p > 0.45 ? 'LADDER PROGRESS: KEEP CLIMBING' : 'LADDER PROGRESS: HATCH OPEN';
+    : p > 0.45 ? 'LADDER PROGRESS: KEEP CLIMBING' : 'CLIMBING SLOWLY · TAP TO GO FASTER';
 }
 
 function finishClimb() {
   if (state.mode !== 'climb') return;
-  state.climbTarget = 1;
   state.climbProgress = 1;
-  updateClimbPresentation();
+  updateClimbPresentation(1 / 60);
   climbScreen.classList.remove('visible');
   state.mode = 'launch';
   state.interludeElapsed = 0;
@@ -2170,27 +2206,29 @@ function frame(now) {
       state.interludeElapsed += rawDt;
       const p = Math.min(1, state.interludeElapsed / BOARD_DURATION);
       const travel = THREE.MathUtils.smoothstep(p, 0, 1);
-      const leap = Math.max(0, Math.min(1, (p - 0.55) / 0.45));
+      const step = Math.sin(Math.PI * THREE.MathUtils.smoothstep(p, 0.55, 1));
       player.position.set(THREE.MathUtils.lerp(state.boardFromX, 0, travel),
-        0.2 + Math.sin(leap * Math.PI) * 0.85,
-        THREE.MathUtils.lerp(0, climbAnchorZ, travel));
+        THREE.MathUtils.lerp(state.boardFromY, ROCKET_CLIMB_START_Y, travel) + step * 0.22,
+        THREE.MathUtils.lerp(state.boardFromZ, climbAnchorZ, travel));
       player.rotation.y = THREE.MathUtils.lerp(player.rotation.y, 0, travel);
+      player.rotation.z = THREE.MathUtils.damp(player.rotation.z, 0, 10, rawDt);
       if (playerJoints) {
-        playerJoints.leftArm.rotation.x = -0.35 - leap * 1.1;
-        playerJoints.rightArm.rotation.x = -0.35 - leap * 1.1;
-        playerJoints.leftLeg.rotation.x = Math.sin(p * 18) * (1 - leap) * 0.6;
+        const reach = THREE.MathUtils.smoothstep(p, 0.58, 1);
+        playerJoints.leftArm.rotation.x = -0.35 - reach * 0.82;
+        playerJoints.rightArm.rotation.x = -0.35 - reach * 0.82;
+        playerJoints.leftLeg.rotation.x = Math.sin(p * 18) * (1 - reach) * 0.6 + reach * 0.34;
         playerJoints.rightLeg.rotation.x = -playerJoints.leftLeg.rotation.x;
+        playerJoints.leftKnee.rotation.x = reach * 0.45;
+        playerJoints.rightKnee.rotation.x = reach * 0.16;
       }
       updateShot(rawDt);
     } else if (state.mode === 'climb') {
       state.interludeElapsed += rawDt;
       state.totalElapsed += rawDt;
-      state.climbTarget = Math.min(1, state.climbTarget + rawDt * (0.94 / CLIMB_DURATION));
-      state.climbProgress = THREE.MathUtils.damp(state.climbProgress, state.climbTarget, 9, rawDt);
-      updateClimbPresentation();
+      state.climbProgress = climbController.update(rawDt).progress;
+      updateClimbPresentation(rawDt);
       updateCamera(rawDt);
-      if ((state.climbTarget >= 1 && state.climbProgress >= 0.99 && state.interludeElapsed > 1.1)
-        || (state.interludeElapsed >= CLIMB_DURATION && state.climbProgress >= 0.985)) finishClimb();
+      if (state.climbProgress >= 1) finishClimb();
     } else if (state.mode === 'launch') {
       state.interludeElapsed += rawDt;
       const p = Math.min(1, state.interludeElapsed / PASSAGE_DURATION);
@@ -2331,10 +2369,9 @@ introSound.addEventListener('click', async () => {
   introSound.textContent = '♪ SOUND ON';
   if (state.introElapsed >= PROLOGUE_BEATS[6].at) audio.introCue('threat');
 });
-climbTap.addEventListener('click', registerClimbTap);
-climbScreen.addEventListener('pointerdown', (event) => {
-  if (event.target !== climbTap) registerClimbTap();
-});
+window.addEventListener('pointerdown', () => {
+  if (state.mode === 'climb') registerClimbTap();
+}, { passive: true });
 masterTap.addEventListener('click', beginFinale);
 playAgain.addEventListener('click', () => {
   const replayUrl = new URL(window.location.href);
@@ -2343,6 +2380,11 @@ playAgain.addEventListener('click', () => {
 });
 devPauseButton.addEventListener('click', () => setDevPaused(!state.paused));
 window.addEventListener('keydown', (event) => {
+  if (state.mode === 'climb' && !event.repeat &&
+      ['Space', 'Enter', 'ArrowUp', 'KeyW'].includes(event.code)) {
+    event.preventDefault();
+    registerClimbTap();
+  }
   if (DEV_MODE && event.code === 'KeyP' && !event.repeat) {
     event.preventDefault();
     setDevPaused(!state.paused);

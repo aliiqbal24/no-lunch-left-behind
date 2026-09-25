@@ -439,7 +439,7 @@ body.dev-paused * { animation-play-state:paused!important; }
 #climb h2,#docking h2,#switchScreen h2 { font-size:clamp(20px,5vw,34px); color:var(--paper); text-shadow:0 2px 8px rgba(0,0,0,.9); }
 #climb p,#docking p,#switchScreen p { font-size:clamp(11px,2.8vw,15px); color:var(--paper); text-shadow:0 2px 8px rgba(0,0,0,.9); }
 #climb .climb-track { width:min(340px,76vw); height:16px; background:rgba(23,43,51,.8); }
-#climbTap { pointer-events:auto; min-width:min(270px,76vw); min-height:56px; padding:10px 18px; font-size:clamp(16px,4vw,22px); }
+#climbTap { pointer-events:none; min-width:min(270px,76vw); padding:10px 18px; border:2px solid var(--paper); border-radius:8px; background:var(--orange); font-size:clamp(16px,4vw,22px)!important; font-weight:900; text-align:center; }
 #climbStatus { min-height:18px; }
 #docking.screen.visible { justify-content:flex-end; align-items:flex-end; text-align:right; padding-right:max(24px,calc(env(safe-area-inset-right) + 18px)); padding-bottom:max(72px,calc(var(--safe-bottom) + 50px)); }
 #docking h2 { line-height:1; max-width:min(330px,calc(100vw - 56px)); }

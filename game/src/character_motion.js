@@ -68,5 +68,33 @@ export function createCharacterMotion() {
     set(joints.head, 'x', -0.06 * running - 0.09 * jumpPose, 10, dt);
     return { bob: reducedMotion || airborne || slide > 0 ? 0 : (0.018 * stance - 0.035 * landing) };
   }
-  return { update, reset };
+  function climb({ joints, height, rungSpacing = 0.54, dt }) {
+    if (!joints || dt <= 0) return;
+    // One alternating reach per rung. The foot on the lower rung extends as
+    // the opposite knee lifts, and each hand reaches for the next rung.
+    const phase = height / rungSpacing * Math.PI;
+    const stride = Math.sin(phase);
+    for (const [side, arm, elbow, wrist, leg, knee, ankle, toe] of [
+      [-1, joints.leftArm, joints.leftElbow, joints.leftWrist, joints.leftLeg,
+        joints.leftKnee, joints.leftAnkle, joints.leftToe],
+      [1, joints.rightArm, joints.rightElbow, joints.rightWrist, joints.rightLeg,
+        joints.rightKnee, joints.rightAnkle, joints.rightToe],
+    ]) {
+      const lift = Math.max(0, side * stride);
+      const planted = Math.max(0, -side * stride);
+      set(arm, 'x', -1.16 - lift * 0.36 + planted * 0.14, 16, dt);
+      set(arm, 'z', side * 0.10, 16, dt);
+      set(elbow, 'x', -0.35 - lift * 0.40, 16, dt);
+      set(wrist, 'x', 0.10 + lift * 0.12, 16, dt);
+      set(leg, 'x', 0.12 + lift * 0.46 - planted * 0.28, 16, dt);
+      set(knee, 'x', 0.14 + lift * 0.76, 16, dt);
+      set(ankle, 'x', -0.08 - lift * 0.25, 16, dt);
+      set(toe, 'x', planted * 0.18, 16, dt);
+    }
+    set(joints.hips, 'x', 0.07, 12, dt);
+    set(joints.torso, 'x', 0.18, 12, dt);
+    set(joints.torso, 'z', stride * 0.035, 12, dt);
+    set(joints.head, 'x', -0.10, 12, dt);
+  }
+  return { update, climb, reset };
 }
