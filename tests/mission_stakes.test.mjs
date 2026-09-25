@@ -12,18 +12,18 @@ test('passive humanity loss is one-third of the original rate across all acts', 
   near(calculateStakes({ act: 'city', progress: 1, overtime: 10 }).humanity, 90 - 0.6);
 });
 
-test('both physical overrides protect ten points by the finale', () => {
-  const best = calculateStakes({ act: 'station', progress: 1, overrides: { city: true, station: true } });
+test('six lane calls protect ten points by the finale', () => {
+  const best = calculateStakes({ act: 'station', progress: 1, laneChallenges: { city: 3, station: 3 } });
   near(best.humanity, BEST_END_HUMANITY);
   assert.equal(best.survivors, 7_466_666_667);
-  near(calculateStakes({ act: 'station', progress: 1, overrides: { station: true } }).humanity, 95 - 35 / 3 + 5);
-  assert.equal(calculateStakes({ act: 'city', progress: 1, overrides: { city: true } }).humanity,
+  near(calculateStakes({ act: 'station', progress: 1, laneChallenges: { station: 3 } }).humanity, 95 - 35 / 3 + 5);
+  assert.equal(calculateStakes({ act: 'city', progress: 1, laneChallenges: { city: 3 } }).humanity,
     calculateStakes({ act: 'city', progress: 1 }).humanity + 5);
 });
 
 test('collisions and wasted time cost lives; the 256 survivor ending remains reachable', () => {
-  near(calculateStakes({ act: 'station', progress: 1, overrides: { city: true, station: true }, hits: 1 }).humanity,
+  near(calculateStakes({ act: 'station', progress: 1, laneChallenges: { city: 3, station: 3 }, hits: 1 }).humanity,
     BEST_END_HUMANITY - 3);
-  assert.deepEqual(calculateStakes({ act: 'station', progress: 1, hits: 32, overrides: { city: true, station: true } }),
+  assert.deepEqual(calculateStakes({ act: 'station', progress: 1, hits: 32, laneChallenges: { city: 3, station: 3 } }),
     { humanity: 0, survivors: 256 });
 });

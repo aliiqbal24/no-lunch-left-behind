@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { AudioEngine } from '../game/src/audio.js';
 
 const HAZARDS = {
-  city: ['cone', 'toaster', 'mower', 'chair', 'lockOn'],
+  city: ['cone', 'toaster', 'mower', 'chair', 'laneChallenge'],
   space: ['debris', 'drone', 'wreckage', 'netGate', 'interceptorLaser'],
-  station: ['security', 'laserLow', 'laserHigh', 'lockOn'],
+  station: ['security', 'laserLow', 'laserHigh', 'laneChallenge'],
 };
 
 function captureHit(type, act, side = 0) {

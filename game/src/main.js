@@ -16,7 +16,7 @@ import {
 } from './intro_sequence.js';
 import { calculateRating } from './results.js';
 import { calculateStakes, WORLD_POPULATION, START_HUMANITY } from './mission_stakes.js';
-import { finaleResponse, LOCK_START_SECONDS, LOCK_WARNING_SECONDS, OVERRIDE_RANGE, SPACE_NET } from './mission_cues.js';
+import { finaleResponse, LANE_CHALLENGES, LANE_CHALLENGE_SECONDS, SPACE_NETS, laneForX } from './mission_cues.js';
 import createLaunchCityDistricts from '../assets/launch_city_districts.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -54,12 +54,10 @@ const robotAdvance = $('#robotAdvance');
 const forecast = $('#forecast');
 const actLabel = $('#actLabel');
 const districtLabel = $('#districtLabel');
-const overridePrompt = $('#overridePrompt');
-const overrideTitle = $('#overrideTitle');
-const overrideInstruction = $('#overrideInstruction');
 const lockWarning = $('#lockWarning');
 const lockTitle = $('#lockTitle');
 const lockInstruction = $('#lockInstruction');
+const laneCountdown = $('#laneCountdown');
 const lockLanes = [...document.querySelectorAll('.lock-lane')];
 const damageFlash = $('#damageFlash');
 const impactCopy = $('#impactCopy');
@@ -118,10 +116,6 @@ const ROCKET_CLIMB_HEIGHT = 4.8 * ROCKET_SCALE;
 const ROCKET_CLIMB_START_Y = 1.48;
 // The chase camera looks toward +Z, so screen-left is world +X.
 const LANES = [2.2, 0, -2.2];
-const OVERRIDE_EVENTS = {
-  city: { at: 218, lane: -1, label: 'RAIL SIGNAL RELAY', saved: 'TRAINS RELEASED · 400M LIVES PROTECTED' },
-  station: { at: 215, lane: 1, label: 'STATION SAFETY BREAKER', saved: 'STATION GRID ISOLATED · 400M LIVES PROTECTED' },
-};
 const compactPeople = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
 const crowdPeople = Array.from({ length: 25 }, (_, index) => {
   const person = document.createElement('span');
@@ -191,10 +185,6 @@ renderer.setSize(innerWidth, innerHeight, false);
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.35));
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 850);
-const overrideGreen = new THREE.MeshStandardMaterial({
-  color: 0x45c4b0, emissive: 0x45c4b0, emissiveIntensity: 1.1,
-});
-overrideGreen.name = 'metal';
 scene.add(camera);
 const cameraAim = new THREE.Vector3(0, 1.1, 9.5);
 const introCameraFrom = new THREE.Vector3();
@@ -261,9 +251,9 @@ const state = {
   interludeElapsed: 0, dockSoundPlayed: false, visualClock: 0,
   shot: null, passage: '', finaleElapsed: 0, finalePanStarted: false,
   paused: false,
-  overrides: { city: 'pending', station: 'pending' }, overtime: 0,
-  lockOn: { phase: 'idle', lane: 0, timer: 0 },
-  netGate: { phase: 'idle', timer: 0 },
+  laneChallenges: { city: ['pending', 'pending', 'pending'], station: ['pending', 'pending', 'pending'] }, overtime: 0,
+  laneChallengeTimer: 0,
+  netGates: SPACE_NETS.map(() => ({ phase: 'idle' })),
   flightInput: { x: 0, y: 0, active: false }, flightVelocity: { x: 0, y: 0 },
   interceptor: { shotIndex: 0, warning: false }, dockFromY: 0.4,
   finaleOutcome: null,
@@ -288,8 +278,6 @@ let introCoworker;
 let ship;
 let cityChunks = [];
 let cityAnimated = [];
-let cityRelay;
-let stationBreaker;
 let stationChunks = [];
 let obstacles = [];
 let prototypes = { city: {}, space: {}, station: {} };
@@ -312,7 +300,7 @@ let stationAlarmMaterials = [];
 let stationPassiveMaterials = [];
 let dockingPort;
 let spaceBackdrop;
-let spaceGate;
+let spaceGates = [];
 let spaceDrift = [];
 let spaceInterceptor;
 let interceptorLaserPrototype;
@@ -405,7 +393,7 @@ async function loadAssets() {
   ]);
 
   setLoad(26, 'Arming the last rocket…');
-  const [road, building, billboard, cone, toaster, mower, chair, rocket, launchFx, hub, wayfinder, citySky, relayAsset] = await Promise.all([
+  const [road, building, billboard, cone, toaster, mower, chair, rocket, launchFx, hub, wayfinder, citySky] = await Promise.all([
     ASSET(assetUrl('city_road'), { surfaces: true }),
     ASSET(assetUrl('city_building'), { surfaces: true }),
     ASSET(assetUrl('billboard'), { keepHierarchy: true }),
@@ -418,7 +406,6 @@ async function loadAssets() {
     ASSET(assetUrl('rocket_hub'), { surfaces: true }),
     ASSET(assetUrl('spaceport_wayfinder'), { surfaces: true }),
     ASSET(assetUrl('city_sky')),
-    ASSET(assetUrl('manual_override'), { keepHierarchy: true }),
   ]);
 
   setLoad(54, 'Plotting orbital breach…');
@@ -484,19 +471,13 @@ async function loadAssets() {
   };
 
   buildCity(road, building, billboard, rocket, launchFx, hub, wayfinder, citySky);
-  cityRelay = relayAsset.clone(true);
-  cityRelay.position.set(LANES[0], 0.2, OVERRIDE_EVENTS.city.at);
-  cityRoot.add(cityRelay);
   buildRobotArmy([boxy, spider, roller]);
   buildSpace(backdrop, port, netGateAsset, satellite, debris, wreckage, interceptor, laserBolt);
   const optimizedCorridor = bakePreserving(corridor, new Set(['stationAlarmSystem', 'stationPassiveSystem']));
   buildStation(optimizedCorridor, masterSwitch, earth, endWindow, crisis);
-  stationBreaker = relayAsset.clone(true);
-  stationBreaker.position.set(LANES[2], 0.2, OVERRIDE_EVENTS.station.at);
-  stationRoot.add(stationBreaker);
   buildClimb(ladder);
 
-  setLoad(92, 'Securing the physical override…');
+  setLoad(92, 'Calibrating lane calls…');
   await rig.ready;
   rig.refresh(scene);
   setWorld('city');
@@ -647,9 +628,12 @@ function buildSpace(backdrop, port, netGateAsset, satellite, debris, wreckage, i
   spaceBackdrop = backdrop;
   spaceBackdrop.position.y = -140;
   spaceRoot.add(spaceBackdrop);
-  spaceGate = netGateAsset;
-  spaceGate.visible = false;
-  spaceRoot.add(spaceGate);
+  spaceGates = SPACE_NETS.map(() => {
+    const gate = netGateAsset.clone(true);
+    gate.visible = false;
+    spaceRoot.add(gate);
+    return gate;
+  });
   for (const [asset, x, y, z, scale] of [
     [satellite, 12, 7, 35, 1.45], [debris, -11, 2, 61, 1.8],
     [satellite, -13, -4, 88, 1.15], [wreckage, 10, 9, 109, 1.0],
@@ -917,7 +901,6 @@ function onGesture(kind, source = 'touch') {
   if (state.mode !== 'playing' || state.paused || state.introDelay > 0) return;
   state.inputCount += 1;
   if (kind === 'tap') {
-    tryOverride();
     return;
   }
   // Space Flight is continuous and two-dimensional. Keyboard presses and touch
@@ -997,17 +980,16 @@ function resetRun() {
   state.visualClock = 0;
   state.distance = 0;
   state.actDistance = 0;
-  state.overrides = { city: 'pending', station: 'pending' };
+  state.laneChallenges = { city: ['pending', 'pending', 'pending'], station: ['pending', 'pending', 'pending'] };
+  state.laneChallengeTimer = 0;
   state.overtime = 0;
-  state.lockOn = { phase: 'idle', lane: 0, timer: 0 };
-  state.netGate = { phase: 'idle', timer: 0 };
+  state.netGates = SPACE_NETS.map(() => ({ phase: 'idle' }));
   state.flightInput = { x: 0, y: 0, active: false };
   state.flightVelocity = { x: 0, y: 0 };
   state.interceptor = { shotIndex: 0, warning: false };
   state.dockFromY = 0.4;
   state.finaleOutcome = null;
-  overridePrompt.classList.remove('visible', 'in-range');
-  lockWarning.classList.remove('visible', 'firing', 'cleared', 'net-gate', 'free-flight');
+  lockWarning.classList.remove('visible', 'firing', 'cleared', 'net-gate', 'free-flight', 'lane-challenge');
   flightJoystick.classList.remove('active');
   updateHumanity();
 }
@@ -1057,14 +1039,13 @@ function startAct(name, fromIntro = false, fromTransition = false) {
   state.launchFootingY = 0.2;
   state.slide = 0;
   state.hitCooldown = 0;
-  state.lockOn = { phase: 'idle', lane: 0, timer: 0 };
-  state.netGate = { phase: 'idle', timer: 0 };
+  state.laneChallengeTimer = 0;
+  state.netGates = SPACE_NETS.map(() => ({ phase: 'idle' }));
   state.flightInput = { x: 0, y: 0, active: false };
   state.flightVelocity = { x: 0, y: 0 };
   state.interceptor = { shotIndex: 0, warning: false };
-  lockWarning.classList.remove('visible', 'firing', 'cleared', 'net-gate', 'free-flight');
+  lockWarning.classList.remove('visible', 'firing', 'cleared', 'net-gate', 'free-flight', 'lane-challenge');
   lockLanes.forEach((lane) => lane.classList.remove('targeted', 'safe'));
-  overridePrompt.classList.remove('visible', 'in-range');
   state.lookBack = name === 'city' ? 2 : 0;
   state.introCameraBlend = fromIntro ? 1 : 0;
   state.introDelay = fromIntro ? INTRO_TRANSITION : 0;
@@ -1173,7 +1154,7 @@ function resetWorld(name, preserveCamera = false) {
   ship.rotation.set(0, 0, 0);
   ship.scale.setScalar(0.88);
   if (spaceBackdrop) spaceBackdrop.rotation.set(0, 0, 0);
-  if (spaceGate) spaceGate.visible = false;
+  for (const gate of spaceGates) gate.visible = false;
   if (spaceInterceptor) spaceInterceptor.visible = false;
   for (const part of spaceDrift) part.position.z = part.userData.homeZ;
   if (name === 'city' && !preserveCamera) camera.position.set(0, 2.9, 6.8);
@@ -1276,8 +1257,8 @@ function hitObstacle(item) {
     space: '−240,000,000 · DEFENCE GRID BREACHED',
     station: '−240,000,000 · EARTH LINK EXPOSED',
   };
-  impactCopy.textContent = state.hits >= 32 ? 'ONLY 256 VOICES REMAIN' : item.type === 'lockOn'
-    ? 'AI STRIKE · −240,000,000' : item.type === 'netGate'
+  impactCopy.textContent = state.hits >= 32 ? 'ONLY 256 VOICES REMAIN' : item.type === 'laneChallenge'
+    ? 'LANE CALL MISSED · −240,000,000' : item.type === 'netGate'
       ? 'AI NET IMPACT · −240,000,000' : item.type === 'interceptorLaser'
         ? 'INTERCEPTOR HIT · −240,000,000' : copy[state.act];
   impactCopy.classList.add('show');
@@ -1300,7 +1281,10 @@ function updateHumanity() {
     TEST_MODE ? state.elapsed / ACT_DURATION : 0));
   const stakes = calculateStakes({
     act: state.act, progress, hits: state.hits, overtime: state.overtime,
-    overrides: { city: state.overrides.city === 'done', station: state.overrides.station === 'done' },
+    laneChallenges: {
+      city: state.laneChallenges.city.filter(status => status === 'done').length,
+      station: state.laneChallenges.station.filter(status => status === 'done').length,
+    },
   });
   state.humanity = stakes.humanity;
   state.survivors = stakes.survivors;
@@ -1324,10 +1308,10 @@ function updateHumanity() {
   });
   forecast.textContent = atFloor
     ? 'ONLY 256 PEOPLE LEFT · FINISH THE MISSION'
-    : state.act === 'city' && state.overrides.city === 'done'
-      ? '400M PROTECTED · EVACUATION TRAINS MOVING'
-      : state.act === 'station' && state.overrides.station === 'done'
-        ? '400M PROTECTED · EARTH LINK ISOLATING'
+    : state.act === 'city' && state.laneChallenges.city.includes('done')
+      ? 'EVACUATION ROUTES OPEN · KEEP MOVING'
+      : state.act === 'station' && state.laneChallenges.station.includes('done')
+        ? 'EARTH LINK ROUTES SECURED · KEEP MOVING'
         : state.act === 'city' ? 'REMOTE SHUTDOWN FAILED · REACH THE ROCKET'
           : state.act === 'space' ? 'AI ORBITAL NET · EARTH IS RUNNING OUT OF TIME'
             : 'LAST PHYSICAL SWITCH AHEAD · KEEP MOVING';
@@ -1398,139 +1382,91 @@ function launchSurfaceY(x, z) {
   return 0.2;
 }
 
-function overrideDistance(event) {
-  // The accelerated test route keeps the interaction window long enough for a real tap.
-  return TEST_MODE
-    ? event.at + (state.elapsed - ACT_DURATION * 0.58) * 24
-    : state.actDistance;
-}
-
-function tryOverride() {
-  const event = OVERRIDE_EVENTS[state.act];
-  if (!event || state.overrides[state.act] !== 'pending') return;
-  const delta = event.at - overrideDistance(event);
-  if (delta < -OVERRIDE_RANGE.behind || delta > OVERRIDE_RANGE.ahead || state.targetLane !== event.lane) return;
-  state.overrides[state.act] = 'done';
-  overridePrompt.classList.remove('visible', 'in-range');
-  impactCopy.textContent = event.saved;
-  impactCopy.classList.remove('show');
-  void impactCopy.offsetWidth;
-  impactCopy.classList.add('show');
-  const fixture = state.act === 'city' ? cityRelay : stationBreaker;
-  const button = fixture.getObjectByName('overrideButton');
-  const beacon = fixture.getObjectByName('overrideBeacon');
-  if (button && beacon) {
-    button.material = overrideGreen;
-    beacon.material = overrideGreen;
-    if (state.act === 'city') {
-      for (const part of cityAnimated) if (part.name === 'railSignal') part.material = overrideGreen;
-    }
-  }
-  audio.override();
-  updateHumanity();
-  robotAdvance.classList.remove('recoiling');
-  void robotAdvance.offsetWidth;
-  robotAdvance.classList.add('recoiling');
-  setTimeout(() => robotAdvance.classList.remove('recoiling'), 700);
-}
-
-function updateOverride() {
-  const event = OVERRIDE_EVENTS[state.act];
-  if (!event) return;
-  const delta = event.at - overrideDistance(event);
-  const fixture = state.act === 'city' ? cityRelay : stationBreaker;
-  fixture.position.z = delta;
-  const halo = fixture.getObjectByName('overrideHalo');
-  if (halo) halo.scale.setScalar(1 + (REDUCED_MOTION ? 0 : 0.1 * Math.sin(state.visualClock * 10)));
-  if (state.overrides[state.act] !== 'pending') return;
-  if (delta < -OVERRIDE_RANGE.behind) {
-    state.overrides[state.act] = 'missed';
-    overridePrompt.classList.remove('visible', 'in-range');
-    return;
-  }
-  const visible = delta <= OVERRIDE_RANGE.announce && delta >= -OVERRIDE_RANGE.behind;
-  overridePrompt.classList.toggle('visible', visible);
-  if (visible) {
+function updateLaneChallenge() {
+  const cues = LANE_CHALLENGES[state.act];
+  if (!cues) return;
+  const index = state.laneChallenges[state.act].findIndex(status => status === 'pending' || status === 'warning');
+  if (index < 0) return;
+  const cue = cues[index];
+  const status = state.laneChallenges[state.act][index];
+  const startAt = TEST_MODE ? 0.3 + index * 1.05 : cue.startAt;
+  const duration = TEST_MODE ? 0.55 : LANE_CHALLENGE_SECONDS;
+  if (status === 'pending' && state.elapsed >= startAt) {
+    state.laneChallenges[state.act][index] = 'warning';
+    state.laneChallengeTimer = 0;
     tutorial.classList.remove('visible');
-    overrideTitle.textContent = event.label;
-    const lane = event.lane < 0 ? 'LEFT' : 'RIGHT';
-    overrideInstruction.textContent = delta > OVERRIDE_RANGE.ahead
-      ? `${lane} LANE · SAVE 400M PEOPLE`
-      : state.targetLane !== event.lane
-        ? `MOVE ${lane} · THEN ${KEYBOARD_HINTS ? 'PRESS E' : 'TAP'}`
-        : `${KEYBOARD_HINTS ? 'PRESS E' : 'TAP NOW'} · SAVE 400M`;
-    overridePrompt.classList.toggle('in-range', delta <= OVERRIDE_RANGE.ahead && state.targetLane === event.lane);
-  }
-}
-
-function updateLockOn(dt) {
-  if (state.act === 'space') return;
-  if (TEST_MODE && OVERRIDE_EVENTS[state.act]) return;
-  const attack = state.lockOn;
-  if (attack.phase === 'idle' && state.elapsed >= LOCK_START_SECONDS[state.act]) {
-    attack.phase = 'warning';
-    attack.timer = 0;
-    attack.lane = state.targetLane;
-    lockLanes.forEach((lane, index) => lane.classList.toggle('targeted', index === attack.lane + 1));
-    lockTitle.textContent = 'AI LOCK · ' + (attack.lane < 0 ? 'LEFT' : attack.lane > 0 ? 'RIGHT' : 'CENTRE') + ' LANE';
-    lockWarning.classList.add('visible');
+    lockLanes.forEach((lane, index) => lane.classList.toggle('safe', index === cue.lane + 1));
+    lockTitle.textContent = `GET IN THE ${cue.lane < 0 ? 'LEFT' : cue.lane > 0 ? 'RIGHT' : 'MIDDLE'} LANE`;
+    lockInstruction.textContent = KEYBOARD_HINTS ? 'MOVE INTO THE MARKED LANE' : 'SWIPE INTO THE MARKED LANE';
+    lockWarning.classList.remove('firing', 'cleared', 'net-gate', 'free-flight');
+    lockWarning.classList.add('visible', 'lane-challenge');
     audio.lockOn();
   }
-  if (attack.phase !== 'warning') return;
-  attack.timer += dt;
-  lockWarning.style.setProperty('--remaining', Math.max(0, 100 * (1 - attack.timer / LOCK_WARNING_SECONDS)) + '%');
-  if (attack.timer < LOCK_WARNING_SECONDS) return;
-  attack.phase = 'done';
-  lockWarning.classList.add('firing');
-  if (Math.abs(activeActor().position.x - LANES[attack.lane + 1]) < 0.74 && state.hitCooldown <= 0) {
-    hitObstacle({ lane: attack.lane, type: 'lockOn', object: null, hit: false });
+  if (state.laneChallenges[state.act][index] !== 'warning') return;
+  state.laneChallengeTimer = Math.min(duration, state.elapsed - startAt);
+  laneCountdown.textContent = (duration - state.laneChallengeTimer).toFixed(1);
+  lockWarning.style.setProperty('--remaining', `${100 * (1 - state.laneChallengeTimer / duration)}%`);
+  if (state.laneChallengeTimer < duration) return;
+  const cleared = laneForX(activeActor().position.x) === cue.lane;
+  state.laneChallenges[state.act][index] = cleared ? 'done' : 'missed';
+  lockTitle.textContent = cleared ? 'LANE CLEAR' : 'WRONG LANE';
+  lockInstruction.textContent = cleared ? 'ROUTE SECURED' : 'ROUTE MISSED';
+  lockWarning.classList.add(cleared ? 'cleared' : 'firing');
+  if (cleared) {
+    state.obstaclesDodged += 1;
+    audio.override();
+  } else if (state.hitCooldown <= 0) {
+    lockWarning.classList.remove('visible');
+    hitObstacle({ lane: cue.lane, type: 'laneChallenge', object: null, hit: false });
+  } else {
+    lockWarning.classList.remove('visible');
   }
-  audio.lockFire();
-  window.setTimeout(() => lockWarning.classList.remove('visible', 'firing'), 450);
+  updateHumanity();
+  window.setTimeout(() => lockWarning.classList.remove('visible', 'firing', 'cleared', 'lane-challenge'), 450);
 }
 
-function updateNetGate(dt, travel) {
+function updateNetGates() {
   if (state.act !== 'space') return;
-  const gate = state.netGate;
-  if (gate.phase === 'idle' && state.elapsed >= SPACE_NET.announceAt) {
-    gate.phase = 'warning';
-    gate.timer = 0;
-    spaceGate.position.set(0, 0, ACTS.space.speed * (SPACE_NET.impactAt - state.elapsed));
-    spaceGate.visible = true;
-    lockTitle.textContent = 'AI NET · CYAN BREACH DETECTED';
-    lockInstruction.textContent = 'FLY THROUGH THE CYAN APERTURE';
-    lockWarning.classList.remove('firing', 'cleared');
-    lockWarning.classList.add('visible', 'net-gate', 'free-flight');
-    audio.netGate();
-  }
-  if (gate.phase === 'idle') return;
-  spaceGate.position.z -= travel;
-  if (gate.phase === 'warning') {
-    gate.timer += dt;
-    lockWarning.style.setProperty('--remaining', Math.max(0, 100 * (1 - gate.timer / (SPACE_NET.impactAt - SPACE_NET.announceAt))) + '%');
-    if (spaceGate.position.z > 0) return;
-    gate.phase = 'done';
-    const opening = spaceGate.userData.safeCenter || { x: 3.45, y: 6.55, radius: 1.72 };
-    const clearedOpening = Math.hypot(ship.position.x - opening.x, ship.position.y - opening.y) <= opening.radius * 0.78;
-    if (!clearedOpening) {
-      if (state.hitCooldown <= 0) hitObstacle({ lane: state.targetLane, type: 'netGate', object: null, hit: false });
-      lockTitle.textContent = 'AI NET · SHIP HIT';
-      lockInstruction.textContent = 'HULL BREACH · KEEP FLYING';
-      lockWarning.classList.add('firing');
-    } else {
-      state.obstaclesDodged += 1;
-      lockTitle.textContent = 'AI NET · CLEAR';
-      lockInstruction.textContent = 'BREACH CONFIRMED · STATION AHEAD';
-      impactCopy.textContent = 'ORBITAL NET BREACHED · DOCK AHEAD';
-      impactCopy.classList.remove('show');
-      void impactCopy.offsetWidth;
-      impactCopy.classList.add('show');
-      lockWarning.classList.add('cleared');
-      audio.netCleared();
+  SPACE_NETS.forEach((cue, index) => {
+    const gateState = state.netGates[index];
+    const gate = spaceGates[index];
+    if (gateState.phase === 'idle' && state.elapsed >= cue.announceAt) {
+      gateState.phase = 'warning';
+      gate.visible = true;
+      lockTitle.textContent = 'AI NET · CYAN BREACH DETECTED';
+      lockInstruction.textContent = 'FLY THROUGH THE CYAN APERTURE';
+      lockWarning.classList.remove('firing', 'cleared', 'lane-challenge');
+      lockWarning.classList.add('visible', 'net-gate', 'free-flight');
+      audio.netGate();
     }
-    window.setTimeout(() => lockWarning.classList.remove('visible', 'firing', 'cleared', 'net-gate', 'free-flight'), 450);
-  }
-  if (gate.phase === 'done' && spaceGate.position.z < -12) spaceGate.visible = false;
+    if (gateState.phase === 'idle') return;
+    gate.position.set(0, 0, ACTS.space.speed * (cue.impactAt - state.elapsed));
+    if (gateState.phase === 'warning') {
+      lockWarning.style.setProperty('--remaining', `${100 * Math.max(0, (cue.impactAt - state.elapsed) / (cue.impactAt - cue.announceAt))}%`);
+      if (state.elapsed < cue.impactAt) return;
+      gateState.phase = 'done';
+      const opening = gate.userData.safeCenter || { x: 3.45, y: 6.55, radius: 1.72 };
+      const cleared = Math.hypot(ship.position.x - opening.x, ship.position.y - opening.y) <= opening.radius * 0.78;
+      if (!cleared) {
+        if (state.hitCooldown <= 0) hitObstacle({ lane: state.targetLane, type: 'netGate', object: null, hit: false });
+        lockTitle.textContent = 'AI NET · SHIP HIT';
+        lockInstruction.textContent = 'HULL BREACH · KEEP FLYING';
+        lockWarning.classList.add('firing');
+      } else {
+        state.obstaclesDodged += 1;
+        lockTitle.textContent = 'AI NET · CLEAR';
+        lockInstruction.textContent = index === 0 ? 'FIRST BREACH CLEAR · KEEP FLYING' : 'BREACH CONFIRMED · STATION AHEAD';
+        impactCopy.textContent = index === 0 ? 'FIRST ORBITAL NET BREACHED' : 'ORBITAL NET BREACHED · DOCK AHEAD';
+        impactCopy.classList.remove('show');
+        void impactCopy.offsetWidth;
+        impactCopy.classList.add('show');
+        lockWarning.classList.add('cleared');
+        audio.netCleared();
+      }
+      window.setTimeout(() => lockWarning.classList.remove('visible', 'firing', 'cleared', 'net-gate', 'free-flight'), 450);
+    }
+    if (gateState.phase === 'done' && gate.position.z < -12) gate.visible = false;
+  });
 }
 
 function clearSpaceProjectiles() {
@@ -1585,7 +1521,7 @@ function updateSpaceCombat(dt) {
     combat.warning = false;
     lockWarning.classList.add('firing');
     window.setTimeout(() => {
-      if (state.act === 'space' && state.netGate.phase !== 'warning') {
+      if (state.act === 'space' && !state.netGates.some(gate => gate.phase === 'warning')) {
         lockWarning.classList.remove('visible', 'firing', 'free-flight');
       }
     }, 420);
@@ -1625,7 +1561,7 @@ function updateCityLife(dt) {
   for (const part of cityAnimated) {
     if (part.name === 'evacWorker') part.position.z = part.userData.homeZ + (REDUCED_MOTION ? 0 : Math.sin(t * 4 + part.position.x) * 0.45);
     if (part.name === 'evacTrain' && !REDUCED_MOTION) {
-      part.userData.progress = (part.userData.progress + dt * (state.overrides.city === 'done' ? 3.5 : 0.55)) % 12;
+      part.userData.progress = (part.userData.progress + dt * (state.laneChallenges.city.includes('done') ? 3.5 : 0.55)) % 12;
       part.position.z = part.userData.homeZ + part.userData.progress - 6;
     }
     if (part.name === 'craneArm') part.rotation.y = REDUCED_MOTION ? 0 : Math.sin(t * 0.9) * 0.16;
@@ -1652,9 +1588,8 @@ function updatePlayingWorld(dt) {
   state.distance += travel;
   state.actDistance += travel;
   updateCityTutorial();
-  updateOverride();
-  updateLockOn(dt);
-  updateNetGate(dt, travel);
+  updateLaneChallenge();
+  updateNetGates();
   updateSpaceCombat(dt);
   if (state.act === 'city') updateCityLife(dt);
   updateHumanity();
@@ -1672,7 +1607,7 @@ function updatePlayingWorld(dt) {
       : state.actDistance;
     rocketGroup.position.z = Math.max(12, 330 - approach);
   } else if (state.act === 'space') {
-    if (state.elapsed >= SPACE_NET.impactAt + 0.5 && districtLabel.textContent !== 'STATION DOCK · HOLD COURSE') {
+    if (state.elapsed >= SPACE_NETS.at(-1).impactAt + 0.5 && districtLabel.textContent !== 'STATION DOCK · HOLD COURSE') {
       districtLabel.textContent = 'STATION DOCK · HOLD COURSE';
     }
     spaceBackdrop.rotation.y += dt * 0.012;
@@ -2108,11 +2043,11 @@ function updateResultCounters(dt) {
   });
   resultsPeopleExact.textContent = REDUCED_MOTION || state.resultsRevealElapsed >= 0.7
     ? `${state.survivors.toLocaleString('en-US')} PEOPLE` : '';
-  const secured = (state.overrides.city === 'done' ? 1 : 0) +
-    (state.overrides.station === 'done' ? 1 : 0);
+  const secured = [...state.laneChallenges.city, ...state.laneChallenges.station]
+    .filter(status => status === 'done').length;
   resultsOverrides.textContent = secured
-    ? `${secured} / 2 CUT-OFFS · ${secured * 400}M PEOPLE PROTECTED`
-    : '0 / 2 CUT-OFFS · NO EXTRA LIVES PROTECTED';
+    ? `${secured} / 6 LANE CALLS · ${Math.round(secured * 800 / 6)}M PEOPLE PROTECTED`
+    : '0 / 6 LANE CALLS · NO EXTRA LIVES PROTECTED';
 }
 
 function revealResults() {
@@ -2124,8 +2059,8 @@ function revealResults() {
     obstaclesDodged: state.obstaclesDodged,
     timeSeconds: state.missionTimeFinal,
     baselineSeconds: expectedMissionSeconds(),
-    overridesSecured: (state.overrides.city === 'done' ? 1 : 0) +
-      (state.overrides.station === 'done' ? 1 : 0),
+    laneChallengesCleared: [...state.laneChallenges.city, ...state.laneChallenges.station]
+      .filter(status => status === 'done').length,
   });
   resultsCard.dataset.grade = state.rating.grade;
   resultReadouts.forEach(({ card }) => card.classList.remove('revealed'));
@@ -2257,7 +2192,7 @@ function frame(now) {
       if (p > 0.72 && !state.dockSoundPlayed) {
         state.dockSoundPlayed = true;
         dockingTitle.innerHTML = 'AIRLOCK<br>SECURE';
-        dockingCopy.textContent = 'One corridor remains between you and the cut-off.';
+        dockingCopy.textContent = 'One corridor remains between you and the master switch.';
         audio.dockClunk();
       }
       updateCamera(rawDt);
@@ -2327,9 +2262,9 @@ function frame(now) {
     humanityPercent: state.humanity,
     survivors: state.survivors,
     hits: state.hits,
-    overrides: { ...state.overrides },
-    lockOn: { ...state.lockOn },
-    netGate: { ...state.netGate },
+    laneChallenges: { city: [...state.laneChallenges.city], station: [...state.laneChallenges.station] },
+    laneChallengeTimer: state.laneChallengeTimer,
+    netGates: state.netGates.map(gate => ({ ...gate })),
     obstaclesDodged: state.obstaclesDodged,
     missionTime: state.mode === 'finale' || state.mode === 'complete' ? state.missionTimeFinal : state.missionElapsed,
     rating: state.rating?.grade || null,

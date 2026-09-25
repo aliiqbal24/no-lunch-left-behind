@@ -1,7 +1,24 @@
-export const LOCK_START_SECONDS = Object.freeze({ city: 11.5, space: 4.5, station: 4.5 });
-export const LOCK_WARNING_SECONDS = 1.8;
-export const OVERRIDE_RANGE = Object.freeze({ announce: 50, ahead: 22, behind: 18 });
-export const SPACE_NET = Object.freeze({ announceAt: 17, impactAt: 20, safeLane: 1 });
+export const LANE_CHALLENGE_SECONDS = 2;
+export const LANE_CHALLENGES = Object.freeze({
+  city: Object.freeze([
+    Object.freeze({ startAt: 11.5, lane: -1 }),
+    Object.freeze({ startAt: 16, lane: 0 }),
+    Object.freeze({ startAt: 20.5, lane: 1 }),
+  ]),
+  station: Object.freeze([
+    Object.freeze({ startAt: 4.5, lane: 1 }),
+    Object.freeze({ startAt: 10, lane: 0 }),
+    Object.freeze({ startAt: 16, lane: -1 }),
+  ]),
+});
+export const SPACE_NETS = Object.freeze([
+  Object.freeze({ announceAt: 1.4, impactAt: 3.9 }),
+  Object.freeze({ announceAt: 17, impactAt: 20 }),
+]);
+
+export function laneForX(x) {
+  return x > 1.1 ? -1 : x < -1.1 ? 1 : 0;
+}
 
 const at = (lines) => lines.map((text, index) => [index === 0 ? 0 : [0, 1.45, 3, 4.6, 6.1][index], text]);
 

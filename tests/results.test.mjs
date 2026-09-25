@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import { calculateRating } from '../game/src/results.js';
 
 const POPULATION = 5_600_000_000;
-const run = (overrides = {}) => calculateRating({
+const run = (changes = {}) => calculateRating({
   survivors: POPULATION,
   hits: 0,
   obstaclesDodged: 20,
   timeSeconds: 60,
   baselineSeconds: 60,
-  overridesSecured: 2,
-  ...overrides,
+  laneChallengesCleared: 6,
+  ...changes,
 });
 
 test('a flawless, timely run earns the full S rating', () => {
@@ -22,9 +22,9 @@ test('a flawless, timely run earns the full S rating', () => {
   });
 });
 
-test('missing physical overrides lowers the grade even without collisions', () => {
-  assert.equal(run({ survivors: 4_800_000_000, overridesSecured: 0 }).grade, 'B');
-  assert.equal(run({ survivors: 5_200_000_000, overridesSecured: 1 }).grade, 'A');
+test('missed lane calls lower the grade even without collisions', () => {
+  assert.equal(run({ survivors: 4_800_000_000, laneChallengesCleared: 0 }).grade, 'B');
+  assert.equal(run({ survivors: 5_200_000_000, laneChallengesCleared: 3 }).grade, 'A');
 });
 
 test('one collision bars S even when the rounded score is 100', () => {

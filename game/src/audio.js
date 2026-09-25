@@ -478,7 +478,7 @@ export class AudioEngine {
           cutoff: 2800, reverb: 0.16, pan,
         }));
         break;
-      case 'lockOn': // The aimed strike lands with a low AI pulse, not the warning melody.
+      case 'laneChallenge': // A missed route cue lands with a low AI pulse.
         this.tone(98, 0.44, 'sawtooth', 0.078, 0, -59, { cutoff: 900, cutoffEnd: 120, pan });
         this.noise(0.19, 0.05, 0.018, { filterType: 'bandpass', cutoff: 1100, q: 1.5, pan });
         [0.04, 0.12].forEach((delay) => this.tone(680, 0.08, 'square', 0.031, delay, -500, {

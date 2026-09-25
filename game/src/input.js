@@ -77,7 +77,6 @@ export class SwipeInput {
         ArrowRight: 'right', KeyD: 'right',
         ArrowUp: 'up', KeyW: 'up', Space: 'up',
         ArrowDown: 'down', KeyS: 'down',
-        KeyE: 'tap',
       };
       const gesture = map[event.code];
       if (!gesture) return;

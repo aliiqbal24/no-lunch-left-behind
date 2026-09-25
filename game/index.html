@@ -141,8 +141,7 @@
 
   <div id="tutorial"><div id="tutorialText">SWIPE TO CHANGE LANES</div></div>
   <div id="sceneBanner" role="status" aria-live="polite"><strong id="sceneTitle">REACH THE LAST LAUNCH</strong></div>
-  <div id="overridePrompt" role="status" aria-live="assertive"><strong id="overrideTitle">MANUAL OVERRIDE</strong><span id="overrideInstruction">LEFT LANE · TAP SCREEN</span></div>
-  <div id="lockWarning" role="status" aria-live="assertive"><strong id="lockTitle">AI LOCK</strong><div class="lock-lanes"><span class="lock-lane">LEFT</span><span class="lock-lane">CENTRE</span><span class="lock-lane">RIGHT</span></div><small id="lockInstruction">MOVE TO A CLEAR LANE</small></div>
+  <div id="lockWarning" role="status" aria-live="assertive"><strong id="lockTitle">GET IN THE LEFT LANE</strong><span id="laneCountdown" aria-hidden="true">2.0</span><div class="lock-lanes"><span class="lock-lane">LEFT</span><span class="lock-lane">MIDDLE</span><span class="lock-lane">RIGHT</span></div><small id="lockInstruction">SWIPE INTO THE MARKED LANE</small></div>
   <div id="damageFlash"></div>
   <div id="impactCopy"></div>
   <div id="stick" aria-label="Touch anywhere to place the flight joystick">
@@ -194,7 +193,7 @@
         <div class="results-stat" data-step="03"><span>MISSION TIME</span><strong id="resultsTime">—</strong></div>
         <div class="results-stat" data-step="04"><span>COLLISIONS</span><strong id="resultsHits">—</strong></div>
       </div>
-      <div id="resultsOverrides" class="results-overrides">0 / 2 CUT-OFFS · NO EXTRA LIVES PROTECTED</div>
+      <div id="resultsOverrides" class="results-overrides">0 / 6 LANE CALLS · NO EXTRA LIVES PROTECTED</div>
       <button id="playAgain" class="primary results-replay">PLAY AGAIN</button>
     </section>
   </div>
