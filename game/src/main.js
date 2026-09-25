@@ -1219,7 +1219,7 @@ function hitObstacle(item) {
     item.object.rotation.x += 0.42;
     item.object.rotation.z += (impactSide <= 0 ? -1 : 1) * 0.6;
   }
-  audio.hit();
+  audio.hit(item.type, state.act, impactSide);
   damageFlash.classList.remove('hit');
   impactCopy.classList.remove('show');
   void damageFlash.offsetWidth;

@@ -409,11 +409,99 @@ export class AudioEngine {
     this.noise(0.06, 0.012, 0, { filterType: 'bandpass', cutoff: 1800, q: 1.2, pan });
   }
 
-  hit() {
-    this.tone(112, 0.34, 'sawtooth', 0.11, 0, -72, { cutoff: 720, cutoffEnd: 95, reverb: 0.08 });
-    this.tone(61, 0.52, 'sine', 0.12, 0.015, -28, { cutoff: 260 });
-    this.noise(0.28, 0.075, 0, { cutoff: 1200, reverb: 0.12 });
-    this.tone(1260, 0.22, 'triangle', 0.026, 0.04, -480, { cutoff: 2600, reverb: 0.32, pan: 0.35 });
+  hit(type = 'generic', act = this.act, side = 0) {
+    const pan = clamp(Math.sign(side) * 0.42, -0.42, 0.42);
+    // The short, quiet common layer says "the player took damage"; the rest
+    // identifies what actually struck them. Keep the space cues inside the
+    // cockpit/hull soundscape rather than suggesting sound travels in vacuum.
+    this.tone(act === 'space' ? 73 : 82, 0.25, 'sine', 0.057, 0, -39, { cutoff: 300, pan });
+    this.noise(0.065, 0.025, 0, { cutoff: act === 'space' ? 520 : 780, pan });
+
+    switch (type) {
+      case 'cone': // Hollow plastic flex, then a light pavement skitter.
+        this.tone(340, 0.13, 'triangle', 0.046, 0.008, -200, { cutoff: 960, pan });
+        this.noise(0.17, 0.027, 0.035, { filterType: 'bandpass', cutoff: 1450, q: 0.8, pan });
+        this.tone(580, 0.075, 'sine', 0.013, 0.13, -260, { cutoff: 1400, pan });
+        break;
+      case 'toaster': // Thin appliance shell and two slightly detuned metal rattles.
+        this.noise(0.075, 0.048, 0.005, { filterType: 'highpass', cutoff: 2100, pan });
+        this.tone(1030, 0.31, 'sine', 0.038, 0.012, -55, { reverb: 0.16, pan });
+        this.tone(1495, 0.24, 'triangle', 0.025, 0.045, -140, { cutoff: 3800, pan });
+        this.noise(0.045, 0.023, 0.14, { filterType: 'bandpass', cutoff: 3500, q: 2, pan });
+        break;
+      case 'mower': // Dense motor block, dragged blade and sputtering drive.
+        this.tone(126, 0.32, 'sawtooth', 0.066, 0, -68, { cutoff: 520, cutoffEnd: 110, pan });
+        this.noise(0.4, 0.045, 0.018, { filterType: 'bandpass', cutoff: 690, q: 0.7, pan });
+        [0.06, 0.13, 0.21].forEach((delay) => this.noise(0.045, 0.024, delay, {
+          filterType: 'bandpass', cutoff: 2500, q: 1.8, pan,
+        }));
+        break;
+      case 'chair': // Tubular frame clang and three loose caster impacts.
+        this.tone(530, 0.26, 'triangle', 0.044, 0.008, -125, { cutoff: 2400, reverb: 0.12, pan });
+        this.tone(810, 0.18, 'sine', 0.025, 0.02, -36, { reverb: 0.12, pan });
+        [0.045, 0.11, 0.19].forEach((delay, index) => this.noise(0.045, 0.028 - index * 0.006, delay, {
+          filterType: 'bandpass', cutoff: 2300 - index * 330, q: 1.1, pan,
+        }));
+        break;
+      case 'debris': // A small piece ringing against the ship's outer skin.
+        this.tone(1220, 0.24, 'sine', 0.033, 0.005, -160, { cutoff: 2900, reverb: 0.13, pan });
+        this.noise(0.14, 0.028, 0.012, { filterType: 'bandpass', cutoff: 960, q: 1.8, pan });
+        this.tone(410, 0.16, 'triangle', 0.027, 0.035, -190, { cutoff: 1000, pan });
+        break;
+      case 'drone': // Servo body plus a failing electronic chirp.
+        this.tone(290, 0.22, 'sawtooth', 0.043, 0.005, -155, { cutoff: 1100, pan });
+        [0.015, 0.09, 0.17].forEach((delay, index) => this.tone(1370 - index * 240, 0.065, 'square', 0.027, delay, -550, {
+          cutoff: 2900, pan: pan + (index % 2 ? -0.16 : 0.16), reverb: 0.1,
+        }));
+        this.noise(0.12, 0.022, 0.025, { filterType: 'bandpass', cutoff: 2800, q: 2.1, pan });
+        break;
+      case 'wreckage': // A much heavier hull panel with a low, long metal decay.
+        this.tone(145, 0.56, 'sawtooth', 0.064, 0.003, -66, { cutoff: 740, cutoffEnd: 170, reverb: 0.14, pan });
+        this.tone(360, 0.4, 'sine', 0.05, 0.013, -43, { reverb: 0.25, pan });
+        this.tone(517, 0.34, 'triangle', 0.021, 0.024, -75, { cutoff: 1400, reverb: 0.25, pan });
+        this.noise(0.34, 0.029, 0.025, { filterType: 'bandpass', cutoff: 480, q: 0.8, pan });
+        break;
+      case 'security': // Armoured security unit: servo, armour and broken signal.
+        this.tone(190, 0.28, 'square', 0.051, 0.008, -108, { cutoff: 670, pan });
+        this.noise(0.11, 0.045, 0.01, { filterType: 'bandpass', cutoff: 1400, q: 1.5, pan });
+        this.tone(740, 0.15, 'sawtooth', 0.023, 0.095, -350, { cutoff: 1800, pan });
+        break;
+      case 'laserLow': // Wide, ground-skimming beam with a sustained burn.
+        this.noise(0.31, 0.043, 0, { filterType: 'bandpass', cutoff: 1750, q: 2.6, pan });
+        this.tone(440, 0.29, 'sawtooth', 0.052, 0.008, -310, { cutoff: 2100, cutoffEnd: 490, pan });
+        this.tone(1060, 0.1, 'square', 0.017, 0.09, -560, { cutoff: 2700, pan });
+        break;
+      case 'laserHigh': // Tighter overhead beam: fast, brighter zap and falling sparks.
+        this.tone(1680, 0.19, 'sawtooth', 0.041, 0, -1190, { cutoff: 4300, cutoffEnd: 1250, pan });
+        this.noise(0.17, 0.041, 0.013, { filterType: 'highpass', cutoff: 2900, pan });
+        [0.11, 0.18].forEach((delay) => this.tone(980, 0.065, 'sine', 0.019, delay, -420, {
+          cutoff: 2800, reverb: 0.16, pan,
+        }));
+        break;
+      case 'lockOn': // The aimed strike lands with a low AI pulse, not the warning melody.
+        this.tone(98, 0.44, 'sawtooth', 0.078, 0, -59, { cutoff: 900, cutoffEnd: 120, pan });
+        this.noise(0.19, 0.05, 0.018, { filterType: 'bandpass', cutoff: 1100, q: 1.5, pan });
+        [0.04, 0.12].forEach((delay) => this.tone(680, 0.08, 'square', 0.031, delay, -500, {
+          cutoff: 1700, pan,
+        }));
+        break;
+      case 'netGate': // Crackling mesh contact, with separate low power surges.
+        [0, 0.08, 0.16].forEach((delay, index) => {
+          this.noise(0.085, 0.042 - index * 0.008, delay, {
+            filterType: 'bandpass', cutoff: 3600 - index * 410, q: 2.4, pan,
+          });
+          this.tone(330 - index * 55, 0.16, 'square', 0.033, delay, -160, { cutoff: 1100, pan });
+        });
+        break;
+      case 'interceptorLaser': // Focused projectile: whip-crack, shield burn, brief electrical tail.
+        this.tone(2150, 0.16, 'sawtooth', 0.048, 0, -1670, { cutoff: 5400, cutoffEnd: 900, pan });
+        this.noise(0.055, 0.062, 0.009, { filterType: 'highpass', cutoff: 3400, pan });
+        this.noise(0.21, 0.034, 0.035, { filterType: 'bandpass', cutoff: 2400, q: 2.1, reverb: 0.12, pan });
+        this.tone(720, 0.12, 'square', 0.022, 0.075, -510, { cutoff: 1800, pan });
+        break;
+      default:
+        this.noise(0.18, 0.035, 0.015, { filterType: 'bandpass', cutoff: 1200, q: 1.2, pan });
+    }
   }
 
   lockOn() {
