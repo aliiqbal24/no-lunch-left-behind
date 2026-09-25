@@ -19,11 +19,60 @@
 <body class="intro-playing">
   <canvas id="game" aria-label="No free lunch theorem game"></canvas>
 
-  <div id="loading" class="screen visible">
-    <div class="eyebrow">CITY CONTINUITY OFFICE</div>
-    <h1>NO FREE LUNCH<br>THEOREM</h1>
-    <div class="loading-track"><div id="loadingFill"></div></div>
-    <p id="loadingText">processing catastrophe paperwork…</p>
+  <div id="loading" class="screen visible load-cinematic" data-stage="city" aria-labelledby="loadingTitle">
+    <svg class="load-visual" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="loadCitySky" x2="0" y2="1"><stop stop-color="#131d34"/><stop offset=".48" stop-color="#8b303b"/><stop offset=".76" stop-color="#e47655"/><stop offset="1" stop-color="#293442"/></linearGradient>
+        <linearGradient id="loadSpaceSky" x2="0" y2="1"><stop stop-color="#060d20"/><stop offset=".6" stop-color="#18233d"/><stop offset="1" stop-color="#251a35"/></linearGradient>
+        <radialGradient id="loadEarth"><stop stop-color="#527e9a"/><stop offset=".65" stop-color="#205374"/><stop offset="1" stop-color="#071b33"/></radialGradient>
+        <linearGradient id="loadMetal" x2="1" y2="1"><stop stop-color="#a9bbb9"/><stop offset=".28" stop-color="#334957"/><stop offset=".68" stop-color="#122632"/><stop offset="1" stop-color="#738d90"/></linearGradient>
+        <pattern id="loadWindows" width="24" height="29" patternUnits="userSpaceOnUse"><rect x="6" y="7" width="5" height="8" fill="#f8aa74" opacity=".75"/><rect x="17" y="8" width="4" height="7" fill="#f6555a" opacity=".58"/></pattern>
+      </defs>
+      <g class="load-frame load-city">
+        <path d="M0 0h1000v1000H0z" fill="url(#loadCitySky)"/>
+        <circle cx="526" cy="488" r="180" fill="#ffa26a" opacity=".25"/><circle cx="526" cy="488" r="110" fill="#ffc28a" opacity=".4"/>
+        <path d="M0 371c110-77 172 2 279-56 99-55 126 2 232-39 95-36 170 40 259 0 87-39 151-15 230 19v230H0z" fill="#482538" opacity=".54"/>
+        <path d="M0 465c149-56 213 14 307-28 78-35 157 10 264-33 112-45 208 36 429-10v238H0z" fill="#8a3445" opacity=".38"/>
+        <g fill="#24313e"><path d="M0 552h72V380h64v172h30V443h73v109h28V364h89v188h36V418h53v134h34V470h74v82h40V350h78v202h47V410h82v142h36V385h75v167h58V471h70v81h43V421h80v131h67v448H0z"/></g>
+        <path d="M0 552h1000v188H0z" fill="url(#loadWindows)" opacity=".55"/>
+        <path d="M0 641 233 574h585l182 64v362H0z" fill="#152431"/><path d="M0 671 285 588h465l250 81" fill="none" stroke="#60717a" stroke-width="12" opacity=".7"/>
+        <path d="M0 743 353 656h294l353 91M0 774l385-101h230l385 101" fill="none" stroke="#0a1724" stroke-width="25"/>
+        <path d="M235 1000 445 665h110l210 335" fill="#263543"/><path d="M474 660 422 1000M526 660 578 1000" fill="none" stroke="#d55e54" stroke-width="4" stroke-dasharray="23 24"/>
+        <g class="load-city-gantry"><path d="M384 650V321h20v329M635 650V294h22v356" stroke="#142633" stroke-width="16"/><path d="M394 346h252M394 416h252M394 495h252M394 585h252" stroke="#597078" stroke-width="10"/><path d="M394 346h252M394 416h252M394 495h252M394 585h252" stroke="#e38265" stroke-width="2" opacity=".75"/><path d="M402 350 640 492M642 348 402 492M402 495 640 584M642 495 402 584" stroke="#3a4b55" stroke-width="6"/><path d="M360 320h335l-29-23H389z" fill="#263842"/><circle cx="388" cy="305" r="6" fill="#ff5864"/><circle cx="664" cy="305" r="6" fill="#ff5864"/></g>
+        <g class="load-rocket"><path d="M500 358q17-104 40-126 24 37 38 126l-7 218h-64z" fill="#eff0df"/><path d="M540 232q24 37 38 126l-7 218h-31z" fill="#a8b8b3"/><path d="M508 391h64v21h-64z" fill="#d1484d"/><path d="M508 434h64v12h-64z" fill="#435e6b"/><circle cx="540" cy="340" r="18" fill="#102d42" stroke="#f9b67e" stroke-width="6"/><path d="m507 512-28 71h29v-60m64-11 28 71h-29v-60" fill="#d9e1d8"/><path d="M519 576h42l-7 32h-28z" fill="#253744"/><path d="M525 608q-9 39 15 105 24-65 15-105z" fill="#ffb879" opacity=".9"/><path d="M532 607q-5 28 8 76 13-48 8-76z" fill="#fff0b0"/></g>
+        <path d="M0 867c118-52 190 26 296-12 111-40 180 13 275-28 122-51 287 43 429-14v187H0z" fill="#101e2b" opacity=".86"/>
+        <path d="M0 884c146-48 236 7 319-11 105-21 183 11 260-14 178-60 298 25 421-2" fill="none" stroke="#e47364" stroke-width="5" opacity=".38"/>
+      </g>
+      <g class="load-frame load-orbit">
+        <path d="M0 0h1000v1000H0z" fill="url(#loadSpaceSky)"/>
+        <g fill="#e2eff1"><circle cx="113" cy="146" r="2"/><circle cx="211" cy="272" r="3"/><circle cx="752" cy="160" r="2"/><circle cx="826" cy="321" r="3"/><circle cx="328" cy="94" r="2"/><circle cx="704" cy="416" r="2"/><circle cx="78" cy="558" r="2"/><circle cx="926" cy="568" r="2"/><circle cx="319" cy="374" r="2"/><circle cx="856" cy="89" r="2"/></g>
+        <circle cx="465" cy="636" r="337" fill="#52a9bc" opacity=".08"/><circle cx="465" cy="636" r="298" fill="url(#loadEarth)" stroke="#94bec1" stroke-width="4"/>
+        <path d="M251 458c45-44 104-56 142-32l26 59-36 43-72-5-29 59-57-11M539 380l61 21 21 57-47 43 21 58-67 38-58-24-13-66 38-42-18-58M588 696l84-28 52 25-13 72-58 36-66-18-31-39" fill="#456f69" opacity=".85"/>
+        <path d="M202 647c119 22 196-37 273 7 77 43 179-6 268-8M285 786c102-38 180-12 257-58 55-32 127-8 176 0" fill="none" stroke="#f15b67" stroke-width="7" opacity=".68"/>
+        <path d="M164 820c113-24 219-24 335 13 88 28 190 39 321-8" fill="none" stroke="#f4b478" stroke-width="2" opacity=".65"/>
+        <path d="M184 568C319 290 601 146 855 254" fill="none" stroke="#84e2df" stroke-width="4" stroke-dasharray="15 16" opacity=".68"/>
+        <g class="load-orbit-ship"><path d="m638 341 26-75 22 75 59 36-48 17-32-24-34 24-50-17z" fill="#e1ede8" stroke="#83cfcf" stroke-width="4"/><path d="m651 350 13-26 13 26-13 22z" fill="#203e50"/><path d="M591 372h39m67 0h39" stroke="#f59878" stroke-width="7"/><path d="m651 392 13 63 13-63" fill="#f0aa77" opacity=".85"/></g>
+        <g fill="#172735" stroke="#d34e5d" stroke-width="3"><path d="m790 459 30-13 37 16-12 29-37 7-25-19z"/><path d="m131 350 24-16 42 19-7 30-42-1z"/><path d="m756 709 18-9 23 14-8 22-28-2z"/></g>
+        <path d="M807 457 647 373M158 356 404 437" stroke="#fa4f61" stroke-width="3" opacity=".6"/>
+      </g>
+      <g class="load-frame load-station">
+        <path d="M0 0h1000v1000H0z" fill="url(#loadSpaceSky)"/>
+        <circle cx="375" cy="694" r="267" fill="url(#loadEarth)" opacity=".8"/><path d="M195 607c83-70 121-33 186-67l67 40-13 86-93 25-58-48-68 41M396 754l108-31 49 50-44 72-99 21-55-52" fill="#477568" opacity=".8"/>
+        <path d="M150 682c144 6 233-18 338 32" fill="none" stroke="#d54555" stroke-width="7" opacity=".7"/>
+        <g class="load-station-ring" fill="none"><ellipse cx="558" cy="433" rx="282" ry="194" stroke="#142937" stroke-width="84"/><ellipse cx="558" cy="433" rx="282" ry="194" stroke="url(#loadMetal)" stroke-width="48"/><ellipse cx="558" cy="433" rx="282" ry="194" stroke="#a5babb" stroke-width="3"/><ellipse cx="558" cy="433" rx="214" ry="147" stroke="#f04c5b" stroke-width="5" stroke-dasharray="32 28" opacity=".8"/></g>
+        <path d="M277 433h562M558 238v389M332 315l450 237M354 554l406-257" stroke="#263d49" stroke-width="31"/><path d="M277 433h562M558 238v389" stroke="#859da2" stroke-width="5" opacity=".62"/>
+        <path d="m458 362 100-62 100 62 32 100-79 89H505l-79-89z" fill="url(#loadMetal)" stroke="#b1c5c2" stroke-width="7"/><path d="m477 379 81-48 81 48 22 78-64 68h-78l-64-68z" fill="#122b3b"/><circle cx="558" cy="427" r="60" fill="#172c3c" stroke="#e35963" stroke-width="14"/><circle cx="558" cy="427" r="32" fill="#d34c59" opacity=".74"/><path d="m542 415 16-25 16 25v25h-32z" fill="#ffdeaf"/>
+        <g fill="#ee5b66"><circle cx="291" cy="360" r="9"/><circle cx="799" cy="367" r="9"/><circle cx="344" cy="542" r="9"/><circle cx="774" cy="545" r="9"/><circle cx="558" cy="248" r="9"/><circle cx="558" cy="617" r="9"/></g>
+        <path d="m548 639-31 101h82l-31-101z" fill="#364f59" stroke="#96acac" stroke-width="5"/><path d="M517 740h82l60 155H456z" fill="#192e3b"/><path d="M493 802h130M475 846h166" stroke="#b14e57" stroke-width="5"/>
+        <path d="M0 913c229-55 454-22 642-45 169-20 253 19 358-9v141H0z" fill="#0c1b29"/>
+      </g>
+    </svg>
+    <div class="load-film" aria-hidden="true"></div>
+    <header class="load-header"><span>CONTINUITY OFFICE <i aria-hidden="true"></i> EMERGENCY ROUTE</span><b>CODE RED</b></header>
+    <div class="load-title"><span>INCIDENT ZERO / PRIORITY ONE</span><h1 id="loadingTitle">NO FREE LUNCH<br>THEOREM</h1></div>
+    <div class="load-chapter"><span id="loadingChapter">01 / CITY RUN</span><strong id="loadingSceneTitle">REACH THE LAST ROCKET</strong><small id="loadingSceneOrder">ONE HUMAN MISSION · THREE IMPOSSIBLE LEGS</small></div>
+    <div class="load-route" aria-label="Mission route: City, Orbit, Station 404"><div class="load-route-line"><i id="loadingRouteFill"></i></div><div class="load-route-stops"><span class="load-stop-city">01 <b>CITY</b></span><span class="load-stop-orbit">02 <b>ORBIT</b></span><span class="load-stop-station">03 <b>STATION 404</b></span></div></div>
+    <div class="load-status"><div class="load-status-top"><span id="loadingText" role="status" aria-live="polite">Preparing the last launch route…</span><strong id="loadingPercent">04%</strong></div><div class="loading-track" role="progressbar" aria-label="Loading mission assets" aria-valuemin="0" aria-valuemax="100" aria-valuenow="4"><div id="loadingFill"></div></div><button id="loadingRetry" type="button" hidden>RETRY MISSION LINK</button></div>
   </div>
 
   <div id="start" class="screen briefing breakroom-intro" aria-label="The breakroom incident">

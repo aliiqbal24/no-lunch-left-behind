@@ -25,6 +25,7 @@ Updated: 2026-09-25. Only the integration session edits this file. Check Git for
 - Last confirmed public Vercel game-code commit: `7e9155ae277c3872caec38e1950370d9bc322d24`, including the refined hero and distinct collision audio. The public phone gate passed at 3.5 s ready, 1.9 MB, 831 draws, 297,104 triangles, zero errors and 404s; the submitted jam entry is open as PR #17. This exact-commit public gate does not cover subsequent local changes.
 - The 30px population HUD is now a local code-built apocalypse panorama: a detailed armed walker, tiny running crowd, red sky and skyline, ambient and collision-triggered gunfire, rescue recoil, and a legible last-survivor state. No new media or Atlas credits were used. Local phone, responsive, reduced-motion and pause checks pass; this HUD change is not deployed or added to PR #17.
 - The end-of-run debrief has a local metallic mission-dossier pass: a swooping foil card, grade-colored emblem, four sequential type-on stats with original synthesized confirmation ticks, and a reduced-motion instant reveal. Scoring is unchanged. This refinement is not deployed or added to PR #17.
+- The local loading screen is now a code-built cinematic mission route: City launch, hostile orbit and Station 404 transition with real loading milestones, a persistent route diagram, reduced-motion support and retry-on-failure UI. It adds no external assets or artificial wait, and hands off to the existing breakroom opening. Phone, narrow-phone and landscape frames were reviewed; the local phone gate passes at 5.2 s ready, 1.9 MB, 831 draws, 297,104 triangles, zero errors and 404s. This change is not deployed or added to PR #17.
 - Vercel Git connection: none, confirmed in project settings on 2026-09-22. GitHub pushes are source-history updates, not deployments.
 - Atlas: Scene 1, Scene 2, Scene 3, the former transmission, and three new breakroom studies are complete; 370 image-generation credits recorded. All currently shipped 3D is editable recipe code; no opening WebPs are loaded.
 - Release policy: local review first; do not deploy or submit until the owner says ready.
@@ -47,4 +48,4 @@ Updated: 2026-09-25. Only the integration session edits this file. Check Git for
 
 ## Next integration step
 
-Review the new population HUD and grade-card reveal locally. Updating production and PR #17 requires explicit owner approval and a new exact-commit public gate.
+Review the population HUD, grade-card reveal and mission-route loading cinematic locally. Updating production and PR #17 requires explicit owner approval and a new exact-commit public gate.

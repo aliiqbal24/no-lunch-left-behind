@@ -23,6 +23,13 @@ const canvas = $('#game');
 const loading = $('#loading');
 const loadingFill = $('#loadingFill');
 const loadingText = $('#loadingText');
+const loadingPercent = $('#loadingPercent');
+const loadingTrack = $('.loading-track');
+const loadingRouteFill = $('#loadingRouteFill');
+const loadingChapter = $('#loadingChapter');
+const loadingSceneTitle = $('#loadingSceneTitle');
+const loadingSceneOrder = $('#loadingSceneOrder');
+const loadingRetry = $('#loadingRetry');
 const startScreen = $('#start');
 const startButton = $('#startb');
 const missionReady = $('#missionReady');
@@ -210,10 +217,38 @@ const rig = createRig(THREE, renderer, scene, {
 const audio = new AudioEngine();
 muteButton.textContent = audio.enabled ? 'SOUND ON' : 'SOUND OFF';
 const assetUrl = (name) => new URL(`../assets/${name}.js`, import.meta.url).href;
+const LOAD_STAGES = {
+  city: ['01 / CITY RUN', 'REACH THE LAST ROCKET', 'THE CITY IS FALLING · ONE LAUNCH REMAINS'],
+  launch: ['01 / LAST LAUNCH', 'LEAVE THE CITY BEHIND', 'THE ROCKET IS HUMANITY’S ONLY ROUTE OUT'],
+  orbit: ['02 / SPACE FLIGHT', 'BREACH THE ORBITAL NET', 'AI DRONES CONTROL THE SKY ABOVE EARTH'],
+  station: ['03 / STATION 404', 'REACH THE MASTER SWITCH', 'THE FINAL OVERRIDE MUST BE PHYSICAL'],
+};
+const LOAD_PREVIEW_PERCENT = { city: 8, launch: 26, orbit: 54, station: 92 };
 const setLoad = (percent, message) => {
+  const stage = percent >= 72 ? 'station' : percent >= 54 ? 'orbit' : percent >= 26 ? 'launch' : 'city';
+  const [chapter, title, order] = LOAD_STAGES[stage];
+  loading.dataset.stage = stage;
   loadingFill.style.width = `${percent}%`;
+  loadingRouteFill.style.width = `${percent}%`;
+  loadingTrack.setAttribute('aria-valuenow', String(percent));
+  loadingPercent.textContent = `${String(percent).padStart(2, '0')}%`;
+  loadingChapter.textContent = chapter;
+  loadingSceneTitle.textContent = title;
+  loadingSceneOrder.textContent = order;
   loadingText.textContent = message;
 };
+function showLoadError() {
+  loading.dataset.stage = 'error';
+  loadingChapter.textContent = 'MISSION LINK LOST';
+  loadingSceneTitle.textContent = 'ROUTE INTERRUPTED';
+  loadingSceneOrder.textContent = 'THE SYSTEM COULD NOT FINISH LOADING';
+  loadingText.textContent = 'Connection failed. Retry the mission link.';
+  loadingPercent.textContent = 'ERR';
+  loadingTrack.setAttribute('aria-label', 'Mission load failed');
+  loadingTrack.removeAttribute('aria-valuenow');
+  loadingTrack.setAttribute('aria-valuetext', 'Mission load failed');
+  loadingRetry.hidden = false;
+}
 
 const state = {
   mode: 'loading', act: 'city', elapsed: 0, totalElapsed: 0, distance: 0, actDistance: 0,
@@ -355,7 +390,7 @@ function bakePreserving(root, preservedNames) {
 }
 
 async function loadAssets() {
-  setLoad(8, 'authorising unscheduled heroism…');
+  setLoad(8, 'Assembling evacuation route…');
   const [playerAsset, shipAsset, boxy, spider, roller, roomAsset, coworkerAsset] = await Promise.all([
     ASSET(assetUrl('player_hero'), { keepHierarchy: true }),
     ASSET(assetUrl('player_ship'), { keepHierarchy: true }),
@@ -366,7 +401,7 @@ async function loadAssets() {
     ASSET(assetUrl('intro_coworker'), { keepHierarchy: true }),
   ]);
 
-  setLoad(26, 'weaponising household appliances…');
+  setLoad(26, 'Arming the last rocket…');
   const [road, building, billboard, cone, toaster, mower, chair, rocket, launchFx, hub, wayfinder, citySky, relayAsset] = await Promise.all([
     ASSET(assetUrl('city_road'), { surfaces: true }),
     ASSET(assetUrl('city_building'), { surfaces: true }),
@@ -383,7 +418,7 @@ async function loadAssets() {
     ASSET(assetUrl('manual_override'), { keepHierarchy: true }),
   ]);
 
-  setLoad(54, 'auditing low-orbit litter…');
+  setLoad(54, 'Plotting orbital breach…');
   const [satellite, debris, backdrop, port, netGateAsset, drone, wreckage, interceptor, laserBolt] = await Promise.all([
     ASSET(assetUrl('satellite')),
     ASSET(assetUrl('space_debris')),
@@ -396,7 +431,7 @@ async function loadAssets() {
     ASSET(assetUrl('ai_laser_bolt'), { keepHierarchy: true }),
   ]);
 
-  setLoad(72, 'installing corridor bureaucracy…');
+  setLoad(72, 'Locating Station 404…');
   const [corridor, laser, security, masterSwitch, earth, ladder, endWindow, crisis] = await Promise.all([
     ASSET(assetUrl('station_corridor'), { keepHierarchy: true }),
     ASSET(assetUrl('laser_gate'), { keepHierarchy: true }),
@@ -458,12 +493,12 @@ async function loadAssets() {
   stationRoot.add(stationBreaker);
   buildClimb(ladder);
 
-  setLoad(92, 'warming emergency lighting…');
+  setLoad(92, 'Securing the physical override…');
   await rig.ready;
   rig.refresh(scene);
   setWorld('city');
   player.visible = false;
-  setLoad(100, 'catastrophe approved');
+  setLoad(100, 'Mission link secure.');
 }
 
 function buildCity(road, building, billboard, rocket, launchFx, hub, wayfinder, citySky) {
@@ -2344,6 +2379,12 @@ let returningPlayer = Boolean(START_SCENE);
 try { returningPlayer ||= hasSeenPrologue(window.localStorage); }
 catch { /* Some embedded browsers deny storage; treat them as a first visit. */ }
 loadAssets().then(() => {
+  const preview = DEV_MODE ? params.get('previewLoader') : null;
+  if (preview === 'error') { showLoadError(); return; }
+  if (Object.hasOwn(LOAD_PREVIEW_PERCENT, preview)) {
+    setLoad(LOAD_PREVIEW_PERCENT[preview], 'Previewing emergency route…');
+    return;
+  }
   resetWorld('city');
   player.visible = true;
   loading.classList.remove('visible');
@@ -2358,7 +2399,12 @@ loadAssets().then(() => {
   window.__READY__ = true;
 }).catch((error) => {
   console.error(error);
-  loadingText.textContent = `loading failed: ${error.message}`;
+  showLoadError();
+});
+loadingRetry.addEventListener('click', () => {
+  const retryUrl = new URL(location.href);
+  retryUrl.searchParams.delete('previewLoader');
+  window.location.assign(retryUrl.href);
 });
 
 resize();
