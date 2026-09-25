@@ -66,9 +66,7 @@ const muteButton = $('#mute');
 const devPauseButton = $('#devPause');
 const devPausedLabel = $('#devPaused');
 const sceneBanner = $('#sceneBanner');
-const sceneKicker = $('#sceneKicker');
 const sceneTitle = $('#sceneTitle');
-const sceneOrder = $('#sceneOrder');
 const climbScreen = $('#climb');
 const climbFill = $('#climbFill');
 const climbTap = $('#climbTap');
@@ -134,9 +132,9 @@ const crowdPeople = Array.from({ length: 25 }, (_, index) => {
 });
 
 const ACTS = {
-  city: { kicker: 'ACT 1 · THE CITY IS FALLING', title: 'CITY RUN', order: 'REACH THE LAST LAUNCH', speed: 12.5, spawnEvery: 1.06 },
-  space: { kicker: 'ACT 2 · ORBIT IS COMPROMISED', title: 'SPACE FLIGHT', order: 'BREAK THROUGH THE AI NET', speed: 15.2, spawnEvery: 1.02 },
-  station: { kicker: 'ACT 3 · LAST HUMAN CHANCE', title: 'STATION CORRIDOR', order: 'CUT THE FINAL LINK', speed: 13.4, spawnEvery: 1.0 },
+  city: { title: 'CITY RUN', order: 'REACH THE LAST LAUNCH', banner: 'REACH THE LAST LAUNCH', speed: 12.5, spawnEvery: 1.06 },
+  space: { title: 'SPACE FLIGHT', order: 'BREAK THROUGH THE AI NET', banner: 'GET ABOARD STATION 404!', speed: 15.2, spawnEvery: 1.02 },
+  station: { title: 'STATION CORRIDOR', order: 'CUT THE FINAL LINK', banner: "PRESS THE KILL SWITCH AT THE SHIP'S HUB.", speed: 13.4, spawnEvery: 1.0 },
 };
 const MISSION_MODES = new Set(['playing', 'boarding', 'climb', 'launch', 'liftoff', 'launchExit', 'docking', 'stationEntry', 'switchApproach', 'switch']);
 
@@ -790,10 +788,8 @@ function updateShot(dt) {
   }
 }
 
-function showBanner(kicker, title, order) {
-  sceneKicker.textContent = kicker;
-  sceneTitle.textContent = title;
-  sceneOrder.textContent = order;
+function showBanner(message) {
+  sceneTitle.textContent = message;
   sceneBanner.classList.remove('show');
   void sceneBanner.offsetWidth;
   sceneBanner.classList.add('show');
@@ -1094,7 +1090,7 @@ function startAct(name, fromIntro = false, fromTransition = false) {
     const spacing = ACTS.city.speed * ACTS.city.spawnEvery;
     for (let i = 0; i < 18; i++) spawnPattern(106 + i * spacing);
   }
-  if (!fromIntro && !fromTransition) showBanner(act.kicker, act.title, act.order);
+  if (!fromIntro && !fromTransition) showBanner(act.banner);
   updateHumanity();
 }
 
@@ -1109,7 +1105,7 @@ function revealAct(name) {
       if (state.mode === 'playing' && state.act === 'space') tutorial.classList.remove('visible');
     }, 2200);
   }
-  showBanner(ACTS[name].kicker, ACTS[name].title, ACTS[name].order);
+  showBanner(ACTS[name].banner);
   syncDevPause();
 }
 
@@ -1206,7 +1202,7 @@ function updateIntroTransition(dt) {
     stick.classList.add('visible');
     tutorial.classList.add('visible');
     syncDevPause();
-    showBanner(ACTS.city.kicker, ACTS.city.title, ACTS.city.order);
+    showBanner(ACTS.city.banner);
   }
 }
 
