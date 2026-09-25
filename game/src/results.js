@@ -1,4 +1,5 @@
-// The best collision-free ending preserves 70% after both manual overrides.
+// The population component saturates at this survivor count; slower passive
+// loss can exceed it, while collision, dodge, time and cut-off bonuses remain.
 const STARTING_SURVIVORS = 5_600_000_000;
 
 const TITLES = {
