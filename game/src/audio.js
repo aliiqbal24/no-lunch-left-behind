@@ -448,6 +448,17 @@ export class AudioEngine {
     }));
   }
 
+  prologueTransition() {
+    if (!this.ctx || !this.enabled) return;
+    this.noise(0.34, 0.052, 0, { filterType: 'bandpass', cutoff: 2100, q: 2.8, reverb: 0.2 });
+    this.tone(880, 0.18, 'square', 0.038, 0, -520, { cutoff: 2500, cutoffEnd: 430, pan: -0.45 });
+    this.tone(660, 0.2, 'square', 0.035, 0.08, -410, { cutoff: 2200, cutoffEnd: 360, pan: 0.45 });
+    this.tone(55, 0.72, 'sawtooth', 0.075, 0.02, 42, { attack: 0.02, release: 0.42, cutoff: 520, cutoffEnd: 980 });
+    [110, 164.81, 220, 329.63].forEach((note, index) => this.tone(note, 0.5, 'triangle', 0.035, 0.24 + index * 0.11, 8, {
+      attack: 0.018, release: 0.26, cutoff: 2200, reverb: 0.28, pan: (index - 1.5) * 0.26,
+    }));
+  }
+
   dockClunk() {
     this.tone(69, 0.48, 'square', 0.12, 0, -31, { cutoff: 620, reverb: 0.2 });
     this.noise(0.26, 0.075, 0.018, { filterType: 'bandpass', cutoff: 780, q: 1.5, reverb: 0.24 });

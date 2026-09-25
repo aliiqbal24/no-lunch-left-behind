@@ -15,14 +15,14 @@ The final Scene 3 pass reverified the eight station-facing modules together: pre
 
 ## External and generated files
 
-No external media files, stock assets, downloaded meshes, textures, or runtime CDNs are shipped in the game. Atlas imagery is used only as declared visual-development reference; every shipped 3D object remains editable Three.js recipe code.
+No stock media, downloaded meshes, third-party textures, or runtime CDNs are shipped in the game. Every 3D object remains editable Three.js recipe code. The opening cinematic additionally ships twelve original Atlas-generated raster frames, documented below.
 
-- Comic panels are original inline SVG assembled in `game/index.html`.
+- The emergency-transmission opening uses six paired Atlas images in `game/media/intro/`: a portrait 9:16 frame and landscape 16:9 frame for each shot. They are delivered as optimized local WebP files with responsive `<picture>` selection; no remote request is made at runtime.
 - The finale shows the original procedural Earth module through the station hub's code-built hemispherical viewport.
 - Billboard text is generated at runtime with Canvas 2D.
 - Chase streaks are original Canvas 2D lines at the screen edges; the denser road and corridor markers are original Three.js geometry in their asset modules.
 - The complete score and sound design are original and synthesized at runtime with the Web Audio API; no stock or third-party audio files ship. Three distinct generative scores combine scene-specific tempo, bass movement, arpeggios, evolving chords, industrial percussion, stereo placement, filtering, and procedural reverb. Continuous city sirens and machinery, spacecraft engine pressure, station ventilation/electrical beds, movement feedback, AI lock and orbital-net warnings, impacts, lasers, overrides, climb and docking cues, rocket liftoff, the master-switch power-down, and grade-specific results cues are built from oscillators and generated noise through separate music, ambience, and effects buses.
-- The final radio call uses the device's built-in Web Speech voice as a temporary pre-Atlas treatment, with complete subtitles for each survival outcome on screen.
+- The final radio call uses the device's built-in Web Speech voice, with complete subtitles for each survival outcome on screen.
 
 ## Atlas visual-development record
 
@@ -36,4 +36,6 @@ The project owner explicitly approved spending Atlas credits for the final scene
 - `review/atlas/scene3-code-red-hero.png` — 1536×2752, 16 credits. Scene 3 hero frame defining a monumental ribbed pressure corridor, exposed service trenches, security drones, live laser barriers, wounded Earth, and the master switch under controlled emergency red.
 - `review/atlas/scene3-active-passive-assets.png` — 2752×1536, 17 credits. Active/passive production sheet defining the same station before and after the physical cut-off: hostile red scan infrastructure and crisis damage give way to dark lasers, calm cyan life-support lines, and an unobstructed Earth view.
 
-The Atlas references are not packaged or rendered by the game. Their forms, hierarchy, palette, and detail language were translated into original procedural Three.js modules so the submission remains compliant with the 404 requirement that every shipped 3D object be editable recipe code. Recorded image-generation cost: 114 Atlas credits; Atlas may show small additional assistant-message overhead in the workspace ledger.
+The scene-pass references above are not packaged or rendered by the game. Their forms, hierarchy, palette, and detail language were translated into original procedural Three.js modules so every shipped 3D object remains editable recipe code.
+
+The final opening was generated directly in the same Atlas project as six responsive shot pairs (2K, Gemini 3 Pro Image, seed 404): **The Theft**, **The Wish**, **Remove the Variable**, **Code Red Cascade**, **Station 404**, and **Run to the Rocket**. Each pair contains a 9:16 portrait composition and a 16:9 landscape composition. The final landscape frame was regenerated once to remove an image defect. The twelve selected outputs are shipped in `game/media/intro/`; a review sheet is preserved at `review/intro-cinematic-assets.jpg`. Opening generation cost: 208 Atlas credits. Total recorded image-generation cost across the three scene passes and opening: 322 Atlas credits; Atlas may show small additional assistant-message overhead in the workspace ledger.

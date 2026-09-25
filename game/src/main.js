@@ -4,6 +4,13 @@ import { createRig } from '../lib/rig.js';
 import { screenFlightToWorld, SwipeInput } from './input.js';
 import { AudioEngine } from './audio.js';
 import { createChaseVisuals } from './chase_visuals.js';
+import {
+  PROLOGUE_DURATION,
+  PROLOGUE_FRAMES,
+  frameIndexAt,
+  hasSeenPrologue,
+  markPrologueSeen,
+} from './intro_sequence.js';
 import { calculateRating } from './results.js';
 import { calculateStakes, WORLD_POPULATION, START_HUMANITY } from './mission_stakes.js';
 import { finaleResponse, LOCK_START_SECONDS, LOCK_WARNING_SECONDS, OVERRIDE_RANGE, SPACE_NET } from './mission_cues.js';
@@ -16,7 +23,11 @@ const loadingFill = $('#loadingFill');
 const loadingText = $('#loadingText');
 const startScreen = $('#start');
 const startButton = $('#startb');
-const beginButton = $('#beginRun');
+const missionReady = $('#missionReady');
+const replayTransmission = $('#replayTransmission');
+const transmissionTime = $('#transmissionTime');
+const transmissionFrames = [...document.querySelectorAll('.transmission-frame')];
+const transmissionProgress = [...document.querySelectorAll('#transmissionProgress i')];
 const hud = $('#hud');
 const stick = $('#stick');
 const flightJoystick = $('#flightJoystick');
@@ -69,8 +80,6 @@ const resultsTime = $('#resultsTime');
 const resultsHits = $('#resultsHits');
 const resultsOverrides = $('#resultsOverrides');
 const playAgain = $('#playAgain');
-const comicPanels = [...document.querySelectorAll('.comic-panel')];
-const comicCount = $('#comicCount');
 const overrideControlHint = $('#overrideControlHint');
 
 const params = new URLSearchParams(location.search);
@@ -256,8 +265,8 @@ let fpsSamples = [];
 let patternIndex = 0;
 let spawnClock = 0;
 let tutorialStage = 0;
-let comicIndex = 0;
-let comicTimer = 0;
+let prologueToken = 0;
+let prologuePlaying = false;
 const introActorFrom = new THREE.Vector3();
 let introActorRotation = 0;
 let introHeadRotation = 0;
@@ -727,16 +736,84 @@ function showBanner(kicker, title, order) {
   sceneBanner.classList.add('show');
 }
 
-function showComic(index) {
-  comicIndex = (index + comicPanels.length) % comicPanels.length;
-  comicPanels.forEach((panel, i) => panel.classList.toggle('active', i === comicIndex));
-  comicCount.textContent = `${comicIndex + 1} / ${comicPanels.length}`;
+function activateTransmissionFrame(index) {
+  transmissionFrames.forEach((frame, frameIndex) => {
+    frame.classList.toggle('active', frameIndex === index);
+    frame.classList.toggle('previous', frameIndex === index - 1);
+    frame.setAttribute('aria-hidden', frameIndex === index ? 'false' : 'true');
+  });
+  transmissionProgress.forEach((segment, segmentIndex) => segment.classList.toggle('done', segmentIndex <= index));
 }
 
-function revealIntro() {
-  startScreen.classList.remove('intro-playing');
-  startScreen.classList.add('intro-revealed');
-  document.body.classList.remove('intro-playing');
+function updateTransmissionClock(elapsedMs) {
+  const totalSeconds = Math.min(PROLOGUE_DURATION, Math.max(0, elapsedMs)) / 1000;
+  const seconds = Math.floor(totalSeconds);
+  const frames = Math.floor((totalSeconds - seconds) * 24);
+  transmissionTime.textContent = `00:00:${String(seconds).padStart(2, '0')}:${String(frames).padStart(2, '0')}`;
+}
+
+function waitForTransmissionImage(index) {
+  const image = transmissionFrames[index]?.querySelector('img');
+  if (!image || (image.complete && image.naturalWidth > 0)) return Promise.resolve();
+  const decoded = typeof image.decode === 'function' ? image.decode().catch(() => {}) : new Promise((resolve) => {
+    image.addEventListener('load', resolve, { once: true });
+    image.addEventListener('error', resolve, { once: true });
+  });
+  return Promise.race([decoded, new Promise((resolve) => window.setTimeout(resolve, 1500))]);
+}
+
+function concealMissionReady() {
+  missionReady.classList.remove('revealed');
+  startScreen.classList.remove('mission-armed');
+  missionReady.hidden = true;
+  missionReady.inert = true;
+  missionReady.setAttribute('aria-hidden', 'true');
+}
+
+function revealMissionReady() {
+  activateTransmissionFrame(PROLOGUE_FRAMES.length - 1);
+  updateTransmissionClock(PROLOGUE_DURATION);
+  missionReady.hidden = false;
+  missionReady.inert = false;
+  missionReady.setAttribute('aria-hidden', 'false');
+  startScreen.classList.add('mission-armed');
+  missionReady.classList.add('revealed');
+}
+
+async function playPrologue({ remember = true } = {}) {
+  const token = ++prologueToken;
+  prologuePlaying = true;
+  concealMissionReady();
+  transmissionFrames.forEach((frame) => { frame.querySelector('img').loading = 'eager'; });
+  activateTransmissionFrame(0);
+  updateTransmissionClock(0);
+  await waitForTransmissionImage(0);
+  if (token !== prologueToken) return;
+  loading.classList.remove('visible');
+  startScreen.classList.add('visible');
+  const started = performance.now();
+  let activeFrame = 0;
+  await new Promise((resolve) => {
+    const tick = (now) => {
+      if (token !== prologueToken) return resolve();
+      const elapsed = Math.min(PROLOGUE_DURATION, now - started);
+      const nextFrame = frameIndexAt(elapsed);
+      if (nextFrame !== activeFrame) {
+        activeFrame = nextFrame;
+        activateTransmissionFrame(activeFrame);
+      }
+      updateTransmissionClock(elapsed);
+      if (elapsed >= PROLOGUE_DURATION) return resolve();
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+  if (token !== prologueToken) return;
+  if (remember) {
+    try { markPrologueSeen(window.localStorage); }
+    catch { /* Storage is optional; the cinematic still completed. */ }
+  }
+  prologuePlaying = false;
 }
 
 function showHazardHint() {
@@ -855,12 +932,12 @@ function resetRun() {
 }
 
 function startGame() {
-  if (state.mode !== 'ready' || startScreen.classList.contains('exiting')) return;
+  if (state.mode !== 'ready' || prologuePlaying || startScreen.classList.contains('exiting')) return;
   state.shot = null;
   state.passage = '';
   state.finaleElapsed = 0;
   state.finalePanStarted = false;
-  clearInterval(comicTimer);
+  prologueToken += 1;
   document.body.classList.remove('intro-playing');
   const firstAct = ['city', 'space', 'station'].includes(START_SCENE) ? START_SCENE : 'city';
   const fromIntro = firstAct === 'city' && !REDUCED_MOTION;
@@ -881,7 +958,7 @@ function startGame() {
   resetRun();
   state.paused = false;
   audio.setPaused(false);
-  audio.start();
+  void audio.start().then(() => audio.prologueTransition());
   startAct(firstAct, fromIntro);
 }
 
@@ -2147,13 +2224,12 @@ function resize() {
 
 window.addEventListener('resize', resize);
 startButton.addEventListener('click', startGame);
-startButton.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter' || event.key === ' ') {
-    event.preventDefault();
-    startGame();
-  }
+replayTransmission.addEventListener('click', async () => {
+  if (prologuePlaying || state.mode !== 'ready') return;
+  document.body.classList.add('intro-playing');
+  await playPrologue({ remember: false });
+  if (state.mode === 'ready') revealMissionReady();
 });
-beginButton.addEventListener('click', startGame);
 climbTap.addEventListener('click', registerClimbTap);
 climbScreen.addEventListener('pointerdown', (event) => {
   if (event.target !== climbTap) registerClimbTap();
@@ -2171,8 +2247,6 @@ window.addEventListener('keydown', (event) => {
     setDevPaused(!state.paused);
   }
 });
-$('#comicPrev').addEventListener('click', () => showComic(comicIndex - 1));
-$('#comicNext').addEventListener('click', () => showComic(comicIndex + 1));
 muteButton.addEventListener('click', () => {
   const enabled = audio.toggle();
   muteButton.textContent = enabled ? 'SOUND ON' : 'SOUND OFF';
@@ -2194,20 +2268,29 @@ window.__SKIP__ = () => {
 };
 window.__GAME__ = { pos: [0, 0], fps: 0, speed: 0, score: 0, over: false, draws: 0, tris: 0 };
 
-loadAssets().then(() => {
-  state.mode = 'ready';
+let returningPlayer = Boolean(START_SCENE);
+try { returningPlayer ||= hasSeenPrologue(window.localStorage); }
+catch { /* Some embedded browsers deny storage; treat them as a first visit. */ }
+const prologuePromise = returningPlayer ? Promise.resolve() : playPrologue();
+let readyFramePromise = Promise.resolve();
+if (returningPlayer) {
+  const finalFrameIndex = PROLOGUE_FRAMES.length - 1;
+  transmissionFrames[finalFrameIndex].querySelector('img').loading = 'eager';
+  activateTransmissionFrame(finalFrameIndex);
+  readyFramePromise = waitForTransmissionImage(finalFrameIndex);
+}
+
+const assetsPromise = loadAssets().then(() => {
   resetWorld('city');
   player.visible = true;
   updateIntroCity();
+});
+
+Promise.all([assetsPromise, prologuePromise, readyFramePromise]).then(() => {
+  state.mode = 'ready';
   loading.classList.remove('visible');
   startScreen.classList.add('visible');
-  showComic(0);
-  let comicTurns = 0;
-  comicTimer = window.setInterval(() => {
-    showComic(comicIndex + 1);
-    comicTurns += 1;
-    if (comicTurns === comicPanels.length) revealIntro();
-  }, 2300);
+  revealMissionReady();
   window.__READY__ = true;
 }).catch((error) => {
   console.error(error);

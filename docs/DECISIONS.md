@@ -99,6 +99,16 @@ Record decisions while they are fresh. This is both a guard against scope drift 
 - Atlas Scene 3 cost was 33 image credits, bringing recorded visual-development generation to 114 credits. Atlas outputs remain references only; no generated raster or mesh is loaded by the game.
 - Deployment remains unapproved and was not changed.
 
+## 2026-09-25 — Atlas emergency-transmission opening
+
+- Replaced the four-panel comic with a mandatory first-run emergency transmission: six timed shots, twelve responsive Atlas compositions, kinetic captions, code-red broadcast graphics, and a final match-cut into the existing launch hub.
+- Story order is now explicit: stolen lunch, frustrated wish, AI inference, human-removal cascade, failed remote shutdown, then the physical master switch aboard Station 404. The office joke becomes the cause of the apocalypse rather than a detached briefing.
+- The sequence is exactly 16 seconds so it can deliver a premium cinematic opening while remaining inside the jam's 20-second readiness gate. Returning players land on the final mission frame immediately and retain a replay control.
+- Portrait and landscape art are separate authored compositions rather than crops. All twelve selected Atlas images ship as optimized local WebPs; the final landscape frame was regenerated once to remove an image defect. Opening cost was 208 Atlas credits, bringing total recorded Atlas image generation to 322 credits.
+- Accessibility and input decisions: reduced-motion removes decorative animation but preserves the story; the mission button is hidden and inert until the transmission completes; storage failures safely fall back to first-run behavior.
+- Evidence: 18 unit tests and syntax/diff checks pass. Fresh, returning, replay, portrait, landscape, reduced-motion, and City-start browser paths pass with no application errors. The official throttled 390×844 phone gate passes at 19.7 seconds ready, 2.9 MB compressed, 773 peak draws, 290,836 peak triangles, zero errors, and zero 404s.
+- Deployment remains unapproved and was not changed.
+
 ## Decision template
 
 ### YYYY-MM-DD — Decision
