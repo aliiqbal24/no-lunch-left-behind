@@ -606,6 +606,15 @@ export class AudioEngine {
     }));
   }
 
+  resultStat(index) {
+    // Four restrained confirmation ticks follow the visual readouts, not every character.
+    const note = [587.33, 659.25, 783.99, 880][index] || 587.33;
+    this.tone(note, 0.085, 'sine', 0.022, 0, 24, {
+      attack: 0.003, release: 0.064, cutoff: 2900, pan: (index - 1.5) * 0.23,
+    });
+    this.noise(0.035, 0.007, 0, { filterType: 'bandpass', cutoff: 3800, q: 2.1 });
+  }
+
   masterSwitch() {
     this.act = 'silence';
     this.stopAmbience(1.1);

@@ -84,6 +84,8 @@ const resultsDodged = $('#resultsDodged');
 const resultsTime = $('#resultsTime');
 const resultsHits = $('#resultsHits');
 const resultsOverrides = $('#resultsOverrides');
+const resultReadouts = [resultsPeople, resultsDodged, resultsTime, resultsHits]
+  .map(output => ({ card: output.closest('.results-stat'), output }));
 const playAgain = $('#playAgain');
 const overrideControlHint = $('#overrideControlHint');
 
@@ -2020,15 +2022,27 @@ function formatMissionTime(seconds) {
 }
 
 function updateResultCounters(dt) {
-  state.resultsRevealElapsed = Math.min(0.85, state.resultsRevealElapsed + dt);
-  const progress = REDUCED_MOTION ? 1 : state.resultsRevealElapsed / 0.85;
-  const eased = 1 - (1 - progress) ** 3;
-  const people = Math.round(state.survivors * eased);
-  resultsPeople.textContent = compactPeople.format(people);
-  resultsPeopleExact.textContent = `${people.toLocaleString('en-US')} PEOPLE`;
-  resultsDodged.textContent = Math.round(state.obstaclesDodged * eased).toLocaleString('en-US');
-  resultsTime.textContent = formatMissionTime(state.missionTimeFinal * eased);
-  resultsHits.textContent = Math.round(state.hits * eased).toLocaleString('en-US');
+  if (state.resultsRevealElapsed >= 2) return;
+  state.resultsRevealElapsed = Math.min(2, state.resultsRevealElapsed + dt);
+  const values = [
+    compactPeople.format(state.survivors),
+    state.obstaclesDodged.toLocaleString('en-US'),
+    formatMissionTime(state.missionTimeFinal),
+    state.hits.toLocaleString('en-US'),
+  ];
+  resultReadouts.forEach(({ card, output }, index) => {
+    const start = 0.46 + index * 0.33;
+    const progress = REDUCED_MOTION ? 1 : Math.min(1, Math.max(0, (state.resultsRevealElapsed - start) / 0.24));
+    if (progress > 0 && !card.classList.contains('revealed')) {
+      card.classList.add('revealed');
+      if (!REDUCED_MOTION) audio.resultStat(index);
+    }
+    const value = values[index];
+    const letters = Math.ceil(value.length * progress);
+    output.textContent = letters ? value.slice(0, letters) : '—';
+  });
+  resultsPeopleExact.textContent = REDUCED_MOTION || state.resultsRevealElapsed >= 0.7
+    ? `${state.survivors.toLocaleString('en-US')} PEOPLE` : '';
   const secured = (state.overrides.city === 'done' ? 1 : 0) +
     (state.overrides.station === 'done' ? 1 : 0);
   resultsOverrides.textContent = secured
@@ -2049,10 +2063,11 @@ function revealResults() {
       (state.overrides.station === 'done' ? 1 : 0),
   });
   resultsCard.dataset.grade = state.rating.grade;
+  resultReadouts.forEach(({ card }) => card.classList.remove('revealed'));
   resultsGrade.textContent = state.rating.grade;
   resultsTitle.textContent = state.rating.title;
   resultsScore.textContent = `${state.rating.score} / 100`;
-  updateResultCounters(REDUCED_MOTION ? 0.85 : 0);
+  updateResultCounters(0);
   resultsCard.inert = false;
   resultsCard.setAttribute('aria-hidden', 'false');
   finale.classList.add('done');
