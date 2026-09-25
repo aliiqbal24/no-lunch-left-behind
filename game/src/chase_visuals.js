@@ -61,7 +61,7 @@ export function createChaseVisuals({ camera, baseFov, reducedMotion = false }) {
     }
   }
 
-  function update({ dt, active, paused = false, act, distance, targetX, player, playerJoints, ship, jumpY = 0, slide = 0 }) {
+  function update({ dt, active, paused = false, act, targetX, player, ship }) {
     if (paused) return;
     const moving = active && dt > 0;
     const chaseFov = reducedMotion ? standardFov : standardFov + (act === 'space' ? 5 : 4);
@@ -95,18 +95,6 @@ export function createChaseVisuals({ camera, baseFov, reducedMotion = false }) {
     if (act === 'space' && ship && !reducedMotion) {
       const desiredShipBank = Math.max(-0.42, Math.min(0.42, -laneError * 0.3));
       ship.rotation.z += (desiredShipBank - ship.rotation.z) * (1 - Math.exp(-dt * 10));
-    } else if (act !== 'space' && player && playerJoints) {
-      // The feet move more often for the same world distance; this is purely pose.
-      const cycle = distance * 0.43;
-      const step = Math.sin(cycle);
-      playerJoints.leftLeg.rotation.x = step * 0.78;
-      playerJoints.rightLeg.rotation.x = -step * 0.78;
-      playerJoints.leftArm.rotation.x = -step * 0.7;
-      playerJoints.rightArm.rotation.x = step * 0.7;
-      playerJoints.torso.rotation.z = Math.sin(cycle * 0.5) * 0.04;
-      if (!reducedMotion && jumpY <= 0 && slide <= 0) {
-        player.position.y += Math.abs(Math.sin(cycle)) * 0.045;
-      }
     }
     wasActive = true;
   }

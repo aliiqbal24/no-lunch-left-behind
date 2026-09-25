@@ -4,6 +4,7 @@ import { createRig } from '../lib/rig.js';
 import { screenFlightToWorld, SwipeInput } from './input.js';
 import { AudioEngine } from './audio.js';
 import { createChaseVisuals } from './chase_visuals.js';
+import { createCharacterMotion, setCharacterOutfit } from './character_motion.js';
 import { poseBreakroom } from './intro_scene.js';
 import {
   PROLOGUE_DURATION,
@@ -231,8 +232,16 @@ const state = {
 };
 
 let chaseVisuals = null;
+const characterMotion = createCharacterMotion();
 let player;
 let playerJoints;
+let playerOutfit = 'office';
+
+function setPlayerOutfit(outfit) {
+  if (!player || playerOutfit === outfit) return;
+  setCharacterOutfit(player, outfit);
+  playerOutfit = outfit;
+}
 let introRoom;
 let introCoworker;
 let ship;
@@ -343,7 +352,7 @@ function bakePreserving(root, preservedNames) {
 async function loadAssets() {
   setLoad(8, 'authorising unscheduled heroism…');
   const [playerAsset, shipAsset, boxy, spider, roller, roomAsset, coworkerAsset] = await Promise.all([
-    ASSET(assetUrl('player_hoodie'), { keepHierarchy: true }),
+    ASSET(assetUrl('player_hero'), { keepHierarchy: true }),
     ASSET(assetUrl('player_ship'), { keepHierarchy: true }),
     ASSET(assetUrl('robot_boxy')),
     ASSET(assetUrl('robot_spider')),
@@ -784,6 +793,7 @@ function showIntroBeat(index) {
 }
 
 function startPrologue() {
+  setPlayerOutfit('office');
   state.mode = 'intro';
   state.introElapsed = 0;
   state.introBeatIndex = -1;
@@ -988,6 +998,7 @@ function startGame() {
 }
 
 function startAct(name, fromIntro = false, fromTransition = false) {
+  if (name !== 'space') setPlayerOutfit(name === 'station' ? 'suit' : 'office');
   const act = ACTS[name];
   state.mode = 'playing';
   state.act = name;
@@ -1103,6 +1114,7 @@ function resetWorld(name, preserveCamera = false) {
   }
   player.scale.setScalar(1.02);
   if (playerJoints && !preserveCamera) {
+    characterMotion.reset(playerJoints);
     playerJoints.head.rotation.y = 0;
     playerJoints.torso.rotation.y = 0;
     playerJoints.leftArm.rotation.x = 0;
@@ -1297,17 +1309,12 @@ function updateActor(dt) {
   }
   state.slide = Math.max(0, state.slide - dt);
 
-  player.position.y = 0.2 + state.jumpY - (state.slide > 0 ? 0.18 : 0);
+  const pose = characterMotion.update({ joints: playerJoints, distance: state.distance,
+    jumpY: state.jumpY, jumpVelocity: state.jumpVelocity, slide: state.slide,
+    dt, reducedMotion: REDUCED_MOTION });
+  player.position.y = 0.2 + state.jumpY - (state.slide > 0 ? 0.18 : 0) + pose.bob;
   player.scale.y = THREE.MathUtils.damp(player.scale.y, state.slide > 0 ? 0.68 : 1.02, 18, dt);
   player.scale.x = THREE.MathUtils.damp(player.scale.x, state.slide > 0 ? 1.16 : 1.02, 18, dt);
-  const cycle = state.distance * 0.28;
-  if (playerJoints) {
-    playerJoints.leftLeg.rotation.x = Math.sin(cycle) * 0.68;
-    playerJoints.rightLeg.rotation.x = -Math.sin(cycle) * 0.68;
-    playerJoints.leftArm.rotation.x = -Math.sin(cycle) * 0.62;
-    playerJoints.rightArm.rotation.x = Math.sin(cycle) * 0.62;
-    playerJoints.torso.rotation.z = Math.sin(cycle * 0.5) * 0.035;
-  }
   player.rotation.z = THREE.MathUtils.damp(player.rotation.z, (targetX - player.position.x) * -0.08, 10, dt);
   actor.position.z = THREE.MathUtils.damp(actor.position.z, 0, 6, dt);
 }
@@ -1684,7 +1691,7 @@ function updateCamera(dt) {
       const t = THREE.MathUtils.smoothstep(2 - state.lookBack, 1.25, 2);
       const openingPosition = new THREE.Vector3().lerpVectors(
         new THREE.Vector3(0, 2.9, 6.8),
-        new THREE.Vector3(0, portrait ? 4.5 : 4.1, portrait ? -8.8 : -10.6),
+        new THREE.Vector3(0, portrait ? 4.1 : 3.8, portrait ? -7.8 : -9.2),
         t,
       );
       const openingTarget = new THREE.Vector3(0, 1.1, THREE.MathUtils.lerp(-4, 9, t));
@@ -1701,13 +1708,13 @@ function updateCamera(dt) {
     }
     const y = state.act === 'space'
       ? (portrait ? 4.1 : 3.7) + (actor.position.y - 3.1) * 0.22
-      : (portrait ? 4.5 : 4.1);
-    const z = state.act === 'space' ? (portrait ? -11.8 : -10.3) : (portrait ? -8.8 : -10.6);
+      : (portrait ? 4.1 : 3.8);
+    const z = state.act === 'space' ? (portrait ? -11.8 : -10.3) : (portrait ? -7.8 : -9.2);
     const desired = new THREE.Vector3(actor.position.x * (state.act === 'space' ? 0.2 : 0.14), y, z);
     camera.position.lerp(desired, 1 - Math.exp(-dt * 6));
     pointCamera(new THREE.Vector3(actor.position.x * 0.12,
       state.act === 'space' ? 2.65 + (actor.position.y - 3.1) * 0.45 : 1.1 + state.jumpY * 0.18,
-      state.act === 'space' ? 10.5 : 9.5));
+      state.act === 'space' ? 10.5 : 8.5));
   } else if (state.mode === 'climb') {
     const y = 7.2 + state.climbProgress * 16.5;
     camera.position.lerp(new THREE.Vector3(14.5, y, climbAnchorZ - 21), 1 - Math.exp(-dt * 4));
@@ -1928,7 +1935,7 @@ function beginStationExit() {
   state.mode = 'stationEntry';
   state.passage = 'dockOut';
   startShot(PASSAGE_DURATION,
-    new THREE.Vector3(0, innerWidth / innerHeight < 0.8 ? 4.5 : 4.1, innerWidth / innerHeight < 0.8 ? -8.8 : -10.6),
+    new THREE.Vector3(0, innerWidth / innerHeight < 0.8 ? 4.1 : 3.8, innerWidth / innerHeight < 0.8 ? -7.8 : -9.2),
     new THREE.Vector3(0, 1.1, 9.5),
     () => { uncoverPassage(); revealAct('station'); });
   syncDevPause();
@@ -2199,7 +2206,7 @@ function frame(now) {
     act: state.act,
     distance: state.distance,
     targetX: state.act === 'space' ? ship.position.x : LANES[state.targetLane + 1],
-    player, playerJoints, ship,
+    player, ship,
     jumpY: state.jumpY, slide: state.slide,
   });
   rig.render(camera, state.paused ? 0 : rawDt);
@@ -2244,7 +2251,8 @@ function resize() {
     : 50;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight, false);
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, innerWidth < 700 ? 1.25 : 1.5, Math.sqrt(4_500_000 / (innerWidth * innerHeight))));
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5,
+    Math.sqrt(4_500_000 / (innerWidth * innerHeight))));
   rig.resize(innerWidth, innerHeight);
   chaseVisuals?.setBaseFov(camera.fov);
 }

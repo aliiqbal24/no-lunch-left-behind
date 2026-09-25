@@ -1,10 +1,10 @@
 # No free lunch theorem — locked style
 
-> Chunky toy-like forms with rounded silhouettes, bevelled mechanical parts, soft plastic and painted-metal finishes, golden-hour warmth, and expressive shapes readable instantly on a phone.
+> Rounded retro-futurist architecture and readable silhouettes, with a refined human-proportioned hero. Bevelled mechanical parts, tactile fabric and painted metal, golden-hour warmth, and expressive shapes remain readable instantly on a phone.
 
 | role | hex | where it belongs |
 |---|---|---|
-| hoodie yellow | `0xF6C453` | player hero colour, guidance |
+| hero ochre | `0xF6C453` | business-casual overshirt, suit identity accents, guidance |
 | deep teal | `0x1F4E5F` | road shadows, clothing, structure |
 | robot ivory | `0xF7F3E8` | robot shells, station panels |
 | hazard orange | `0xFF6B4A` | obstacles, sparks, warning props |
@@ -22,5 +22,6 @@
 - Flat colours with sensible roughness; procedural surfaces are applied at load time.
 - Material names use only `plaster`, `stone`, `timber`, `tile`, `metal`, `fabric`, `foliage`, and `ground`.
 - Silhouettes stay rounded, asymmetrical, and readable. Small surface decoration never carries identity.
-- The player is an original hoodie-wearing human, not a copy of a trademarked character.
+- The player is an original ordinary adult man: ochre open-collar overshirt, ivory undershirt, tapered teal chinos, and practical shoes through the office and City; a face-visible ivory/teal pressure suit only after he exits the spacecraft at Station 404.
+- Both outfits use the same articulated proportions and face. The outfit changes under the docking bulkhead occlusion; gameplay motion is owned by one character controller.
 - No gore. Catastrophe is communicated through numbers, smoke, props, and cheerful bureaucracy.
