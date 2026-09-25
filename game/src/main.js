@@ -116,9 +116,12 @@ const OVERRIDE_EVENTS = {
   station: { at: 215, lane: 1, label: 'STATION SAFETY BREAKER', saved: 'STATION GRID ISOLATED · 400M LIVES PROTECTED' },
 };
 const compactPeople = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
-const crowdPeople = Array.from({ length: 25 }, () => {
+const crowdPeople = Array.from({ length: 25 }, (_, index) => {
   const person = document.createElement('span');
   person.className = 'population-person';
+  person.innerHTML = `<svg viewBox="0 0 13 17" focusable="false" aria-hidden="true"><use href="#crowd-run-${index % 3}"></use></svg>`;
+  person.style.setProperty('--run-delay', `${-(index % 7) * 0.13}s`);
+  person.style.setProperty('--run-speed', `${0.72 + (index % 5) * 0.08}s`);
   populationCrowd.append(person);
   return person;
 });
@@ -1238,8 +1241,14 @@ function hitObstacle(item) {
   setTimeout(() => humanityFill.classList.remove('impact'), 260);
   updateHumanity();
   robotAdvance.classList.remove('firing');
+  populationCrowd.classList.remove('startled');
   void robotAdvance.offsetWidth;
   robotAdvance.classList.add('firing');
+  populationCrowd.classList.add('startled');
+  setTimeout(() => {
+    robotAdvance.classList.remove('firing');
+    populationCrowd.classList.remove('startled');
+  }, 650);
 }
 
 function updateHumanity() {
@@ -1263,7 +1272,9 @@ function updateHumanity() {
     humanityTrack.setAttribute('aria-valuetext', valueText);
   }
   humanityFill.style.width = `${visibleHumanity}%`;
-  robotAdvance.style.left = `${Math.min(95, Math.max(5, 100 - visibleHumanity))}%`;
+  // Leave the final runner visible beside the much larger walker at the 256-person floor.
+  robotAdvance.style.left = `${Math.min(90, Math.max(5, 100 - visibleHumanity))}%`;
+  populationCrowd.classList.toggle('last-survivor', atFloor);
   crowdPeople.forEach((person, index) => {
     person.classList.toggle('gone', index < crowdPeople.length - survivingIcons);
   });
@@ -1349,6 +1360,10 @@ function tryOverride() {
   }
   audio.override();
   updateHumanity();
+  robotAdvance.classList.remove('recoiling');
+  void robotAdvance.offsetWidth;
+  robotAdvance.classList.add('recoiling');
+  setTimeout(() => robotAdvance.classList.remove('recoiling'), 700);
 }
 
 function updateOverride() {
