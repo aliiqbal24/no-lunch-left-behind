@@ -1,78 +1,51 @@
-# 404 Game Jam Submission
+# No Lunch Left Behind
 
-Ali Iqbal's playable entry for the 404 Game Jam 001.
+A missing lunch. A very literal robot coworker. An entirely disproportionate apocalypse.
 
-## Mission
+A mobile-first Three.js game built for 404 Game Jam 001: leave the office, escape through a city, fly to an orbital station, and reach the master switch.
 
-Create a mobile-first Three.js game that is immediately understandable, satisfying under one finger, visually authored, and built around one memorable idea that other entries are unlikely to attempt.
+**[Play in your browser](https://no-lunch-left-behind.vercel.app)**
 
-The goal is not maximum scope. The goal is a small, unusually polished game with a strong answer to all four judging questions:
+![City scene from a recorded development build](review/full-game-city.png)
 
-1. Is it good to play? — 40%
-2. Does it look like a made thing? — 30%
-3. What did it find that nobody else tried? — 20%
-4. How was it made, with receipts? — 10%
+*Development capture from this repository. The hosted game is a separately deployed build; this image does not certify that the current source and hosted version are identical.*
 
-## Current status
+## What I built
 
-- GitHub account connected: `aliiqbal24`
-- Atlas jam workspace: accessible; 2,600 credits claimed (2,000 campaign + 600 trial)
-- Vercel: connected; production remains on the last approved build while development is local
-- Concept: **No free lunch theorem** — cheerful robot bureaucracy causes the apocalypse over a stolen lunch
-- Source repository: https://github.com/aliiqbal24/no-lunch-left-behind
-- First eligible commit: `3011074` (after the jam cutoff)
-- Current local build: complete three-scene Atlas-directed game, playable from the 3D breakroom opening to the Earth call
-- Live game: https://no-lunch-left-behind.vercel.app
-- Gate status: the prior transmission build passed the official mobile harness; the new local 3D opening requires its own exact-commit public gate before release
-- Submission deadline: 25 September 2026, 23:59 UTC / 17:59 Edmonton time
+The project brings together a comic premise, procedural Three.js scenes, character animation, touch and keyboard controls, synthesized audio, and a continuous story across city, space, and station sequences. It was developed with AI-assisted asset and coding workflows; [asset provenance](docs/ASSET_PROVENANCE.md) records the creative process and sources.
 
-## Play
+The design challenge was keeping the next action legible on a small screen while the scale of the story keeps growing. Scene transitions, cues, and the ending are part of the game, rather than separate menus.
 
-Serve the `game/` directory with any static web server and open it on a phone-sized viewport. The build is fully local: no CDN, runtime API, or external asset requests.
+## Run locally
 
-Controls:
+No package installation or runtime API key is needed. With Python 3:
 
-- Swipe left/right to change lanes.
-- Swipe up to jump.
-- Swipe down to slide.
-- Keyboard fallback: arrows or WASD.
+```bash
+python -m http.server 8080 --directory game
+```
 
-For current scene review, open the [local development build](http://localhost:8080/__game__/game/) and refresh after edits. It reveals a small pause/resume button during runs and interludes; `P` toggles it on a keyboard. The public Vercel URL can lag local development by design. `?dev=1` reveals the pause button on a non-local preview.
+Open <http://localhost:8080>. Use a phone-sized viewport to try the touch controls.
 
-The complete run is a compact five-part story:
+Ground sections use swipes to change lanes, jump, and slide; keyboard controls use arrows or WASD. Space flight uses a drag joystick or held directional keys. Follow the on-screen prompts for scene-specific interactions.
 
-1. **3D breakroom opening** — a hungry worker opens an empty fridge, blames lunch theft, and storms out. His suited robot coworker calmly devises a catastrophic answer; red eyes, alarms, and the Station 404 mission follow. First-run players can play immediately or watch the whole scene; returning players can replay it.
-2. **City Run** — survive 25 seconds of weaponized office and household objects, then reach the rocket.
-3. **Rocket ladder and Space Flight** — tap to climb, then dodge satellites and debris for 25 seconds.
-4. **Docking and Station Corridor** — connect with questionable confidence, then run for the master switch.
-5. **Finale** — stop the robots and take Earth's audio call.
+## Engineering and verification
 
-There is no game-over interruption: hits cost three percentage points of humanity, but the story always reaches its ending. The deliberately absurd worst-case floor is exactly 256 survivors.
+The game ships as static files with local assets. Small modules separate input, animation, mission rules, and results from scene orchestration.
 
-## Project documents
+Run the existing Node.js tests:
 
-- [Current task board](docs/NOW.md)
-- [Parallel Codex workflow](docs/COLLABORATION.md)
-- [Submission plan](docs/SUBMISSION_PLAN.md)
-- [Rules checklist](docs/RULES_CHECKLIST.md)
-- [Concept scorecard](docs/CONCEPT_SCORECARD.md)
-- [Decision log](docs/DECISIONS.md)
-- [Services and deployment](docs/SERVICES.md)
-- [Visual style lock](docs/STYLE_LOCK.md)
+```bash
+node --test tests/*.test.mjs
+```
+
+These cover input mapping, character motion, story timing, mission stakes, collision audio, boarding, and result grading. They complement playtesting; they do not establish a public mobile performance-gate pass.
+
+## Explore further
+
+- [Development review captures](review/README.md)
 - [Asset provenance](docs/ASSET_PROVENANCE.md)
-- [Full-game review packet](review/README.md)
+- [Creative decisions](docs/DECISIONS.md)
+- [Jam-era README and submission context](docs/JAM_HISTORY.md)
+- [Build coordination and recorded verification](docs/NOW.md)
 
-## Non-negotiable creative principles
-
-- The player understands the interaction in under ten seconds.
-- The core loop works with one real finger on a phone.
-- The first moving frame already has a recognizable visual identity.
-- The novelty is part of play, not merely lore or production technique.
-- Every 3D object is generated as editable Three.js code through the 404 recipe.
-- We cut features before sacrificing responsiveness, clarity, or the gate.
-
-## Official references
-
-- Rules: https://github.com/404-Repo/404-game-jam
-- Recipe and harness: https://github.com/404-Repo/404-game-recipe
-- Atlas jam credits: https://app.atlas.design/campaign/404-game-jam
+Public hosting remains separate from source updates. Historical performance observations apply to the builds identified in the development records.
